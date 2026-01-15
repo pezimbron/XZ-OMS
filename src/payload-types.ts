@@ -6,10 +6,66 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * Supported timezones in IANA format.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supportedTimezones".
+ */
+export type SupportedTimezones =
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
+
 export interface Config {
   auth: {
     users: UserAuthOperations;
   };
+  blocks: {};
   collections: {
     pages: Page;
     posts: Post;
@@ -17,10 +73,16 @@ export interface Config {
     categories: Category;
     users: User;
     comments: Comment;
+    clients: Client;
+    technicians: Technician;
+    products: Product;
+    equipment: Equipment;
+    jobs: Job;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
     search: Search;
+    'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -33,10 +95,16 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
+    clients: ClientsSelect<false> | ClientsSelect<true>;
+    technicians: TechniciansSelect<false> | TechniciansSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    equipment: EquipmentSelect<false> | EquipmentSelect<true>;
+    jobs: JobsSelect<false> | JobsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -44,6 +112,7 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
+  fallbackLocale: null;
   globals: {
     header: Header;
     footer: Footer;
@@ -92,7 +161,7 @@ export interface Page {
       root: {
         type: string;
         children: {
-          type: string;
+          type: any;
           version: number;
           [k: string]: unknown;
         }[];
@@ -114,6 +183,9 @@ export interface Page {
             } | null;
             url?: string | null;
             label: string;
+            /**
+             * Choose how the link should be rendered.
+             */
             appearance?: ('default' | 'outline') | null;
           };
           id?: string | null;
@@ -124,6 +196,9 @@ export interface Page {
   layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -145,7 +220,7 @@ export interface Media {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -227,7 +302,7 @@ export interface CallToActionBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -249,6 +324,9 @@ export interface CallToActionBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -270,7 +348,7 @@ export interface ContentBlock {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -291,6 +369,9 @@ export interface ContentBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -319,7 +400,7 @@ export interface ArchiveBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -374,7 +455,7 @@ export interface Post {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -389,6 +470,9 @@ export interface Post {
   categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -413,6 +497,7 @@ export interface Post {
 export interface User {
   id: number;
   name?: string | null;
+  role: 'super-admin' | 'sales-admin' | 'ops-manager' | 'tech' | 'client-partner' | 'post-producer';
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -422,6 +507,13 @@ export interface User {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
@@ -435,7 +527,7 @@ export interface FormBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -492,7 +584,7 @@ export interface Form {
               root: {
                 type: string;
                 children: {
-                  type: string;
+                  type: any;
                   version: number;
                   [k: string]: unknown;
                 }[];
@@ -522,6 +614,7 @@ export interface Form {
             label?: string | null;
             width?: number | null;
             defaultValue?: string | null;
+            placeholder?: string | null;
             options?:
               | {
                   label: string;
@@ -566,12 +659,15 @@ export interface Form {
       )[]
     | null;
   submitButtonLabel?: string | null;
+  /**
+   * Choose whether to display an on-page message or redirect to a different page after they submit the form.
+   */
   confirmationType?: ('message' | 'redirect') | null;
   confirmationMessage?: {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -585,6 +681,9 @@ export interface Form {
   redirect?: {
     url: string;
   };
+  /**
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
   emails?:
     | {
         emailTo?: string | null;
@@ -593,11 +692,14 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * Enter the message that should be sent in this email.
+         */
         message?: {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -615,6 +717,8 @@ export interface Form {
   createdAt: string;
 }
 /**
+ * Comments submitted by visitors on blog posts
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
@@ -626,8 +730,164 @@ export interface Comment {
     email: string;
   };
   post: number | Post;
+  /**
+   * Comments must be approved before they appear publicly
+   */
   isApproved?: boolean | null;
   publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clients".
+ */
+export interface Client {
+  id: number;
+  name: string;
+  clientType: 'retail' | 'outsourcing-partner';
+  billingPreference: 'immediate' | 'weekly-batch' | 'monthly-batch' | 'payment-first';
+  email?: string | null;
+  phone?: string | null;
+  companyName?: string | null;
+  billingAddress?: string | null;
+  notes?: string | null;
+  /**
+   * Client-specific instructions that will auto-populate in the "General Instructions for Tech" field when this client is selected for a job. Use for recurring client requirements (e.g., "Always call POC 30 min before arrival").
+   */
+  instructionTemplate?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "technicians".
+ */
+export interface Technician {
+  id: number;
+  name: string;
+  email: string;
+  type: 'commission' | 'w2' | 'partner';
+  baseCommissionRate?: number | null;
+  phone?: string | null;
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  name: string;
+  category: 'capture-service' | 'documentation-product' | 'logistics-fee';
+  unitType: 'flat' | 'per-sq-ft' | 'per-hour' | 'per-day' | 'per-item';
+  basePrice: number;
+  isRecurring?: boolean | null;
+  requiresVendor?: boolean | null;
+  description?: string | null;
+  /**
+   * Default instructions that will auto-populate when this product is added to a job. Can be customized per-job.
+   */
+  defaultInstructions?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipment".
+ */
+export interface Equipment {
+  id: number;
+  label: string;
+  assetId: string;
+  type: 'camera' | 'drone' | 'lidar' | 'other';
+  lastCalibrationDate?: string | null;
+  nextMaintenanceDue?: string | null;
+  assignedTo?: (number | null) | Technician;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs".
+ */
+export interface Job {
+  id: number;
+  jobId?: string | null;
+  modelName: string;
+  priority?: ('low' | 'normal' | 'high' | 'rush') | null;
+  status: 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+  /**
+   * For outsourced jobs, this is the partner (e.g., Matterport). For direct jobs, this is the actual client.
+   */
+  client: number | Client;
+  /**
+   * The actual end client when job is outsourced (e.g., "Spencer Technologies (4)")
+   */
+  endClientName?: string | null;
+  /**
+   * Company name only, for filtering and reporting
+   */
+  endClientCompany?: string | null;
+  tech?: (number | null) | Technician;
+  sitePOCName?: string | null;
+  sitePOCPhone?: string | null;
+  sitePOCEmail?: string | null;
+  captureAddress?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  sqFt?: number | null;
+  propertyType?: ('commercial' | 'residential' | 'industrial' | 'other') | null;
+  schedulingNotes?: string | null;
+  /**
+   * Geographic region for calendar color-coding
+   */
+  region?: ('austin' | 'san-antonio' | 'outsourced' | 'other') | null;
+  captureType?: ('matterport' | 'lidar' | 'drone' | 'other') | null;
+  equipment?: (number | null) | Equipment;
+  purposeOfScan?: string | null;
+  /**
+   * Overall instructions/notes for the technician assigned to this job
+   */
+  techInstructions?: string | null;
+  lineItems?:
+    | {
+        product: number | Product;
+        quantity: number;
+        /**
+         * Detailed instructions for completing this specific item
+         */
+        instructions?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  targetDate?: string | null;
+  scannedDate?: string | null;
+  /**
+   * Where to upload the main project files (e.g., Matterport scans)
+   */
+  uploadLink?: string | null;
+  /**
+   * Where to upload additional media (photos, videos, etc.)
+   */
+  mediaUploadLink?: string | null;
+  gasExpense?: number | null;
+  isOutsourced?: boolean | null;
+  vendorPrice?: number | null;
+  travelPayout?: number | null;
+  offHoursPayout?: number | null;
+  qcChecklist?: {
+    accuracyOk?: boolean | null;
+    coverageOk?: boolean | null;
+    fileNamingOk?: boolean | null;
+  };
+  qcStatus?: ('pending' | 'passed' | 'rejected') | null;
+  totalPrice?: number | null;
+  vendorCost?: number | null;
+  margin?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -637,6 +897,9 @@ export interface Comment {
  */
 export interface Redirect {
   id: number;
+  /**
+   * You will need to rebuild the website when changing this field.
+   */
   from: string;
   to?: {
     type?: ('reference' | 'custom') | null;
@@ -672,6 +935,8 @@ export interface FormSubmission {
   createdAt: string;
 }
 /**
+ * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "search".
  */
@@ -698,6 +963,23 @@ export interface Search {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv".
+ */
+export interface PayloadKv {
+  id: number;
+  key: string;
+  data:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -729,6 +1011,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'comments';
         value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'clients';
+        value: number | Client;
+      } | null)
+    | ({
+        relationTo: 'technicians';
+        value: number | Technician;
+      } | null)
+    | ({
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'equipment';
+        value: number | Equipment;
+      } | null)
+    | ({
+        relationTo: 'jobs';
+        value: number | Job;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -819,80 +1121,11 @@ export interface PagesSelect<T extends boolean = true> {
   layout?:
     | T
     | {
-        cta?:
-          | T
-          | {
-              richText?: T;
-              links?:
-                | T
-                | {
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        content?:
-          | T
-          | {
-              columns?:
-                | T
-                | {
-                    size?: T;
-                    richText?: T;
-                    enableLink?: T;
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        mediaBlock?:
-          | T
-          | {
-              media?: T;
-              id?: T;
-              blockName?: T;
-            };
-        archive?:
-          | T
-          | {
-              introContent?: T;
-              populateBy?: T;
-              relationTo?: T;
-              categories?: T;
-              limit?: T;
-              selectedDocs?: T;
-              id?: T;
-              blockName?: T;
-            };
-        formBlock?:
-          | T
-          | {
-              form?: T;
-              enableIntro?: T;
-              introContent?: T;
-              id?: T;
-              blockName?: T;
-            };
+        cta?: T | CallToActionBlockSelect<T>;
+        content?: T | ContentBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
+        archive?: T | ArchiveBlockSelect<T>;
+        formBlock?: T | FormBlockSelect<T>;
       };
   meta?:
     | T
@@ -907,6 +1140,90 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CallToActionBlock_select".
+ */
+export interface CallToActionBlockSelect<T extends boolean = true> {
+  richText?: T;
+  links?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentBlock_select".
+ */
+export interface ContentBlockSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        size?: T;
+        richText?: T;
+        enableLink?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock_select".
+ */
+export interface MediaBlockSelect<T extends boolean = true> {
+  media?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ArchiveBlock_select".
+ */
+export interface ArchiveBlockSelect<T extends boolean = true> {
+  introContent?: T;
+  populateBy?: T;
+  relationTo?: T;
+  categories?: T;
+  limit?: T;
+  selectedDocs?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  enableIntro?: T;
+  introContent?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1045,6 +1362,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1054,6 +1372,13 @@ export interface UsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1070,6 +1395,126 @@ export interface CommentsSelect<T extends boolean = true> {
   post?: T;
   isApproved?: T;
   publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "clients_select".
+ */
+export interface ClientsSelect<T extends boolean = true> {
+  name?: T;
+  clientType?: T;
+  billingPreference?: T;
+  email?: T;
+  phone?: T;
+  companyName?: T;
+  billingAddress?: T;
+  notes?: T;
+  instructionTemplate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "technicians_select".
+ */
+export interface TechniciansSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  type?: T;
+  baseCommissionRate?: T;
+  phone?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  name?: T;
+  category?: T;
+  unitType?: T;
+  basePrice?: T;
+  isRecurring?: T;
+  requiresVendor?: T;
+  description?: T;
+  defaultInstructions?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "equipment_select".
+ */
+export interface EquipmentSelect<T extends boolean = true> {
+  label?: T;
+  assetId?: T;
+  type?: T;
+  lastCalibrationDate?: T;
+  nextMaintenanceDue?: T;
+  assignedTo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "jobs_select".
+ */
+export interface JobsSelect<T extends boolean = true> {
+  jobId?: T;
+  modelName?: T;
+  priority?: T;
+  status?: T;
+  client?: T;
+  endClientName?: T;
+  endClientCompany?: T;
+  tech?: T;
+  sitePOCName?: T;
+  sitePOCPhone?: T;
+  sitePOCEmail?: T;
+  captureAddress?: T;
+  city?: T;
+  state?: T;
+  zip?: T;
+  sqFt?: T;
+  propertyType?: T;
+  schedulingNotes?: T;
+  region?: T;
+  captureType?: T;
+  equipment?: T;
+  purposeOfScan?: T;
+  techInstructions?: T;
+  lineItems?:
+    | T
+    | {
+        product?: T;
+        quantity?: T;
+        instructions?: T;
+        id?: T;
+      };
+  targetDate?: T;
+  scannedDate?: T;
+  uploadLink?: T;
+  mediaUploadLink?: T;
+  gasExpense?: T;
+  isOutsourced?: T;
+  vendorPrice?: T;
+  travelPayout?: T;
+  offHoursPayout?: T;
+  qcChecklist?:
+    | T
+    | {
+        accuracyOk?: T;
+        coverageOk?: T;
+        fileNamingOk?: T;
+      };
+  qcStatus?: T;
+  totalPrice?: T;
+  vendorCost?: T;
+  margin?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1154,6 +1599,7 @@ export interface FormsSelect<T extends boolean = true> {
               label?: T;
               width?: T;
               defaultValue?: T;
+              placeholder?: T;
               options?:
                 | T
                 | {
@@ -1262,6 +1708,14 @@ export interface SearchSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv_select".
+ */
+export interface PayloadKvSelect<T extends boolean = true> {
+  key?: T;
+  data?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1399,7 +1853,7 @@ export interface BannerBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];

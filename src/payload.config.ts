@@ -12,6 +12,11 @@ import { Media } from './collections/Media'
 import { Pages } from './collections/Pages'
 import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
+import { Clients } from './collections/Clients'
+import { Technicians } from './collections/Technicians'
+import { Products } from './collections/Products'
+import { Equipment } from './collections/Equipment'
+import { Jobs } from './collections/Jobs'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -65,7 +70,21 @@ export default buildConfig({
       connectionString: process.env.DATABASE_URI || '',
     },
   }),
-  collections: [Pages, Posts, Media, Categories, Users, Comments],
+  collections: [
+    // Marketing / default CMS collections
+    Pages,
+    Posts,
+    Media,
+    Categories,
+    Users,
+    Comments,
+    // OMS collections
+    Clients,
+    Technicians,
+    Products,
+    Equipment,
+    Jobs,
+  ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
   plugins: [
