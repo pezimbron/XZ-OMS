@@ -1,13 +1,9 @@
 import { QuickCreateJob } from '@/components/QuickCreateJob'
 
 export const metadata = {
-  title: 'Quick Create Job',
+  title: 'Quick Create Job - XZ OMS',
 }
 
 export default function QuickCreateJobPage() {
-  return (
-    <div className="fixed inset-0 overflow-auto">
-      <QuickCreateJob />
-    </div>
-  )
+  return <QuickCreateJob />
 }

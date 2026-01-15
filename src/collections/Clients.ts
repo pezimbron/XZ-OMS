@@ -82,5 +82,114 @@ export const Clients: CollectionConfig = {
         description: 'Client-specific instructions that will auto-populate in the "General Instructions for Tech" field when this client is selected for a job. Use for recurring client requirements (e.g., "Always call POC 30 min before arrival").',
       },
     },
+    {
+      name: 'integrations',
+      type: 'group',
+      label: 'External Integrations',
+      fields: [
+        {
+          name: 'quickbooks',
+          type: 'group',
+          label: 'QuickBooks',
+          fields: [
+            {
+              name: 'customerId',
+              type: 'text',
+              label: 'QuickBooks Customer ID',
+              admin: {
+                readOnly: true,
+                description: 'Auto-populated when synced with QuickBooks',
+              },
+            },
+            {
+              name: 'syncStatus',
+              type: 'select',
+              label: 'Sync Status',
+              defaultValue: 'not-synced',
+              options: [
+                { label: 'Not Synced', value: 'not-synced' },
+                { label: 'Synced', value: 'synced' },
+                { label: 'Error', value: 'error' },
+                { label: 'Pending', value: 'pending' },
+              ],
+              admin: {
+                readOnly: true,
+              },
+            },
+            {
+              name: 'lastSyncedAt',
+              type: 'date',
+              label: 'Last Synced',
+              admin: {
+                readOnly: true,
+                date: {
+                  pickerAppearance: 'dayAndTime',
+                },
+              },
+            },
+            {
+              name: 'syncError',
+              type: 'textarea',
+              label: 'Sync Error Message',
+              admin: {
+                readOnly: true,
+                condition: (data) => data?.integrations?.quickbooks?.syncStatus === 'error',
+              },
+            },
+          ],
+        },
+        {
+          name: 'hubspot',
+          type: 'group',
+          label: 'HubSpot',
+          fields: [
+            {
+              name: 'contactId',
+              type: 'text',
+              label: 'HubSpot Contact ID',
+              admin: {
+                readOnly: true,
+                description: 'Auto-populated when synced with HubSpot',
+              },
+            },
+            {
+              name: 'syncStatus',
+              type: 'select',
+              label: 'Sync Status',
+              defaultValue: 'not-synced',
+              options: [
+                { label: 'Not Synced', value: 'not-synced' },
+                { label: 'Synced', value: 'synced' },
+                { label: 'Error', value: 'error' },
+                { label: 'Pending', value: 'pending' },
+              ],
+              admin: {
+                readOnly: true,
+              },
+            },
+            {
+              name: 'lastSyncedAt',
+              type: 'date',
+              label: 'Last Synced',
+              admin: {
+                readOnly: true,
+                date: {
+                  pickerAppearance: 'dayAndTime',
+                },
+              },
+            },
+            {
+              name: 'syncError',
+              type: 'textarea',
+              label: 'Sync Error Message',
+              admin: {
+                readOnly: true,
+                condition: (data) => data?.integrations?.hubspot?.syncStatus === 'error',
+              },
+            },
+          ],
+        },
+      ],
+    },
   ],
 }

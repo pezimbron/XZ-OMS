@@ -756,6 +756,26 @@ export interface Client {
    * Client-specific instructions that will auto-populate in the "General Instructions for Tech" field when this client is selected for a job. Use for recurring client requirements (e.g., "Always call POC 30 min before arrival").
    */
   instructionTemplate?: string | null;
+  integrations?: {
+    quickbooks?: {
+      /**
+       * Auto-populated when synced with QuickBooks
+       */
+      customerId?: string | null;
+      syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
+      lastSyncedAt?: string | null;
+      syncError?: string | null;
+    };
+    hubspot?: {
+      /**
+       * Auto-populated when synced with HubSpot
+       */
+      contactId?: string | null;
+      syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
+      lastSyncedAt?: string | null;
+      syncError?: string | null;
+    };
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1412,6 +1432,26 @@ export interface ClientsSelect<T extends boolean = true> {
   billingAddress?: T;
   notes?: T;
   instructionTemplate?: T;
+  integrations?:
+    | T
+    | {
+        quickbooks?:
+          | T
+          | {
+              customerId?: T;
+              syncStatus?: T;
+              lastSyncedAt?: T;
+              syncError?: T;
+            };
+        hubspot?:
+          | T
+          | {
+              contactId?: T;
+              syncStatus?: T;
+              lastSyncedAt?: T;
+              syncError?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
 }

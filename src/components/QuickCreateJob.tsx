@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 
 /**
@@ -25,7 +23,6 @@ export function QuickCreateJob() {
     setError('')
 
     try {
-      // Call the parse API
       const response = await fetch('/api/parse-job-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -38,7 +35,6 @@ export function QuickCreateJob() {
         throw new Error(data.error || 'Failed to parse email')
       }
 
-      // Redirect to the created job
       router.push(`/admin/collections/jobs/${data.jobId}`)
     } catch (err: any) {
       setError(err.message || 'Failed to parse email')
@@ -48,78 +44,194 @@ export function QuickCreateJob() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-4">
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => router.push('/admin/calendar')}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-        >
-          📅 Calendar
-        </button>
-        <button
-          onClick={() => router.push('/admin/collections/jobs')}
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm"
-        >
-          📋 All Jobs
-        </button>
-        <button
-          onClick={() => router.push('/admin/collections/jobs/create')}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm"
-        >
-          ➕ Create Job
-        </button>
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Quick Create Job from Email</h2>
-        <p className="text-gray-600">
-          Paste the content of a job request email below and click "Parse & Create Job" to
-          automatically extract all job details.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="email-content" className="block text-sm font-medium">
-          Email Content
-        </label>
-        <Textarea
-          id="email-content"
-          value={emailContent}
-          onChange={(e) => setEmailContent(e.target.value)}
-          placeholder="Paste your job request email here (e.g., Matterport appointment confirmation)..."
-          className="min-h-[300px] font-mono text-sm"
-        />
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
-          {error}
+    <div 
+      className="min-h-screen" 
+      style={{ 
+        background: 'linear-gradient(to bottom right, #f8fafc, #dbeafe, #e0e7ff)',
+        colorScheme: 'light',
+        minHeight: '100vh'
+      }}
+    >
+      {/* Navigation Bar */}
+      <div className="bg-white border-b border-gray-200 shadow-sm" style={{ backgroundColor: '#ffffff' }}>
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                ⚡
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Quick Create Job</h1>
+                <p className="text-sm text-gray-500">AI-powered job creation from email</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => router.push('/calendar')}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm"
+              >
+                <span>📅</span> Calendar
+              </button>
+              <button
+                onClick={() => router.push('/admin/collections/jobs')}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all text-sm font-medium flex items-center gap-2 shadow-sm"
+              >
+                <span>📋</span> All Jobs
+              </button>
+              <button
+                onClick={() => router.push('/admin/collections/jobs/create')}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all text-sm font-medium flex items-center gap-2 shadow-md"
+              >
+                <span>➕</span> Manual Create
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
-      <div className="flex gap-3">
-        <Button onClick={handleParse} disabled={isParsing || !emailContent.trim()}>
-          {isParsing ? 'Parsing with AI...' : 'Parse & Create Job'}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setEmailContent('')
-            setError('')
+      {/* Main Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Hero Section */}
+        <div 
+          className="rounded-2xl p-8 mb-8 text-white shadow-xl" 
+          style={{ 
+            background: 'linear-gradient(to right, #10b981, #059669)',
+            borderRadius: '1rem'
           }}
         >
-          Clear
-        </Button>
-      </div>
+          <h2 className="text-3xl font-bold mb-3">✨ Paste. Parse. Done.</h2>
+          <p className="text-lg" style={{ color: '#d1fae5' }}>
+            Simply paste your job request email below and let AI extract all the details automatically.
+            No more manual data entry!
+          </p>
+        </div>
 
-      <div className="bg-blue-50 border border-blue-200 p-4 rounded">
-        <h3 className="font-semibold mb-2">How it works:</h3>
-        <ol className="list-decimal list-inside space-y-1 text-sm">
-          <li>Paste the email content from Matterport or other job requests</li>
-          <li>Click "Parse & Create Job" - AI will extract all fields</li>
-          <li>Job is created and you'll be redirected to review it</li>
-          <li>Verify the data, assign a tech if needed</li>
-          <li>Calendar invite is automatically sent when tech is assigned</li>
-        </ol>
+        {/* Email Input Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+            <label htmlFor="email-content" className="block text-lg font-semibold text-gray-900">
+              📧 Email Content
+            </label>
+            <p className="text-sm text-gray-600 mt-1">
+              Paste the complete email from Matterport or other job requests
+            </p>
+          </div>
+          <div className="p-6">
+            <textarea
+              id="email-content"
+              value={emailContent}
+              onChange={(e) => setEmailContent(e.target.value)}
+              placeholder="Paste your job request email here...
+
+Example:
+Your job on 01/06/2026 1:00 PM is confirmed.
+Client Company: Spencer Technologies
+Project Name: Subway-21376
+Capture Address: 1301 Hwy 290 W...
+
+The AI will automatically extract all fields!"
+              className="w-full min-h-[350px] font-mono text-sm border border-gray-300 rounded-xl p-4 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none bg-gray-50"
+            />
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 mb-6 shadow-md">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <button
+            onClick={handleParse}
+            disabled={isParsing || !emailContent.trim()}
+            className="flex-1 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3"
+            style={{
+              background: isParsing ? '#9ca3af' : 'linear-gradient(to right, #10b981, #059669)',
+              cursor: isParsing || !emailContent.trim() ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isParsing ? (
+              <>
+                <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Parsing with AI...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl">🤖</span>
+                <span>Parse & Create Job</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setEmailContent('')
+              setError('')
+            }}
+            className="px-6 py-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-all shadow-md"
+          >
+            Clear
+          </button>
+        </div>
+
+        {/* How it Works */}
+        <div 
+          className="border border-blue-200 rounded-2xl p-6 mt-8 shadow-lg"
+          style={{
+            background: 'linear-gradient(to bottom right, #dbeafe, #e0e7ff)',
+            borderRadius: '1rem'
+          }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-xl" style={{ backgroundColor: '#3b82f6' }}>
+              💡
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">How it works</h3>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">1</div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Paste Email</h4>
+                <p className="text-sm text-gray-600">Copy and paste the job request email content</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">2</div>
+              <div>
+                <h4 className="font-semibold text-gray-900">AI Extraction</h4>
+                <p className="text-sm text-gray-600">Gemini AI extracts all job details automatically</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">3</div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Job Created</h4>
+                <p className="text-sm text-gray-600">Review the auto-populated job details</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold">4</div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Assign & Go</h4>
+                <p className="text-sm text-gray-600">Assign tech and calendar invite is sent automatically</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

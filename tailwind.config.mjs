@@ -9,7 +9,7 @@ export default {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
-  darkMode: ['selector', '[data-theme="dark"]'],
+  darkMode: 'class',
   plugins: [animate, typography],
   prefix: '',
   safelist: [

@@ -1,13 +1,9 @@
 import { JobsCalendar } from '@/components/JobsCalendar'
 
 export const metadata = {
-  title: 'Jobs Calendar',
+  title: 'Jobs Calendar - XZ OMS',
 }
 
 export default function CalendarPage() {
-  return (
-    <div className="fixed inset-0 overflow-auto">
-      <JobsCalendar />
-    </div>
-  )
+  return <JobsCalendar />
 }
