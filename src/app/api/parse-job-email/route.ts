@@ -296,7 +296,7 @@ async function findOrCreateClient(
  * Match product names to existing products in catalog
  */
 async function matchProducts(payload: any, lineItems: any[]): Promise<any[]> {
-  const matchedItems = []
+  const matchedItems: Array<{ product: any; quantity: number }> = []
 
   for (const item of lineItems) {
     // Search for product by name (fuzzy match)
