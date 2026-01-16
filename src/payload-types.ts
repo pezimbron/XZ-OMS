@@ -818,6 +818,12 @@ export interface Job {
   totalPrice?: number | null;
   vendorCost?: number | null;
   margin?: number | null;
+  completionToken?: string | null;
+  completionFormSubmitted?: boolean | null;
+  completionStatus?: ('completed' | 'incomplete') | null;
+  incompletionReason?: ('no-access' | 'poc-no-show' | 'poc-reschedule' | 'other') | null;
+  incompletionNotes?: string | null;
+  techFeedback?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1461,6 +1467,12 @@ export interface JobsSelect<T extends boolean = true> {
   totalPrice?: T;
   vendorCost?: T;
   margin?: T;
+  completionToken?: T;
+  completionFormSubmitted?: T;
+  completionStatus?: T;
+  incompletionReason?: T;
+  incompletionNotes?: T;
+  techFeedback?: T;
   updatedAt?: T;
   createdAt?: T;
 }
