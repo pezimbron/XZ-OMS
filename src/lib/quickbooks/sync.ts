@@ -87,12 +87,6 @@ export async function syncClientToQuickBooks(payload: Payload, client: Client) {
               lastSyncedAt: new Date().toISOString(),
               syncError: '',
             },
-            hubspot: client.integrations?.hubspot || {
-              contactId: '',
-              syncStatus: 'not-synced',
-              lastSyncedAt: '',
-              syncError: '',
-            },
           },
         } as any,
       })
