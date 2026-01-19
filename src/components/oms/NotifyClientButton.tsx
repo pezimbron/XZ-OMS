@@ -202,7 +202,7 @@ export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProp
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Edit the template text before sending. You can add links, modify content, etc. This won't update the template.
+                    Edit the template text before sending. You can add links, modify content, etc. This won&apos;t update the template.
                   </p>
                 </div>
 
