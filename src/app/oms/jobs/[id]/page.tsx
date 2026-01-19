@@ -46,6 +46,25 @@ export default function JobDetailPage() {
   const [products, setProducts] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
   
+  // Generate random job ID for direct customers
+  const generateJobId = () => {
+    const prefix = 'XZOMS'
+    const now = new Date()
+    const year = now.getFullYear().toString().slice(-2)
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    const day = now.getDate().toString().padStart(2, '0')
+    
+    const chars = '0123456789'
+    let randomPart = ''
+    
+    for (let i = 0; i < 3; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    
+    const newJobId = `${prefix}-${year}${month}${day}-${randomPart}`
+    setEditedJob({ ...editedJob, jobId: newJobId })
+  }
+  
   useEffect(() => {
     fetchClients()
     fetchTechs()
@@ -504,13 +523,23 @@ export default function JobDetailPage() {
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Job ID</label>
                   {editMode ? (
-                    <input
-                      type="text"
-                      value={editedJob?.jobId || ''}
-                      onChange={(e) => setEditedJob({...editedJob, jobId: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Enter Job ID"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editedJob?.jobId || ''}
+                        onChange={(e) => setEditedJob({...editedJob, jobId: e.target.value})}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Enter Job ID"
+                      />
+                      <button
+                        type="button"
+                        onClick={generateJobId}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        title="Generate random Job ID"
+                      >
+                        🎲 Generate
+                      </button>
+                    </div>
                   ) : (
                     <p className="text-gray-900 dark:text-white">{job.jobId || 'N/A'}</p>
                   )}

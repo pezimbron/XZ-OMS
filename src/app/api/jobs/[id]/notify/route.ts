@@ -4,16 +4,17 @@ import config from '@/payload.config'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const payload = await getPayload({ config })
     const { notificationType, customMessage, customSubject, customBody } = await request.json()
+    const { id } = await params
 
     // Fetch the job with client details
     const job = await payload.findByID({
       collection: 'jobs',
-      id: params.id,
+      id: id,
       depth: 2,
     })
 
