@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@payloadcms/db-postgres": "latest",
-    "@payloadcms/email-resend": "^3.71.1",
+    "@payloadcms/email-resend": "^3.4.0",
     "@payloadcms/live-preview-react": "latest",
     "@payloadcms/next": "latest",
     "@payloadcms/payload-cloud": "latest",
