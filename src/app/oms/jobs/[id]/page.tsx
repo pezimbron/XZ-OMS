@@ -5,13 +5,14 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { workflowTemplates, getWorkflowSteps } from '@/lib/workflows/templates'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
-import { QCPanel } from '@/components/oms/QCPanel'
+import QCPanel from '@/components/oms/QCPanel'
 
 interface Job {
   id: string
   jobId: string
   modelName: string
   targetDate: string
+  timezone?: string
   status: string
   region?: string
   client?: any
@@ -177,6 +178,27 @@ export default function JobDetailPage() {
       })
 
       // Update main job fields (without tech)
+      // Convert datetime-local value to ISO string while preserving the intended time
+      // datetime-local gives us "2026-01-22T12:00" which represents 12:00 PM in the job's timezone
+      let targetDateISO = editedJob.targetDate
+      if (editedJob.targetDate && !editedJob.targetDate.includes('Z') && !editedJob.targetDate.includes('+')) {
+        // Append seconds if missing
+        const dateStr = editedJob.targetDate.length === 16 ? editedJob.targetDate + ':00' : editedJob.targetDate
+        
+        // Get timezone offset based on job's timezone setting
+        const timezone = editedJob.timezone || 'America/Chicago'
+        const timezoneOffsets: Record<string, string> = {
+          'America/Chicago': '-06:00',    // CST
+          'America/New_York': '-05:00',   // EST
+          'America/Denver': '-07:00',     // MST
+          'America/Los_Angeles': '-08:00', // PST
+          'America/Phoenix': '-07:00',    // MST (no DST)
+        }
+        
+        const offset = timezoneOffsets[timezone] || '-06:00'
+        targetDateISO = dateStr + offset
+      }
+
       const updateData: any = {
         jobId: editedJob.jobId,
         modelName: editedJob.modelName,
@@ -187,7 +209,8 @@ export default function JobDetailPage() {
         zip: editedJob.zip,
         region: editedJob.region,
         status: editedJob.status,
-        targetDate: editedJob.targetDate,
+        targetDate: targetDateISO,
+        timezone: editedJob.timezone || 'America/Chicago',
         sqFt: parseInt(editedJob.sqFt) || 0,
         schedulingNotes: editedJob.schedulingNotes,
         techInstructions: editedJob.techInstructions,
@@ -271,6 +294,15 @@ export default function JobDetailPage() {
         setEditingStatus(false)
         alert('Status updated successfully!')
       } else {
+        const errorText = await response.text()
+        console.error('Status update failed with status:', response.status)
+        console.error('Error response:', errorText)
+        try {
+          const errorData = JSON.parse(errorText)
+          console.error('Parsed error:', errorData)
+        } catch (e) {
+          console.error('Could not parse error as JSON')
+        }
         alert('Failed to update status')
       }
     } catch (error) {
@@ -564,13 +596,48 @@ export default function JobDetailPage() {
                   {editMode ? (
                     <input
                       type="datetime-local"
-                      value={editedJob?.targetDate ? new Date(editedJob.targetDate).toISOString().slice(0, 16) : ''}
+                      value={editedJob?.targetDate ? (() => {
+                        // Convert UTC date to local time for display in datetime-local input
+                        const date = new Date(editedJob.targetDate)
+                        // Get local time components
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0')
+                        const day = String(date.getDate()).padStart(2, '0')
+                        const hours = String(date.getHours()).padStart(2, '0')
+                        const minutes = String(date.getMinutes()).padStart(2, '0')
+                        return `${year}-${month}-${day}T${hours}:${minutes}`
+                      })() : ''}
                       onChange={(e) => setEditedJob({...editedJob, targetDate: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   ) : (
                     <p className="text-gray-900 dark:text-white">
                       {job.targetDate ? new Date(job.targetDate).toLocaleString() : 'N/A'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Timezone</label>
+                  {editMode ? (
+                    <select
+                      value={editedJob?.timezone || 'America/Chicago'}
+                      onChange={(e) => setEditedJob({...editedJob, timezone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="America/Chicago">Central Time (Austin/San Antonio)</option>
+                      <option value="America/New_York">Eastern Time</option>
+                      <option value="America/Denver">Mountain Time</option>
+                      <option value="America/Los_Angeles">Pacific Time</option>
+                      <option value="America/Phoenix">Arizona (No DST)</option>
+                    </select>
+                  ) : (
+                    <p className="text-gray-900 dark:text-white">
+                      {job.timezone === 'America/Chicago' ? 'Central Time' :
+                       job.timezone === 'America/New_York' ? 'Eastern Time' :
+                       job.timezone === 'America/Denver' ? 'Mountain Time' :
+                       job.timezone === 'America/Los_Angeles' ? 'Pacific Time' :
+                       job.timezone === 'America/Phoenix' ? 'Arizona' :
+                       'Central Time'}
                     </p>
                   )}
                 </div>

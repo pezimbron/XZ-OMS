@@ -169,6 +169,9 @@ export function JobsCalendarContent() {
     return jobs
       .filter((job) => job.targetDate)
       .map((job) => {
+        // The targetDate is stored as an ISO string in the database
+        // When we create a Date object from it, JavaScript interprets it correctly
+        // The issue is that the datetime-local input saves in local time but we need to preserve that
         const startDate = new Date(job.targetDate)
         const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
 

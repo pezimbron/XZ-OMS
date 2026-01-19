@@ -797,6 +797,9 @@ export interface Job {
       }[]
     | null;
   targetDate?: string | null;
+  timezone?:
+    | ('America/Chicago' | 'America/New_York' | 'America/Denver' | 'America/Los_Angeles' | 'America/Phoenix')
+    | null;
   scannedDate?: string | null;
   googleCalendarEventId?: string | null;
   uploadLink?: string | null;
@@ -1526,6 +1529,7 @@ export interface JobsSelect<T extends boolean = true> {
         id?: T;
       };
   targetDate?: T;
+  timezone?: T;
   scannedDate?: T;
   googleCalendarEventId?: T;
   uploadLink?: T;

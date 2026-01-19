@@ -232,11 +232,26 @@ export const Jobs: CollectionConfig = {
     {
       name: 'targetDate',
       type: 'date',
-      label: 'Scheduled Date & Time',
       admin: {
         date: {
           pickerAppearance: 'dayAndTime',
         },
+      },
+    },
+    {
+      name: 'timezone',
+      type: 'select',
+      label: 'Timezone',
+      defaultValue: 'America/Chicago',
+      options: [
+        { label: 'Central Time (Austin/San Antonio)', value: 'America/Chicago' },
+        { label: 'Eastern Time', value: 'America/New_York' },
+        { label: 'Mountain Time', value: 'America/Denver' },
+        { label: 'Pacific Time', value: 'America/Los_Angeles' },
+        { label: 'Arizona (No DST)', value: 'America/Phoenix' },
+      ],
+      admin: {
+        description: 'Timezone for the job location',
       },
     },
     {
@@ -378,11 +393,11 @@ export const Jobs: CollectionConfig = {
     {
       name: 'qcAssignedTo',
       type: 'relationship',
-      relationTo: 'users' as any,
+      relationTo: 'users',
+      hasMany: false,
       label: 'QC Assigned To',
       admin: {
         description: 'Post-producer assigned to review this job',
-        condition: (data) => data.status === 'qc',
       },
     },
     {

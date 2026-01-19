@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CheckCircle, XCircle, AlertCircle, Clock, User, MessageSquare, Plus } from 'lucide-react'
 
 interface QCPanelProps {
@@ -8,7 +8,7 @@ interface QCPanelProps {
   onUpdate: () => void
 }
 
-export function QCPanel({ job, onUpdate }: QCPanelProps) {
+export default function QCPanel({ job, onUpdate }: QCPanelProps) {
   const [qcNotes, setQcNotes] = useState(job.qcNotes || '')
   const [revisionDescription, setRevisionDescription] = useState('')
   const [showRevisionForm, setShowRevisionForm] = useState(false)
@@ -17,17 +17,18 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
   const [selectedAssignee, setSelectedAssignee] = useState(job.qcAssignedTo?.id || '')
 
   // Fetch users for assignment dropdown
-  useState(() => {
+  useEffect(() => {
     fetch('/api/users?limit=100')
       .then(res => res.json())
       .then(data => {
         const postProducers = (data.docs || []).filter((user: any) => 
           ['super-admin', 'ops-manager', 'post-producer'].includes(user.role)
         )
+        console.log('Fetched users for QC assignment:', postProducers)
         setUsers(postProducers)
       })
       .catch(err => console.error('Error fetching users:', err))
-  })
+  }, [])
 
   const handleQCAction = async (action: 'approve' | 'reject' | 'needs-revision' | 'start-review') => {
     setLoading(true)
@@ -52,17 +53,48 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
         }
       }
 
-      const response = await fetch(`/api/jobs/${job.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      })
+      console.log('Updating QC status with data:', updateData)
 
-      if (!response.ok) throw new Error('Failed to update job')
-      
-      onUpdate()
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      try {
+        const response = await fetch(`/api/jobs/${job.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+
+        console.log('Response status:', response.status, response.statusText)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('QC update failed with status:', response.status)
+          console.error('Error response:', errorText)
+          try {
+            const errorData = JSON.parse(errorText)
+            console.error('Parsed error:', errorData)
+          } catch (e) {
+            console.error('Could not parse error as JSON')
+          }
+          throw new Error(`Failed to update job: ${response.status}`)
+        }
+        
+        console.log('QC update successful!')
+        onUpdate()
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.error('Request timed out after 30 seconds')
+          alert('Request timed out. The server may be overloaded.')
+        } else {
+          console.error('Error updating QC status:', error)
+          alert('Failed to update QC status')
+        }
+      }
     } catch (error) {
-      console.error('Error updating QC status:', error)
+      console.error('Outer error:', error)
       alert('Failed to update QC status')
     } finally {
       setLoading(false)
@@ -95,8 +127,11 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
 
     setLoading(true)
     try {
+      // Convert to number if it's a string number
+      const assigneeId = isNaN(Number(selectedAssignee)) ? selectedAssignee : Number(selectedAssignee)
+      
       const updateData: any = {
-        qcAssignedTo: selectedAssignee,
+        qcAssignedTo: assigneeId,
         qcStatus: 'in-review',
       }
 
@@ -104,17 +139,54 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
         updateData.qcStartTime = new Date().toISOString()
       }
 
-      const response = await fetch(`/api/jobs/${job.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      })
+      console.log('Assigning QC with data:', updateData)
 
-      if (!response.ok) throw new Error('Failed to assign QC')
-      
-      onUpdate()
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      try {
+        const response = await fetch(`/api/jobs/${job.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateData),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+
+        console.log('Response status:', response.status, response.statusText)
+
+        if (!response.ok) {
+          let errorText = ''
+          try {
+            errorText = await response.text()
+            console.error('Assignment failed with status:', response.status)
+            console.error('Error response:', errorText)
+            const errorData = JSON.parse(errorText)
+            console.error('Parsed error:', errorData)
+          } catch (e) {
+            console.error('Could not read/parse error response:', e)
+            console.error('Raw error text:', errorText)
+          }
+          throw new Error(`Failed to assign QC: ${response.status}`)
+        }
+        
+        console.log('Assignment successful!')
+        onUpdate()
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.error('Request timed out after 30 seconds')
+          alert('Request timed out. The server may be overloaded.')
+        } else {
+          console.error('Error assigning QC (full error):', error)
+          if (error instanceof Error) {
+            console.error('Error message:', error.message)
+            console.error('Error stack:', error.stack)
+          }
+          alert('Failed to assign QC')
+        }
+      }
     } catch (error) {
-      console.error('Error assigning QC:', error)
+      console.error('Outer error:', error)
       alert('Failed to assign QC')
     } finally {
       setLoading(false)
@@ -124,6 +196,11 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
   const handleAddRevision = async () => {
     if (!revisionDescription.trim()) {
       alert('Please enter a revision description')
+      return
+    }
+
+    if (!job?.id) {
+      alert('Error: Job ID is missing')
       return
     }
 
@@ -138,6 +215,8 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
 
       const currentRevisions = job.revisionRequests || []
       
+      console.log('Adding revision request:', newRevision)
+      
       const response = await fetch(`/api/jobs/${job.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -147,7 +226,11 @@ export function QCPanel({ job, onUpdate }: QCPanelProps) {
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to add revision request')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Revision request failed:', errorData)
+        throw new Error('Failed to add revision request')
+      }
       
       setRevisionDescription('')
       setShowRevisionForm(false)

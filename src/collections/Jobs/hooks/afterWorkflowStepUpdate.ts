@@ -6,7 +6,13 @@ export const afterWorkflowStepUpdate: CollectionAfterChangeHook = async ({
   previousDoc,
   operation,
 }) => {
-  if (operation !== 'update') return doc
+  const startTime = Date.now()
+  req.payload.logger.info(`[Workflow Hook] Started for job ${doc.id}`)
+  
+  if (operation !== 'update') {
+    req.payload.logger.info(`[Workflow Hook] Skipped (not an update) - ${Date.now() - startTime}ms`)
+    return doc
+  }
 
   const { payload } = req
 
@@ -16,7 +22,10 @@ export const afterWorkflowStepUpdate: CollectionAfterChangeHook = async ({
     return step.completed && !prevStep?.completed
   })
 
-  if (!newlyCompletedSteps || newlyCompletedSteps.length === 0) return doc
+  if (!newlyCompletedSteps || newlyCompletedSteps.length === 0) {
+    req.payload.logger.info(`[Workflow Hook] Skipped (no completed steps) - ${Date.now() - startTime}ms`)
+    return doc
+  }
 
   // Get client with notification preferences
   let client
@@ -93,5 +102,6 @@ export const afterWorkflowStepUpdate: CollectionAfterChangeHook = async ({
     })
   }
 
+  req.payload.logger.info(`[Workflow Hook] Completed - ${Date.now() - startTime}ms`)
   return doc
 }

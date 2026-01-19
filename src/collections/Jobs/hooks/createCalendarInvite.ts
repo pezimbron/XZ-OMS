@@ -12,7 +12,80 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
   req,
   previousDoc,
   operation,
+  context,
 }) => {
+  const startTime = Date.now()
+  req.payload.logger.info(`[Calendar Hook] Started for job ${doc.id}, operation: ${operation}`)
+
+  // Skip if this update is from storing the calendar event ID (prevent recursion)
+  if (context?.skipCalendarHook) {
+    req.payload.logger.info(`[Calendar Hook] Skipped (skipCalendarHook context) - ${Date.now() - startTime}ms`)
+    return doc
+  }
+
+  // Early exit for updates - check if ONLY non-calendar fields changed
+  if (operation === 'update' && previousDoc) {
+    // Helper to normalize relationship fields (handle both ID strings and populated objects)
+    const normalizeId = (field: any) => {
+      if (!field) return null
+      if (typeof field === 'string') return field
+      if (typeof field === 'number') return String(field)
+      return field.id ? String(field.id) : null
+    }
+    
+    // Check each calendar-relevant field individually for detailed logging
+    const prevTechId = normalizeId(previousDoc.tech)
+    const currTechId = normalizeId(doc.tech)
+    const techChanged = prevTechId !== currTechId
+    
+    const prevClientId = normalizeId(previousDoc.client)
+    const currClientId = normalizeId(doc.client)
+    const clientChanged = prevClientId !== currClientId
+    
+    // Log the comparison for debugging
+    if (techChanged) {
+      req.payload.logger.info(`Tech changed: ${prevTechId} -> ${currTechId}`)
+    }
+    if (clientChanged) {
+      req.payload.logger.info(`Client changed: ${prevClientId} -> ${currClientId}`)
+    }
+    
+    const dateChanged = previousDoc.targetDate !== doc.targetDate
+    const addressChanged = previousDoc.captureAddress !== doc.captureAddress
+    const cityChanged = previousDoc.city !== doc.city
+    const stateChanged = previousDoc.state !== doc.state
+    const zipChanged = previousDoc.zip !== doc.zip
+    const modelNameChanged = previousDoc.modelName !== doc.modelName
+    const instructionsChanged = previousDoc.techInstructions !== doc.techInstructions
+    const lineItemsChanged = JSON.stringify(previousDoc.lineItems) !== JSON.stringify(doc.lineItems)
+    
+    const calendarFieldsChanged = 
+      techChanged || dateChanged || addressChanged || cityChanged || 
+      stateChanged || zipChanged || modelNameChanged || clientChanged || 
+      instructionsChanged || lineItemsChanged
+    
+    // If no calendar fields changed, skip entirely
+    if (!calendarFieldsChanged) {
+      req.payload.logger.info(`[Calendar Hook] Skipped (no calendar fields changed) - ${Date.now() - startTime}ms`)
+      return doc
+    }
+    
+    // Log which fields changed
+    const changedFields: string[] = []
+    if (techChanged) changedFields.push('tech')
+    if (dateChanged) changedFields.push('targetDate')
+    if (addressChanged) changedFields.push('captureAddress')
+    if (cityChanged) changedFields.push('city')
+    if (stateChanged) changedFields.push('state')
+    if (zipChanged) changedFields.push('zip')
+    if (modelNameChanged) changedFields.push('modelName')
+    if (clientChanged) changedFields.push('client')
+    if (instructionsChanged) changedFields.push('techInstructions')
+    if (lineItemsChanged) changedFields.push('lineItems')
+    
+    req.payload.logger.info(`[Calendar Hook] Calendar fields changed: ${changedFields.join(', ')} - proceeding with update`)
+  }
+
   // Only proceed if a tech is assigned
   if (!doc.tech) {
     return doc
@@ -39,7 +112,7 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
       // Check if line items changed (products/services)
       const lineItemsChanged = JSON.stringify(previousDoc.lineItems) !== JSON.stringify(doc.lineItems)
 
-      return (
+      const calendarRelevantChanged = (
         techChanged ||
         dateChanged ||
         addressChanged ||
@@ -51,6 +124,23 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
         instructionsChanged ||
         lineItemsChanged
       )
+
+      // Don't update calendar if no relevant fields changed
+      // This prevents updates when only QC fields, status, or other non-calendar fields change
+      if (!calendarRelevantChanged) {
+        return false
+      }
+
+      // Skip if ONLY googleCalendarEventId changed (prevents infinite loop)
+      const onlyEventIdChanged = 
+        previousDoc.googleCalendarEventId !== doc.googleCalendarEventId &&
+        !calendarRelevantChanged
+      
+      if (onlyEventIdChanged) {
+        return false // Don't trigger hook when we're just storing the event ID
+      }
+
+      return calendarRelevantChanged
     }
 
     return false
@@ -60,6 +150,19 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     return doc // Skip calendar update if no relevant changes
   }
 
+  // Process calendar invite asynchronously - don't block the job update
+  req.payload.logger.info(`[Calendar Hook] Triggering async calendar update`)
+  processCalendarInviteAsync(doc, req, startTime).catch(error => {
+    req.payload.logger.error(`[Calendar Hook] Async calendar update failed: ${error}`)
+  })
+
+  return doc // Return immediately without waiting for calendar
+}
+
+/**
+ * Process calendar invite in background without blocking job updates
+ */
+async function processCalendarInviteAsync(doc: any, req: any, startTime: number) {
   try {
     // Fetch related data
     const [client, tech, products] = await Promise.all([
@@ -127,7 +230,7 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
       location: formatAddress(doc),
     })
 
-    // Store the event ID for future updates
+    // Store the event ID for future updates (with context to prevent recursion)
     if (eventId && eventId !== doc.googleCalendarEventId) {
       await req.payload.update({
         collection: 'jobs',
@@ -135,18 +238,21 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
         data: {
           googleCalendarEventId: eventId,
         } as any,
+        context: {
+          skipCalendarHook: true, // Prevent this update from triggering the hook again
+        },
       })
     }
 
     req.payload.logger.info(
-      `Calendar event ${doc.googleCalendarEventId ? 'updated' : 'created'} for job ${doc.id} assigned to ${techEmail}`
+      `Calendar event ${doc.googleCalendarEventId ? 'updated' : 'created'} for job ${doc.id} assigned to ${techEmail} - ${Date.now() - startTime}ms`
     )
   } catch (error) {
-    req.payload.logger.error(`Error creating calendar invite: ${error}`)
+    req.payload.logger.error(`Error creating calendar invite: ${error} - ${Date.now() - startTime}ms`)
     // Don't fail the job creation if calendar invite fails
   }
 
-  return doc
+  req.payload.logger.info(`[Calendar Hook] Async processing completed - ${Date.now() - startTime}ms`)
 }
 
 /**
