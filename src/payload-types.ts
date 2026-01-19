@@ -842,6 +842,15 @@ export interface Job {
   incompletionReason?: ('no-access' | 'poc-no-show' | 'poc-reschedule' | 'other') | null;
   incompletionNotes?: string | null;
   techFeedback?: string | null;
+  deliverables?: {
+    model3dLink?: string | null;
+    floorPlansLink?: string | null;
+    photosVideosLink?: string | null;
+    asBuiltsLink?: string | null;
+    otherAssetsLink?: string | null;
+    deliveryNotes?: string | null;
+    deliveredDate?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1538,6 +1547,17 @@ export interface JobsSelect<T extends boolean = true> {
   incompletionReason?: T;
   incompletionNotes?: T;
   techFeedback?: T;
+  deliverables?:
+    | T
+    | {
+        model3dLink?: T;
+        floorPlansLink?: T;
+        photosVideosLink?: T;
+        asBuiltsLink?: T;
+        otherAssetsLink?: T;
+        deliveryNotes?: T;
+        deliveredDate?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

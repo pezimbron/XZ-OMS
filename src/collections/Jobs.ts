@@ -432,5 +432,77 @@ export const Jobs: CollectionConfig = {
         description: 'Feedback from tech about the job',
       },
     },
+    {
+      name: 'deliverables',
+      type: 'group',
+      label: 'Deliverables & Assets',
+      admin: {
+        description: 'Links to final deliverables for client access',
+      },
+      fields: [
+        {
+          name: 'model3dLink',
+          type: 'text',
+          label: '3D Model Link',
+          admin: {
+            description: 'Link to the 3D model (e.g., Matterport, CloudPano)',
+            placeholder: 'https://my.matterport.com/show/?m=...',
+          },
+        },
+        {
+          name: 'floorPlansLink',
+          type: 'text',
+          label: 'Floor Plans Link',
+          admin: {
+            description: 'Link or zip file URL for floor plans',
+            placeholder: 'https://drive.google.com/... or https://dropbox.com/...',
+          },
+        },
+        {
+          name: 'photosVideosLink',
+          type: 'text',
+          label: 'Photos/Videos Link',
+          admin: {
+            description: 'Link or zip file URL for photos and videos',
+            placeholder: 'https://drive.google.com/... or https://dropbox.com/...',
+          },
+        },
+        {
+          name: 'asBuiltsLink',
+          type: 'text',
+          label: 'As-Built Files Link',
+          admin: {
+            description: 'Link or zip file URL for as-built documentation',
+            placeholder: 'https://drive.google.com/... or https://dropbox.com/...',
+          },
+        },
+        {
+          name: 'otherAssetsLink',
+          type: 'text',
+          label: 'Other Assets Link',
+          admin: {
+            description: 'Link for any additional deliverables',
+            placeholder: 'https://...',
+          },
+        },
+        {
+          name: 'deliveryNotes',
+          type: 'textarea',
+          label: 'Delivery Notes',
+          admin: {
+            description: 'Internal notes about the deliverables',
+            rows: 3,
+          },
+        },
+        {
+          name: 'deliveredDate',
+          type: 'date',
+          label: 'Date Delivered',
+          admin: {
+            description: 'When the deliverables were provided to the client',
+          },
+        },
+      ],
+    },
   ],
 }

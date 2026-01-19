@@ -35,7 +35,7 @@ export default function JobDetailPage() {
   const router = useRouter()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'details' | 'instructions' | 'tech-feedback' | 'qc' | 'financials' | 'workflow'>('details')
+  const [activeTab, setActiveTab] = useState<'details' | 'instructions' | 'tech-feedback' | 'qc' | 'financials' | 'workflow' | 'deliverables'>('details')
   const [editingStatus, setEditingStatus] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [saving, setSaving] = useState(false)
@@ -478,6 +478,16 @@ export default function JobDetailPage() {
               }`}
             >
               Workflow
+            </button>
+            <button
+              onClick={() => setActiveTab('deliverables')}
+              className={`pb-3 px-1 font-medium transition-colors ${
+                activeTab === 'deliverables'
+                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              Deliverables
             </button>
           </div>
         </div>
@@ -1353,6 +1363,247 @@ export default function JobDetailPage() {
               </div>
               ) : null
             })()}
+          </div>
+        )}
+
+        {activeTab === 'deliverables' && (
+          <div className="space-y-6">
+            {/* Deliverables Section */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Client Deliverables & Assets</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                Links to final deliverables. These will be accessible to clients in their portal.
+              </p>
+              
+              <div className="space-y-4">
+                {/* 3D Model Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    🏢 3D Model Link
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.model3dLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, model3dLink: e.target.value }
+                      })}
+                      placeholder="https://my.matterport.com/show/?m=..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.model3dLink ? (
+                        <a
+                          href={(job as any).deliverables.model3dLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {(job as any).deliverables.model3dLink}
+                        </a>
+                      ) : (
+                        <p className="text-gray-400 italic">No link provided</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Floor Plans Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📐 Floor Plans Link
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.floorPlansLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, floorPlansLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.floorPlansLink ? (
+                        <a
+                          href={(job as any).deliverables.floorPlansLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {(job as any).deliverables.floorPlansLink}
+                        </a>
+                      ) : (
+                        <p className="text-gray-400 italic">No link provided</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Photos/Videos Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📸 Photos/Videos Link
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.photosVideosLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, photosVideosLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.photosVideosLink ? (
+                        <a
+                          href={(job as any).deliverables.photosVideosLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {(job as any).deliverables.photosVideosLink}
+                        </a>
+                      ) : (
+                        <p className="text-gray-400 italic">No link provided</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* As-Builts Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📋 As-Built Files Link
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.asBuiltsLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, asBuiltsLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.asBuiltsLink ? (
+                        <a
+                          href={(job as any).deliverables.asBuiltsLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {(job as any).deliverables.asBuiltsLink}
+                        </a>
+                      ) : (
+                        <p className="text-gray-400 italic">No link provided</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Other Assets Link */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📦 Other Assets Link
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.otherAssetsLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, otherAssetsLink: e.target.value }
+                      })}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.otherAssetsLink ? (
+                        <a
+                          href={(job as any).deliverables.otherAssetsLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {(job as any).deliverables.otherAssetsLink}
+                        </a>
+                      ) : (
+                        <p className="text-gray-400 italic">No link provided</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivery Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📝 Delivery Notes
+                  </label>
+                  {editMode ? (
+                    <textarea
+                      value={(editedJob as any)?.deliverables?.deliveryNotes || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, deliveryNotes: e.target.value }
+                      })}
+                      rows={3}
+                      placeholder="Internal notes about the deliverables..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.deliveryNotes ? (
+                        <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
+                          {(job as any).deliverables.deliveryNotes}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic">No notes</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Delivered Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    📅 Date Delivered
+                  </label>
+                  {editMode ? (
+                    <input
+                      type="date"
+                      value={(editedJob as any)?.deliverables?.deliveredDate?.split('T')[0] || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, deliveredDate: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div>
+                      {(job as any)?.deliverables?.deliveredDate ? (
+                        <p className="text-gray-900 dark:text-white">
+                          {new Date((job as any).deliverables.deliveredDate).toLocaleDateString()}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic">Not delivered yet</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
