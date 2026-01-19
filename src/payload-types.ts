@@ -23,6 +23,7 @@ export interface Config {
     equipment: Equipment;
     jobs: Job;
     notifications: Notification;
+    'notification-templates': NotificationTemplate;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -45,6 +46,7 @@ export interface Config {
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     jobs: JobsSelect<false> | JobsSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
+    'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -691,6 +693,22 @@ export interface Client {
       syncError?: string | null;
     };
   };
+  notificationPreferences?: {
+    enableNotifications?: boolean | null;
+    notificationEmail?: string | null;
+    notificationPhone?: string | null;
+    notifyOnScheduled?: boolean | null;
+    notifyOnCompleted?: boolean | null;
+    notifyOnDelivered?: boolean | null;
+    notifyOnScanCompleted?: boolean | null;
+    notifyOnUploadCompleted?: boolean | null;
+    notifyOnQcCompleted?: boolean | null;
+    notifyOnTransferCompleted?: boolean | null;
+    notifyOnFloorplanCompleted?: boolean | null;
+    notifyOnPhotosCompleted?: boolean | null;
+    notifyOnAsbuiltsCompleted?: boolean | null;
+    customMessage?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -845,6 +863,31 @@ export interface Notification {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-templates".
+ */
+export interface NotificationTemplate {
+  id: number;
+  name: string;
+  type:
+    | 'scheduled'
+    | 'completed'
+    | 'delivered'
+    | 'scan-completed'
+    | 'upload-completed'
+    | 'qc-completed'
+    | 'transfer-completed'
+    | 'floorplan-completed'
+    | 'photos-completed'
+    | 'asbuilts-completed';
+  active?: boolean | null;
+  subject: string;
+  body: string;
+  defaultTemplate?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -965,6 +1008,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'notifications';
         value: number | Notification;
+      } | null)
+    | ({
+        relationTo: 'notification-templates';
+        value: number | NotificationTemplate;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1353,6 +1400,24 @@ export interface ClientsSelect<T extends boolean = true> {
               syncError?: T;
             };
       };
+  notificationPreferences?:
+    | T
+    | {
+        enableNotifications?: T;
+        notificationEmail?: T;
+        notificationPhone?: T;
+        notifyOnScheduled?: T;
+        notifyOnCompleted?: T;
+        notifyOnDelivered?: T;
+        notifyOnScanCompleted?: T;
+        notifyOnUploadCompleted?: T;
+        notifyOnQcCompleted?: T;
+        notifyOnTransferCompleted?: T;
+        notifyOnFloorplanCompleted?: T;
+        notifyOnPhotosCompleted?: T;
+        notifyOnAsbuiltsCompleted?: T;
+        customMessage?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1488,6 +1553,20 @@ export interface NotificationsSelect<T extends boolean = true> {
   read?: T;
   relatedJob?: T;
   actionUrl?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notification-templates_select".
+ */
+export interface NotificationTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  type?: T;
+  active?: T;
+  subject?: T;
+  body?: T;
+  defaultTemplate?: T;
   updatedAt?: T;
   createdAt?: T;
 }

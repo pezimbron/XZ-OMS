@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { workflowTemplates, getWorkflowSteps } from '@/lib/workflows/templates'
+import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
 
 interface Job {
   id: string
@@ -301,6 +302,10 @@ export default function JobDetailPage() {
               ← Back to Jobs
             </Link>
             <div className="flex gap-2">
+              <NotifyClientButton 
+                jobId={job.id} 
+                clientName={job.client?.name}
+              />
               {(job as any).completionToken && (
                 <button
                   onClick={() => {

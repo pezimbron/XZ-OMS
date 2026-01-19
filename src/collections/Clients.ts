@@ -258,5 +258,138 @@ export const Clients: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'notificationPreferences',
+      type: 'group',
+      label: 'Job Update Notifications',
+      fields: [
+        {
+          name: 'enableNotifications',
+          type: 'checkbox',
+          label: 'Enable Job Update Notifications',
+          defaultValue: true,
+          admin: {
+            description: 'Send automatic notifications to client when job status changes',
+          },
+        },
+        {
+          name: 'notificationEmail',
+          type: 'email',
+          label: 'Notification Email',
+          admin: {
+            description: 'Email address for job notifications (defaults to main email if empty)',
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notificationPhone',
+          type: 'text',
+          label: 'Notification Phone (SMS)',
+          admin: {
+            description: 'Phone number for SMS notifications (optional)',
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnScheduled',
+          type: 'checkbox',
+          label: 'Notify When Job Scheduled',
+          defaultValue: true,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnCompleted',
+          type: 'checkbox',
+          label: 'Notify When Job Completed',
+          defaultValue: true,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnDelivered',
+          type: 'checkbox',
+          label: 'Notify When Deliverables Ready',
+          defaultValue: true,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnScanCompleted',
+          type: 'checkbox',
+          label: 'Notify When Scan Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnUploadCompleted',
+          type: 'checkbox',
+          label: 'Notify When Upload Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnQcCompleted',
+          type: 'checkbox',
+          label: 'Notify When QC/Post-Production Completed',
+          defaultValue: true,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnTransferCompleted',
+          type: 'checkbox',
+          label: 'Notify When Transfer Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnFloorplanCompleted',
+          type: 'checkbox',
+          label: 'Notify When Floor Plan Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnPhotosCompleted',
+          type: 'checkbox',
+          label: 'Notify When Photos Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'notifyOnAsbuiltsCompleted',
+          type: 'checkbox',
+          label: 'Notify When As-Builts Completed',
+          defaultValue: false,
+          admin: {
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+        {
+          name: 'customMessage',
+          type: 'textarea',
+          label: 'Custom Notification Message',
+          admin: {
+            description: 'Optional custom message to include in all notifications to this client',
+            condition: (data) => data?.notificationPreferences?.enableNotifications,
+          },
+        },
+      ],
+    },
   ],
 }

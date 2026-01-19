@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/oms', icon: '📊' },
   { label: 'Calendar', href: '/oms/calendar', icon: '📅' },
   { label: 'Quick Create', href: '/oms/quick-create', icon: '⚡', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
+  { label: 'Bulk Import', href: '/oms/bulk-import', icon: '📥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Jobs', href: '/oms/jobs', icon: '📋' },
   { label: 'Commissions', href: '/oms/commissions', icon: '💵', roles: ['tech'] },
   { label: 'Invoicing', href: '/oms/invoicing', icon: '💰', roles: ['super-admin', 'sales-admin', 'ops-manager'] },

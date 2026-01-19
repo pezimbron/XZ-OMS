@@ -17,6 +17,7 @@ import { Products } from './collections/Products'
 import { Equipment } from './collections/Equipment'
 import { Jobs } from './collections/Jobs'
 import { Notifications } from './collections/Notifications'
+import { NotificationTemplates } from './collections/NotificationTemplates'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -85,6 +86,7 @@ export default buildConfig({
     Equipment,
     Jobs,
     Notifications,
+    NotificationTemplates,
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
