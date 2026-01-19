@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { workflowTemplates, getWorkflowSteps } from '@/lib/workflows/templates'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
+import { QCPanel } from '@/components/oms/QCPanel'
 
 interface Job {
   id: string
@@ -935,23 +936,7 @@ export default function JobDetailPage() {
         )}
 
         {activeTab === 'qc' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Quality Control</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-500 dark:text-gray-400">QC Status</label>
-                <p className="text-gray-900 dark:text-white capitalize">{job.qcStatus || 'Not Started'}</p>
-              </div>
-              {job.qcNotes && (
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">QC Notes</label>
-                  <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg mt-2">
-                    {job.qcNotes}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
+          <QCPanel job={job} onUpdate={() => fetchJob(params.id as string)} />
         )}
 
         {activeTab === 'financials' && (

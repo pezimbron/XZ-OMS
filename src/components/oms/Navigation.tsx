@@ -16,6 +16,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/oms', icon: '📊' },
   { label: 'Calendar', href: '/oms/calendar', icon: '📅' },
+  { label: 'QC Queue', href: '/oms/qc-queue', icon: '🎬', roles: ['super-admin', 'ops-manager', 'post-producer'] },
   { label: 'Quick Create', href: '/oms/quick-create', icon: '⚡', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Bulk Import', href: '/oms/bulk-import', icon: '📥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Jobs', href: '/oms/jobs', icon: '📋' },

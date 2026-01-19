@@ -18,13 +18,46 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     return doc
   }
 
-  // Check if this is a new assignment (create or tech changed)
-  const isNewAssignment =
-    operation === 'create' ||
-    (operation === 'update' && previousDoc?.tech !== doc.tech)
+  // Check if relevant fields changed that warrant a calendar update
+  const shouldUpdateCalendar = () => {
+    if (operation === 'create') {
+      return true // Always create calendar event for new jobs with tech assigned
+    }
 
-  if (!isNewAssignment) {
-    return doc
+    if (operation === 'update' && previousDoc) {
+      // Check if any calendar-relevant fields changed
+      const techChanged = previousDoc.tech !== doc.tech
+      const dateChanged = previousDoc.targetDate !== doc.targetDate
+      const addressChanged = previousDoc.captureAddress !== doc.captureAddress
+      const cityChanged = previousDoc.city !== doc.city
+      const stateChanged = previousDoc.state !== doc.state
+      const zipChanged = previousDoc.zip !== doc.zip
+      const modelNameChanged = previousDoc.modelName !== doc.modelName
+      const clientChanged = previousDoc.client !== doc.client
+      const instructionsChanged = previousDoc.techInstructions !== doc.techInstructions
+      
+      // Check if line items changed (products/services)
+      const lineItemsChanged = JSON.stringify(previousDoc.lineItems) !== JSON.stringify(doc.lineItems)
+
+      return (
+        techChanged ||
+        dateChanged ||
+        addressChanged ||
+        cityChanged ||
+        stateChanged ||
+        zipChanged ||
+        modelNameChanged ||
+        clientChanged ||
+        instructionsChanged ||
+        lineItemsChanged
+      )
+    }
+
+    return false
+  }
+
+  if (!shouldUpdateCalendar()) {
+    return doc // Skip calendar update if no relevant changes
   }
 
   try {
@@ -84,8 +117,9 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
       return doc
     }
 
-    // Create Google Calendar event
-    await createGoogleCalendarEvent({
+    // Create or update Google Calendar event
+    const eventId = await createOrUpdateGoogleCalendarEvent({
+      eventId: doc.googleCalendarEventId,
       summary: eventTitle,
       description,
       startDateTime: eventDate,
@@ -93,8 +127,19 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
       location: formatAddress(doc),
     })
 
+    // Store the event ID for future updates
+    if (eventId && eventId !== doc.googleCalendarEventId) {
+      await req.payload.update({
+        collection: 'jobs',
+        id: doc.id,
+        data: {
+          googleCalendarEventId: eventId,
+        } as any,
+      })
+    }
+
     req.payload.logger.info(
-      `Calendar invite created for job ${doc.id} assigned to ${techEmail}`
+      `Calendar event ${doc.googleCalendarEventId ? 'updated' : 'created'} for job ${doc.id} assigned to ${techEmail}`
     )
   } catch (error) {
     req.payload.logger.error(`Error creating calendar invite: ${error}`)
@@ -251,21 +296,23 @@ function formatAddress(job: any): string {
 }
 
 /**
- * Create Google Calendar event using Google Calendar API
+ * Create or update Google Calendar event using Google Calendar API
  */
-async function createGoogleCalendarEvent({
+async function createOrUpdateGoogleCalendarEvent({
+  eventId,
   summary,
   description,
   startDateTime,
   attendeeEmail,
   location,
 }: {
+  eventId?: string
   summary: string
   description: string
   startDateTime: Date
   attendeeEmail: string
   location?: string
-}) {
+}): Promise<string | undefined> {
   // Check if Google Calendar credentials are configured
   if (
     !process.env.GOOGLE_CLIENT_ID ||
@@ -317,11 +364,35 @@ async function createGoogleCalendarEvent({
     },
   }
 
-  const response = await calendar.events.insert({
-    calendarId: 'primary',
+  const calendarId = 'primary'
+  let response
+
+  // If we have an existing event ID, try to update it
+  if (eventId) {
+    try {
+      response = await calendar.events.update({
+        calendarId,
+        eventId,
+        requestBody: event,
+        sendUpdates: 'all', // Send email notification to attendees
+      })
+      return response.data.id
+    } catch (error: any) {
+      // If event not found (404), create a new one
+      if (error.code === 404) {
+        console.warn(`Calendar event ${eventId} not found, creating new event`)
+      } else {
+        throw error
+      }
+    }
+  }
+
+  // Create new event if no eventId or update failed
+  response = await calendar.events.insert({
+    calendarId,
     requestBody: event,
     sendUpdates: 'all', // Send email notification to attendees
   })
 
-  return response.data
+  return response.data.id
 }

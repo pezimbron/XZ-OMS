@@ -244,6 +244,14 @@ export const Jobs: CollectionConfig = {
       type: 'date',
     },
     {
+      name: 'googleCalendarEventId',
+      type: 'text',
+      admin: {
+        description: 'Google Calendar event ID for updating existing events',
+        readOnly: true,
+      },
+    },
+    {
       name: 'uploadLink',
       type: 'text',
       label: 'Primary Upload Link',
@@ -361,8 +369,99 @@ export const Jobs: CollectionConfig = {
       defaultValue: 'pending',
       options: [
         { label: 'Pending', value: 'pending' },
+        { label: 'In Review', value: 'in-review' },
         { label: 'Passed', value: 'passed' },
+        { label: 'Needs Revision', value: 'needs-revision' },
         { label: 'Rejected', value: 'rejected' },
+      ],
+    },
+    {
+      name: 'qcAssignedTo',
+      type: 'relationship',
+      relationTo: 'users' as any,
+      label: 'QC Assigned To',
+      admin: {
+        description: 'Post-producer assigned to review this job',
+        condition: (data) => data.status === 'qc',
+      },
+    },
+    {
+      name: 'qcNotes',
+      type: 'textarea',
+      label: 'QC Notes',
+      admin: {
+        description: 'Notes from QC review process',
+        rows: 4,
+      },
+    },
+    {
+      name: 'qcStartTime',
+      type: 'date',
+      label: 'QC Started At',
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+        },
+        description: 'When QC review started',
+      },
+    },
+    {
+      name: 'qcEndTime',
+      type: 'date',
+      label: 'QC Completed At',
+      admin: {
+        date: {
+          pickerAppearance: 'dayAndTime',
+        },
+        description: 'When QC review was completed',
+      },
+    },
+    {
+      name: 'revisionRequests',
+      type: 'array',
+      label: 'Revision Requests',
+      admin: {
+        description: 'Track revision requests during QC',
+      },
+      fields: [
+        {
+          name: 'requestedBy',
+          type: 'text',
+          label: 'Requested By',
+        },
+        {
+          name: 'requestedAt',
+          type: 'date',
+          label: 'Requested At',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+        },
+        {
+          name: 'description',
+          type: 'textarea',
+          label: 'Revision Description',
+          required: true,
+        },
+        {
+          name: 'resolved',
+          type: 'checkbox',
+          label: 'Resolved',
+          defaultValue: false,
+        },
+        {
+          name: 'resolvedAt',
+          type: 'date',
+          label: 'Resolved At',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+            condition: (data, siblingData) => siblingData?.resolved === true,
+          },
+        },
       ],
     },
     {

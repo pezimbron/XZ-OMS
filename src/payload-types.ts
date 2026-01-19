@@ -798,6 +798,7 @@ export interface Job {
     | null;
   targetDate?: string | null;
   scannedDate?: string | null;
+  googleCalendarEventId?: string | null;
   uploadLink?: string | null;
   mediaUploadLink?: string | null;
   gasExpense?: number | null;
@@ -832,7 +833,21 @@ export interface Job {
     coverageOk?: boolean | null;
     fileNamingOk?: boolean | null;
   };
-  qcStatus?: ('pending' | 'passed' | 'rejected') | null;
+  qcStatus?: ('pending' | 'in-review' | 'passed' | 'needs-revision' | 'rejected') | null;
+  qcAssignedTo?: (number | null) | User;
+  qcNotes?: string | null;
+  qcStartTime?: string | null;
+  qcEndTime?: string | null;
+  revisionRequests?:
+    | {
+        requestedBy?: string | null;
+        requestedAt?: string | null;
+        description: string;
+        resolved?: boolean | null;
+        resolvedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   totalPrice?: number | null;
   vendorCost?: number | null;
   margin?: number | null;
@@ -1512,6 +1527,7 @@ export interface JobsSelect<T extends boolean = true> {
       };
   targetDate?: T;
   scannedDate?: T;
+  googleCalendarEventId?: T;
   uploadLink?: T;
   mediaUploadLink?: T;
   gasExpense?: T;
@@ -1538,6 +1554,20 @@ export interface JobsSelect<T extends boolean = true> {
         fileNamingOk?: T;
       };
   qcStatus?: T;
+  qcAssignedTo?: T;
+  qcNotes?: T;
+  qcStartTime?: T;
+  qcEndTime?: T;
+  revisionRequests?:
+    | T
+    | {
+        requestedBy?: T;
+        requestedAt?: T;
+        description?: T;
+        resolved?: T;
+        resolvedAt?: T;
+        id?: T;
+      };
   totalPrice?: T;
   vendorCost?: T;
   margin?: T;
