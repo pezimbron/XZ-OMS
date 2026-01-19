@@ -324,6 +324,7 @@ export default function JobDetailPage() {
               <NotifyClientButton 
                 jobId={job.id} 
                 clientName={job.client?.name}
+                clientEmail={job.client?.email}
               />
               {(job as any).completionToken && (
                 <button

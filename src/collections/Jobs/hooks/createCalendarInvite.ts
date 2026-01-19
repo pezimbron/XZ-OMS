@@ -123,9 +123,7 @@ function formatCalendarDescription(
 
   // 1. TO-DO LIST
   if (job.lineItems && job.lineItems.length > 0) {
-    sections.push('═══════════════════════════════════════')
     sections.push('📋 TO-DO LIST')
-    sections.push('═══════════════════════════════════════')
     job.lineItems.forEach((item: any, index: number) => {
       const product = products[index]
       const productName = product?.name || 'Service'
@@ -136,14 +134,11 @@ function formatCalendarDescription(
   }
 
   // 2. CLIENT NAME AND PURPOSE OF SCAN
-  sections.push('═══════════════════════════════════════')
+  sections.push('══════════')
   sections.push('👤 CLIENT & PURPOSE')
-  sections.push('═══════════════════════════════════════')
   if (job.isOutsourced) {
     sections.push(`Outsourcing Partner: ${client?.name || 'N/A'}`)
-    if (job.endClientName) {
-      sections.push(`End Client: ${job.endClientName}`)
-    }
+    // Don't share end client name for privacy
   } else {
     sections.push(`Client: ${client?.name || 'N/A'}`)
   }
@@ -156,9 +151,8 @@ function formatCalendarDescription(
   sections.push('')
 
   // 3. ADDRESS AND SQUARE FOOTAGE
-  sections.push('═══════════════════════════════════════')
+  sections.push('══════════')
   sections.push('📍 LOCATION & SIZE')
-  sections.push('═══════════════════════════════════════')
   if (job.captureAddress) {
     sections.push(`Address: ${job.captureAddress}`)
     if (job.city || job.state || job.zip) {
@@ -180,9 +174,8 @@ function formatCalendarDescription(
 
   // 4. POC INFORMATION
   if (job.sitePOCName || job.sitePOCPhone || job.sitePOCEmail) {
-    sections.push('═══════════════════════════════════════')
+    sections.push('══════════')
     sections.push('📞 ON-SITE CONTACT')
-    sections.push('═══════════════════════════════════════')
     if (job.sitePOCName) sections.push(`Name: ${job.sitePOCName}`)
     if (job.sitePOCPhone) sections.push(`Phone: ${job.sitePOCPhone}`)
     if (job.sitePOCEmail) sections.push(`Email: ${job.sitePOCEmail}`)
@@ -191,9 +184,8 @@ function formatCalendarDescription(
 
   // 5. GENERAL TECH INSTRUCTIONS (if any)
   if (job.techInstructions) {
-    sections.push('═══════════════════════════════════════')
+    sections.push('══════════')
     sections.push('📝 GENERAL INSTRUCTIONS')
-    sections.push('═══════════════════════════════════════')
     sections.push(job.techInstructions)
     sections.push('')
   }
@@ -202,9 +194,8 @@ function formatCalendarDescription(
   if (job.lineItems && job.lineItems.length > 0) {
     const hasInstructions = job.lineItems.some((item: any) => item.instructions)
     if (hasInstructions) {
-      sections.push('═══════════════════════════════════════')
+      sections.push('══════════')
       sections.push('📝 SPECIFIC INSTRUCTIONS PER ITEM')
-      sections.push('═══════════════════════════════════════')
       job.lineItems.forEach((item: any, index: number) => {
         if (item.instructions) {
           const product = products[index]
@@ -219,18 +210,16 @@ function formatCalendarDescription(
 
   // 6. WHERE TO UPLOAD THE PROJECT
   if (job.uploadLink) {
-    sections.push('═══════════════════════════════════════')
+    sections.push('══════════')
     sections.push('📤 UPLOAD LOCATIONS')
-    sections.push('═══════════════════════════════════════')
     sections.push(`Primary Upload: ${job.uploadLink}`)
   }
 
   // 7. MEDIA UPLOAD URL (if different)
   if (job.mediaUploadLink) {
     if (!job.uploadLink) {
-      sections.push('═══════════════════════════════════════')
+      sections.push('══════════')
       sections.push('📤 UPLOAD LOCATIONS')
-      sections.push('═══════════════════════════════════════')
     }
     sections.push(`Media Upload: ${job.mediaUploadLink}`)
   }
@@ -240,9 +229,8 @@ function formatCalendarDescription(
   }
 
   // Additional job info
-  sections.push('═══════════════════════════════════════')
+  sections.push('══════════')
   sections.push('ℹ️  JOB INFO')
-  sections.push('═══════════════════════════════════════')
   if (job.jobId) sections.push(`Job ID: ${job.jobId}`)
   if (job.priority) sections.push(`Priority: ${job.priority}`)
   sections.push('')

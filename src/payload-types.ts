@@ -6,10 +6,66 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * Supported timezones in IANA format.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supportedTimezones".
+ */
+export type SupportedTimezones =
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
+
 export interface Config {
   auth: {
     users: UserAuthOperations;
   };
+  blocks: {};
   collections: {
     pages: Page;
     posts: Post;
@@ -28,6 +84,7 @@ export interface Config {
     forms: Form;
     'form-submissions': FormSubmission;
     search: Search;
+    'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -51,6 +108,7 @@ export interface Config {
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -58,6 +116,7 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
+  fallbackLocale: null;
   globals: {
     header: Header;
     footer: Footer;
@@ -106,7 +165,7 @@ export interface Page {
       root: {
         type: string;
         children: {
-          type: string;
+          type: any;
           version: number;
           [k: string]: unknown;
         }[];
@@ -128,6 +187,9 @@ export interface Page {
             } | null;
             url?: string | null;
             label: string;
+            /**
+             * Choose how the link should be rendered.
+             */
             appearance?: ('default' | 'outline') | null;
           };
           id?: string | null;
@@ -138,6 +200,9 @@ export interface Page {
   layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -159,7 +224,7 @@ export interface Media {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -241,7 +306,7 @@ export interface CallToActionBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -263,6 +328,9 @@ export interface CallToActionBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -284,7 +352,7 @@ export interface ContentBlock {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -305,6 +373,9 @@ export interface ContentBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -333,7 +404,7 @@ export interface ArchiveBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -388,7 +459,7 @@ export interface Post {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -403,6 +474,9 @@ export interface Post {
   categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -437,6 +511,13 @@ export interface User {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
@@ -450,7 +531,7 @@ export interface FormBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -507,7 +588,7 @@ export interface Form {
               root: {
                 type: string;
                 children: {
-                  type: string;
+                  type: any;
                   version: number;
                   [k: string]: unknown;
                 }[];
@@ -537,6 +618,7 @@ export interface Form {
             label?: string | null;
             width?: number | null;
             defaultValue?: string | null;
+            placeholder?: string | null;
             options?:
               | {
                   label: string;
@@ -581,12 +663,15 @@ export interface Form {
       )[]
     | null;
   submitButtonLabel?: string | null;
+  /**
+   * Choose whether to display an on-page message or redirect to a different page after they submit the form.
+   */
   confirmationType?: ('message' | 'redirect') | null;
   confirmationMessage?: {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -600,6 +685,9 @@ export interface Form {
   redirect?: {
     url: string;
   };
+  /**
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
   emails?:
     | {
         emailTo?: string | null;
@@ -608,11 +696,14 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * Enter the message that should be sent in this email.
+         */
         message?: {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -630,6 +721,8 @@ export interface Form {
   createdAt: string;
 }
 /**
+ * Comments submitted by visitors on blog posts
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
@@ -641,6 +734,9 @@ export interface Comment {
     email: string;
   };
   post: number | Post;
+  /**
+   * Comments must be approved before they appear publicly
+   */
   isApproved?: boolean | null;
   publishedAt?: string | null;
   updatedAt: string;
@@ -660,7 +756,13 @@ export interface Client {
   companyName?: string | null;
   billingAddress?: string | null;
   notes?: string | null;
+  /**
+   * Client-specific instructions that will auto-populate in the "General Instructions for Tech" field when this client is selected for a job. Use for recurring client requirements (e.g., "Always call POC 30 min before arrival").
+   */
   instructionTemplate?: string | null;
+  /**
+   * Default workflow that will be assigned to new jobs for this client. Can be overridden per job.
+   */
   defaultWorkflow?:
     | (
         | 'outsourced-scan-upload-client'
@@ -674,19 +776,37 @@ export interface Client {
       )
     | null;
   invoicingPreferences?: {
+    /**
+     * Default payment terms for invoices
+     */
     terms?: ('due-on-receipt' | 'net-15' | 'net-30' | 'net-45' | 'net-60') | null;
+    /**
+     * For weekly batch: 1=Monday, 7=Sunday. For monthly batch: day of month (1-31)
+     */
     batchDay?: number | null;
+    /**
+     * Notes that will appear on all invoices for this client
+     */
     invoiceNotes?: string | null;
+    /**
+     * Skip manual approval and automatically create draft invoices in QuickBooks
+     */
     autoApprove?: boolean | null;
   };
   integrations?: {
     quickbooks?: {
+      /**
+       * Auto-populated when synced with QuickBooks
+       */
       customerId?: string | null;
       syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
       lastSyncedAt?: string | null;
       syncError?: string | null;
     };
     hubspot?: {
+      /**
+       * Auto-populated when synced with HubSpot
+       */
       contactId?: string | null;
       syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
       lastSyncedAt?: string | null;
@@ -694,8 +814,17 @@ export interface Client {
     };
   };
   notificationPreferences?: {
+    /**
+     * Send automatic notifications to client when job status changes
+     */
     enableNotifications?: boolean | null;
+    /**
+     * Email address for job notifications (defaults to main email if empty)
+     */
     notificationEmail?: string | null;
+    /**
+     * Phone number for SMS notifications (optional)
+     */
     notificationPhone?: string | null;
     notifyOnScheduled?: boolean | null;
     notifyOnCompleted?: boolean | null;
@@ -707,6 +836,9 @@ export interface Client {
     notifyOnFloorplanCompleted?: boolean | null;
     notifyOnPhotosCompleted?: boolean | null;
     notifyOnAsbuiltsCompleted?: boolean | null;
+    /**
+     * Optional custom message to include in all notifications to this client
+     */
     customMessage?: string | null;
   };
   updatedAt: string;
@@ -740,6 +872,9 @@ export interface Product {
   isRecurring?: boolean | null;
   requiresVendor?: boolean | null;
   description?: string | null;
+  /**
+   * Default instructions that will auto-populate when this product is added to a job. Can be customized per-job.
+   */
   defaultInstructions?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -769,8 +904,17 @@ export interface Job {
   modelName: string;
   priority?: ('low' | 'normal' | 'high' | 'rush') | null;
   status: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+  /**
+   * For outsourced jobs, this is the partner (e.g., Matterport). For direct jobs, this is the actual client.
+   */
   client: number | Client;
+  /**
+   * The actual end client when job is outsourced (e.g., "Spencer Technologies (4)")
+   */
   endClientName?: string | null;
+  /**
+   * Company name only, for filtering and reporting
+   */
   endClientCompany?: string | null;
   tech?: (number | null) | Technician;
   sitePOCName?: string | null;
@@ -783,28 +927,46 @@ export interface Job {
   sqFt?: number | null;
   propertyType?: ('commercial' | 'residential' | 'industrial' | 'other') | null;
   schedulingNotes?: string | null;
+  /**
+   * Geographic region for calendar color-coding
+   */
   region?: ('austin' | 'san-antonio' | 'outsourced' | 'other') | null;
   captureType?: ('matterport' | 'lidar' | 'drone' | 'other') | null;
   equipment?: (number | null) | Equipment;
   purposeOfScan?: string | null;
+  /**
+   * Overall instructions/notes for the technician assigned to this job
+   */
   techInstructions?: string | null;
   lineItems?:
     | {
         product: number | Product;
         quantity: number;
+        /**
+         * Detailed instructions for completing this specific item
+         */
         instructions?: string | null;
         id?: string | null;
       }[]
     | null;
   targetDate?: string | null;
   scannedDate?: string | null;
+  /**
+   * Where to upload the main project files (e.g., Matterport scans)
+   */
   uploadLink?: string | null;
+  /**
+   * Where to upload additional media (photos, videos, etc.)
+   */
   mediaUploadLink?: string | null;
   gasExpense?: number | null;
   isOutsourced?: boolean | null;
   vendorPrice?: number | null;
   travelPayout?: number | null;
   offHoursPayout?: number | null;
+  /**
+   * The workflow process for this job. Defaults to client's default workflow but can be overridden.
+   */
   workflowType?:
     | (
         | 'outsourced-scan-upload-client'
@@ -817,6 +979,9 @@ export interface Job {
         | 'direct-scan-asbuilts'
       )
     | null;
+  /**
+   * Track completion of workflow steps
+   */
   workflowSteps?:
     | {
         stepName: string;
@@ -836,19 +1001,61 @@ export interface Job {
   totalPrice?: number | null;
   vendorCost?: number | null;
   margin?: number | null;
+  /**
+   * Unique token for tech completion form access
+   */
   completionToken?: string | null;
+  /**
+   * Whether the tech has submitted the completion form
+   */
   completionFormSubmitted?: boolean | null;
+  /**
+   * Status reported by tech in completion form
+   */
   completionStatus?: ('completed' | 'incomplete') | null;
+  /**
+   * Reason for incompletion if applicable
+   */
   incompletionReason?: ('no-access' | 'poc-no-show' | 'poc-reschedule' | 'other') | null;
+  /**
+   * Additional details about incompletion
+   */
   incompletionNotes?: string | null;
+  /**
+   * Feedback from tech about the job
+   */
   techFeedback?: string | null;
+  /**
+   * Links to final deliverables for client access
+   */
   deliverables?: {
+    /**
+     * Link to the 3D model (e.g., Matterport, CloudPano)
+     */
     model3dLink?: string | null;
+    /**
+     * Link or zip file URL for floor plans
+     */
     floorPlansLink?: string | null;
+    /**
+     * Link or zip file URL for photos and videos
+     */
     photosVideosLink?: string | null;
+    /**
+     * Link or zip file URL for as-built documentation
+     */
     asBuiltsLink?: string | null;
+    /**
+     * Link for any additional deliverables
+     */
     otherAssetsLink?: string | null;
+    /**
+     * Internal notes about the deliverables
+     */
     deliveryNotes?: string | null;
+    /**
+     * When the deliverables were provided to the client
+     */
     deliveredDate?: string | null;
   };
   updatedAt: string;
@@ -865,7 +1072,13 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   read?: boolean | null;
+  /**
+   * Link to related job if applicable
+   */
   relatedJob?: (number | null) | Job;
+  /**
+   * URL to navigate to when notification is clicked
+   */
   actionUrl?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -876,7 +1089,13 @@ export interface Notification {
  */
 export interface NotificationTemplate {
   id: number;
+  /**
+   * Internal name for this template
+   */
   name: string;
+  /**
+   * When this notification should be sent
+   */
   type:
     | 'scheduled'
     | 'completed'
@@ -888,9 +1107,21 @@ export interface NotificationTemplate {
     | 'floorplan-completed'
     | 'photos-completed'
     | 'asbuilts-completed';
+  /**
+   * Only active templates will be used
+   */
   active?: boolean | null;
+  /**
+   * Email subject line. Available variables: {{jobNumber}}, {{clientName}}, {{location}}
+   */
   subject: string;
+  /**
+   * Email body. Available variables: {{jobNumber}}, {{clientName}}, {{location}}, {{targetDate}}, {{scannedDate}}, {{uploadLink}}, {{customMessage}}
+   */
   body: string;
+  /**
+   * Use this as the default template for this notification type
+   */
   defaultTemplate?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -901,6 +1132,9 @@ export interface NotificationTemplate {
  */
 export interface Redirect {
   id: number;
+  /**
+   * You will need to rebuild the website when changing this field.
+   */
   from: string;
   to?: {
     type?: ('reference' | 'custom') | null;
@@ -936,6 +1170,8 @@ export interface FormSubmission {
   createdAt: string;
 }
 /**
+ * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "search".
  */
@@ -962,6 +1198,23 @@ export interface Search {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv".
+ */
+export interface PayloadKv {
+  id: number;
+  key: string;
+  data:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1111,80 +1364,11 @@ export interface PagesSelect<T extends boolean = true> {
   layout?:
     | T
     | {
-        cta?:
-          | T
-          | {
-              richText?: T;
-              links?:
-                | T
-                | {
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        content?:
-          | T
-          | {
-              columns?:
-                | T
-                | {
-                    size?: T;
-                    richText?: T;
-                    enableLink?: T;
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        mediaBlock?:
-          | T
-          | {
-              media?: T;
-              id?: T;
-              blockName?: T;
-            };
-        archive?:
-          | T
-          | {
-              introContent?: T;
-              populateBy?: T;
-              relationTo?: T;
-              categories?: T;
-              limit?: T;
-              selectedDocs?: T;
-              id?: T;
-              blockName?: T;
-            };
-        formBlock?:
-          | T
-          | {
-              form?: T;
-              enableIntro?: T;
-              introContent?: T;
-              id?: T;
-              blockName?: T;
-            };
+        cta?: T | CallToActionBlockSelect<T>;
+        content?: T | ContentBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
+        archive?: T | ArchiveBlockSelect<T>;
+        formBlock?: T | FormBlockSelect<T>;
       };
   meta?:
     | T
@@ -1199,6 +1383,90 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CallToActionBlock_select".
+ */
+export interface CallToActionBlockSelect<T extends boolean = true> {
+  richText?: T;
+  links?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentBlock_select".
+ */
+export interface ContentBlockSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        size?: T;
+        richText?: T;
+        enableLink?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock_select".
+ */
+export interface MediaBlockSelect<T extends boolean = true> {
+  media?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ArchiveBlock_select".
+ */
+export interface ArchiveBlockSelect<T extends boolean = true> {
+  introContent?: T;
+  populateBy?: T;
+  relationTo?: T;
+  categories?: T;
+  limit?: T;
+  selectedDocs?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  enableIntro?: T;
+  introContent?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1347,6 +1615,13 @@ export interface UsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1671,6 +1946,7 @@ export interface FormsSelect<T extends boolean = true> {
               label?: T;
               width?: T;
               defaultValue?: T;
+              placeholder?: T;
               options?:
                 | T
                 | {
@@ -1779,6 +2055,14 @@ export interface SearchSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv_select".
+ */
+export interface PayloadKvSelect<T extends boolean = true> {
+  key?: T;
+  data?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1916,7 +2200,7 @@ export interface BannerBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];

@@ -44,11 +44,21 @@ export default function JobsListPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [regionFilter, setRegionFilter] = useState<string>('all')
+  const [clientFilter, setClientFilter] = useState<string>('all')
+  const [techFilter, setTechFilter] = useState<string>('all')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
+  const [sortBy, setSortBy] = useState<string>('targetDate-desc')
+  const [showFilters, setShowFilters] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [clients, setClients] = useState<any[]>([])
+  const [techs, setTechs] = useState<any[]>([])
 
   useEffect(() => {
     fetchUser()
     fetchJobs()
+    fetchClients()
+    fetchTechs()
   }, [])
 
   const fetchUser = async () => {
@@ -58,6 +68,26 @@ export default function JobsListPage() {
       setUser(data.user)
     } catch (error) {
       console.error('Error fetching user:', error)
+    }
+  }
+
+  const fetchClients = async () => {
+    try {
+      const response = await fetch('/api/clients?limit=1000')
+      const data = await response.json()
+      setClients(data.docs || [])
+    } catch (error) {
+      console.error('Error fetching clients:', error)
+    }
+  }
+
+  const fetchTechs = async () => {
+    try {
+      const response = await fetch('/api/technicians?limit=1000')
+      const data = await response.json()
+      setTechs(data.docs || [])
+    } catch (error) {
+      console.error('Error fetching techs:', error)
     }
   }
 
@@ -71,6 +101,18 @@ export default function JobsListPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('')
+    setStatusFilter('all')
+    setRegionFilter('all')
+    setClientFilter('all')
+    setTechFilter('all')
+    setDateFrom('')
+    setDateTo('')
+    setSortBy('targetDate-desc')
   }
 
   // Filter jobs based on user role
@@ -90,8 +132,47 @@ export default function JobsListPage() {
 
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter
     const matchesRegion = regionFilter === 'all' || job.region === regionFilter
+    
+    const clientId = typeof job.client === 'object' ? job.client?.id : job.client
+    const matchesClient = clientFilter === 'all' || clientId === clientFilter
+    
+    const techId = typeof job.tech === 'object' ? job.tech?.id : job.tech
+    const matchesTech = techFilter === 'all' || (techFilter === 'unassigned' ? !techId : techId === techFilter)
 
-    return matchesSearch && matchesStatus && matchesRegion
+    const jobDate = job.targetDate ? new Date(job.targetDate) : null
+    const matchesDateFrom = !dateFrom || !jobDate || jobDate >= new Date(dateFrom)
+    const matchesDateTo = !dateTo || !jobDate || jobDate <= new Date(dateTo)
+
+    return matchesSearch && matchesStatus && matchesRegion && matchesClient && matchesTech && matchesDateFrom && matchesDateTo
+  })
+
+  // Sort jobs
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'targetDate':
+        const dateA = a.targetDate ? new Date(a.targetDate).getTime() : 0
+        const dateB = b.targetDate ? new Date(b.targetDate).getTime() : 0
+        comparison = dateA - dateB
+        break
+      case 'client':
+        const clientA = a.client?.name || ''
+        const clientB = b.client?.name || ''
+        comparison = clientA.localeCompare(clientB)
+        break
+      case 'status':
+        comparison = (a.status || '').localeCompare(b.status || '')
+        break
+      case 'jobId':
+        comparison = (a.jobId || '').localeCompare(b.jobId || '')
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
   })
 
   if (loading) {
@@ -144,7 +225,8 @@ export default function JobsListPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
-        <div className="flex flex-wrap gap-4">
+        {/* Primary Filters Row */}
+        <div className="flex flex-wrap gap-4 items-center">
           {/* Search */}
           <div className="flex-1 min-w-[300px]">
             <input
@@ -163,11 +245,12 @@ export default function JobsListPage() {
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
+            <option value="request">Request</option>
             <option value="scheduled">Scheduled</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="scanned">Scanned</option>
+            <option value="qc">QC</option>
+            <option value="done">Done</option>
+            <option value="archived">Archived</option>
           </select>
 
           {/* Region Filter */}
@@ -182,11 +265,93 @@ export default function JobsListPage() {
             <option value="outsourced">Outsourced</option>
             <option value="other">Other</option>
           </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="targetDate-desc">Date (Newest)</option>
+            <option value="targetDate-asc">Date (Oldest)</option>
+            <option value="client-asc">Client (A-Z)</option>
+            <option value="client-desc">Client (Z-A)</option>
+            <option value="status-asc">Status (A-Z)</option>
+            <option value="jobId-asc">Job ID (A-Z)</option>
+          </select>
+
+          {/* Advanced Filters Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
+          >
+            {showFilters ? '− Less Filters' : '+ More Filters'}
+          </button>
+
+          {/* Clear Filters */}
+          <button
+            onClick={clearFilters}
+            className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+          >
+            Clear All
+          </button>
         </div>
+
+        {/* Advanced Filters Row */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {/* Client Filter */}
+            <select
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Clients</option>
+              {clients.map(client => (
+                <option key={client.id} value={client.id}>{client.name}</option>
+              ))}
+            </select>
+
+            {/* Tech Filter */}
+            <select
+              value={techFilter}
+              onChange={(e) => setTechFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Techs</option>
+              <option value="unassigned">Unassigned</option>
+              {techs.map(tech => (
+                <option key={tech.id} value={tech.id}>{tech.name}</option>
+              ))}
+            </select>
+
+            {/* Date From */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">From:</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+
+            {/* Date To */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">To:</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Results count */}
         <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredJobs.length} of {jobs.length} jobs
+          Showing {sortedJobs.length} of {jobs.length} jobs
         </div>
       </div>
 
@@ -227,14 +392,14 @@ export default function JobsListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredJobs.length === 0 ? (
+                {sortedJobs.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No jobs found matching your filters
                     </td>
                   </tr>
                 ) : (
-                  filteredJobs.map((job) => {
+                  sortedJobs.map((job) => {
                     const workflowType = (job as any).workflowType
                     const workflowSteps = (job as any).workflowSteps || []
                     const completedSteps = workflowSteps.filter((step: any) => step.completed).length

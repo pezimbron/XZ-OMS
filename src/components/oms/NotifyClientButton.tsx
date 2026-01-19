@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 interface NotifyClientButtonProps {
   jobId: string
   clientName?: string
+  clientEmail?: string
 }
 
 interface Template {
@@ -15,11 +16,12 @@ interface Template {
   body: string
 }
 
-export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProps) {
+export function NotifyClientButton({ jobId, clientName, clientEmail }: NotifyClientButtonProps) {
   const [showModal, setShowModal] = useState(false)
   const [notificationType, setNotificationType] = useState<string>('')
   const [editableSubject, setEditableSubject] = useState('')
   const [editableBody, setEditableBody] = useState('')
+  const [recipientEmails, setRecipientEmails] = useState<string>('')
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
   const [templates, setTemplates] = useState<Template[]>([])
@@ -58,6 +60,7 @@ export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProp
 
   const handleOpenModal = () => {
     setShowModal(true)
+    setRecipientEmails(clientEmail || '')
     fetchTemplates()
   }
 
@@ -72,7 +75,8 @@ export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProp
         body: JSON.stringify({ 
           notificationType, 
           customSubject: editableSubject,
-          customBody: editableBody 
+          customBody: editableBody,
+          recipientEmails: recipientEmails
         }),
       })
 
@@ -85,6 +89,7 @@ export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProp
           setResult(null)
           setEditableSubject('')
           setEditableBody('')
+          setRecipientEmails('')
         }, 2000)
       } else {
         setResult({ success: false, message: data.error || 'Failed to send notification' })
@@ -175,6 +180,22 @@ export function NotifyClientButton({ jobId, clientName }: NotifyClientButtonProp
                       })()}
                     </select>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Recipient Email(s)
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientEmails}
+                    onChange={(e) => setRecipientEmails(e.target.value)}
+                    placeholder="email@example.com, another@example.com"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Separate multiple emails with commas
+                  </p>
                 </div>
 
                 <div>

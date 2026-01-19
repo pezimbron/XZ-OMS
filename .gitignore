@@ -6,5 +6,8 @@ node_modules
 .next
 .vercel
 
+# Google OAuth token generation script (contains credentials)
+get-google-token.js
+
 # Payload default media upload directory
 public/media/

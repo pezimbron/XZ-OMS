@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const payload = await getPayload({ config })
-    const { notificationType, customMessage, customSubject, customBody } = await request.json()
+    const { notificationType, customMessage, customSubject, customBody, recipientEmails } = await request.json()
     const { id } = await params
 
     // Fetch the job with client details
@@ -58,8 +58,21 @@ export async function POST(
       }, { status: 400 })
     }
 
-    // Determine recipient email
-    const recipientEmail = notificationPrefs.notificationEmail || client.email
+    // Determine recipient email(s)
+    // Use provided recipientEmails if available, otherwise fall back to client preferences
+    let recipientEmail: string
+    if (recipientEmails && recipientEmails.trim()) {
+      recipientEmail = recipientEmails.trim()
+    } else {
+      const fallbackEmail = notificationPrefs.notificationEmail || client.email
+      if (!fallbackEmail) {
+        return NextResponse.json({ 
+          error: 'No email address configured for notifications' 
+        }, { status: 400 })
+      }
+      recipientEmail = fallbackEmail
+    }
+    
     if (!recipientEmail) {
       return NextResponse.json({ 
         error: 'No email address configured for notifications' 
@@ -69,10 +82,53 @@ export async function POST(
     let subject: string
     let body: string
 
-    // If custom subject and body are provided, use them directly (already edited by user)
+    // Get tech name if assigned
+    const tech = typeof job.tech === 'object' ? job.tech : null
+    const techName = tech?.name || 'Not assigned'
+
+    // Prepare variables for template substitution
+    const variables = {
+      jobNumber: job.jobId || job.id,
+      clientName: client.name,
+      modelName: job.modelName || 'N/A',
+      techName: techName,
+      location: job.captureAddress || 'Location TBD',
+      city: job.city || '',
+      state: job.state || '',
+      zip: job.zip || '',
+      sqFt: job.sqFt ? `${job.sqFt} sq ft` : 'N/A',
+      jobStatus: job.status || 'pending',
+      targetDate: job.targetDate ? new Date(job.targetDate).toLocaleString() : 'TBD',
+      scannedDate: job.scannedDate ? new Date(job.scannedDate).toLocaleString() : new Date().toLocaleString(),
+      uploadLink: job.uploadLink || '',
+      customMessage: customMessage || '',
+      clientCustomMessage: notificationPrefs.customMessage || '',
+      // Deliverable links
+      matterportLink: (job as any).deliverables?.matterportLink || '',
+      matterportWorkshopLink: (job as any).deliverables?.matterportWorkshopLink || '',
+      googleDriveLink: (job as any).deliverables?.googleDriveLink || '',
+      dropboxLink: (job as any).deliverables?.dropboxLink || '',
+      boxLink: (job as any).deliverables?.boxLink || '',
+      oneDriveLink: (job as any).deliverables?.oneDriveLink || '',
+      otherCloudLink: (job as any).deliverables?.otherCloudLink || '',
+      floorPlanLink: (job as any).deliverables?.floorPlanLink || '',
+      photosLink: (job as any).deliverables?.photosLink || '',
+      videoLink: (job as any).deliverables?.videoLink || '',
+      asBuiltsLink: (job as any).deliverables?.asBuiltsLink || '',
+      otherDeliverablesLink: (job as any).deliverables?.otherDeliverablesLink || '',
+    }
+
+    // If custom subject and body are provided, use them and replace variables
     if (customSubject && customBody) {
       subject = customSubject
       body = customBody
+      
+      // Replace variables in custom subject and body
+      Object.entries(variables).forEach(([key, value]) => {
+        const regex = new RegExp(`{{${key}}}`, 'g')
+        subject = subject.replace(regex, value)
+        body = body.replace(regex, value)
+      })
     } else {
       // Otherwise, fetch and process template
       const templates = await payload.find({
@@ -94,18 +150,6 @@ export async function POST(
       }
 
       const template = templates.docs[0]
-
-      // Prepare variables for template substitution
-      const variables = {
-        jobNumber: job.jobId || job.id,
-        clientName: client.name,
-        location: job.captureAddress || 'Location TBD',
-        targetDate: job.targetDate ? new Date(job.targetDate).toLocaleString() : 'TBD',
-        scannedDate: job.scannedDate ? new Date(job.scannedDate).toLocaleString() : new Date().toLocaleString(),
-        uploadLink: job.uploadLink || '',
-        customMessage: customMessage || '',
-        clientCustomMessage: notificationPrefs.customMessage || '',
-      }
 
       // Replace variables in subject and body
       subject = template.subject

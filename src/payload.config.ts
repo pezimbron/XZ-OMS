@@ -1,5 +1,6 @@
 // storage-adapter-import-placeholder
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { resendAdapter } from '@payloadcms/email-resend'
 
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -70,6 +71,11 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
+  }),
+  email: resendAdapter({
+    defaultFromAddress: process.env.RESEND_DEFAULT_EMAIL || 'noreply@xzoms.com',
+    defaultFromName: 'XZ OMS',
+    apiKey: process.env.RESEND_API_KEY || '',
   }),
   collections: [
     // Marketing / default CMS collections

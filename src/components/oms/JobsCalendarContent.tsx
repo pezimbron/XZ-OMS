@@ -77,6 +77,12 @@ export function JobsCalendarContent() {
     state: 'TX',
     zip: '',
   })
+  const [lastDragAction, setLastDragAction] = useState<{
+    jobId: string
+    previousDate: string
+    newDate: string
+  } | null>(null)
+  const [showUndoNotification, setShowUndoNotification] = useState(false)
 
   useEffect(() => {
     fetchJobs()
@@ -201,6 +207,9 @@ export function JobsCalendarContent() {
 
   const handleEventDrop = async ({ event, start, end }: { event: CalendarEvent; start: Date; end: Date }) => {
     try {
+      // Store the previous date for undo
+      const previousDate = event.resource.targetDate
+
       // Update the job's target date
       const response = await fetch(`/api/jobs/${event.resource.id}`, {
         method: 'PATCH',
@@ -213,6 +222,22 @@ export function JobsCalendarContent() {
       })
 
       if (response.ok) {
+        // Store undo information
+        setLastDragAction({
+          jobId: event.resource.id,
+          previousDate: previousDate,
+          newDate: start.toISOString(),
+        })
+        
+        // Show undo notification
+        setShowUndoNotification(true)
+        
+        // Auto-hide notification after 10 seconds
+        setTimeout(() => {
+          setShowUndoNotification(false)
+          setLastDragAction(null)
+        }, 10000)
+
         // Refresh jobs to show updated calendar
         await fetchJobs()
       } else {
@@ -222,6 +247,37 @@ export function JobsCalendarContent() {
     } catch (error) {
       console.error('Error updating job:', error)
       alert('Error rescheduling job. Please try again.')
+    }
+  }
+
+  const handleUndo = async () => {
+    if (!lastDragAction) return
+
+    try {
+      const response = await fetch(`/api/jobs/${lastDragAction.jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          targetDate: lastDragAction.previousDate,
+        }),
+      })
+
+      if (response.ok) {
+        // Clear undo state
+        setLastDragAction(null)
+        setShowUndoNotification(false)
+        
+        // Refresh calendar
+        await fetchJobs()
+      } else {
+        console.error('Failed to undo job date change')
+        alert('Failed to undo. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error undoing job date change:', error)
+      alert('Error undoing change. Please try again.')
     }
   }
 
@@ -246,6 +302,36 @@ export function JobsCalendarContent() {
 
   return (
     <div className="p-8 space-y-6">
+      {/* Undo Notification */}
+      {showUndoNotification && lastDragAction && (
+        <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-4 animate-slide-in">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">↩️</span>
+            <div>
+              <p className="font-semibold">Job rescheduled</p>
+              <p className="text-sm text-blue-100">
+                {new Date(lastDragAction.previousDate).toLocaleDateString()} → {new Date(lastDragAction.newDate).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleUndo}
+            className="px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+          >
+            Undo
+          </button>
+          <button
+            onClick={() => {
+              setShowUndoNotification(false)
+              setLastDragAction(null)
+            }}
+            className="text-white hover:text-blue-100 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
