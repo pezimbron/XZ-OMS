@@ -57,12 +57,36 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     const zipChanged = previousDoc.zip !== doc.zip
     const modelNameChanged = previousDoc.modelName !== doc.modelName
     const instructionsChanged = previousDoc.techInstructions !== doc.techInstructions
-    const lineItemsChanged = JSON.stringify(previousDoc.lineItems) !== JSON.stringify(doc.lineItems)
+    
+    // Improved lineItems comparison - normalize data to avoid false positives
+    const normalizeLineItems = (items: any[]) => {
+      if (!items || items.length === 0) return []
+      return items.map(item => ({
+        product: typeof item.product === 'object' ? item.product?.id : item.product,
+        quantity: item.quantity,
+        instructions: item.instructions || '',
+      }))
+    }
+    const prevLineItems = normalizeLineItems(previousDoc.lineItems || [])
+    const currLineItems = normalizeLineItems(doc.lineItems || [])
+    const lineItemsChanged = JSON.stringify(prevLineItems) !== JSON.stringify(currLineItems)
+    
+    // Exclude workflow-related fields from triggering calendar updates
+    const statusChanged = previousDoc.status !== doc.status
+    const workflowStepsChanged = JSON.stringify(previousDoc.workflowSteps) !== JSON.stringify(doc.workflowSteps)
     
     const calendarFieldsChanged = 
       techChanged || dateChanged || addressChanged || cityChanged || 
       stateChanged || zipChanged || modelNameChanged || clientChanged || 
       instructionsChanged || lineItemsChanged
+    
+    // Check if ONLY workflow fields changed (status, workflowSteps)
+    const onlyWorkflowFieldsChanged = (statusChanged || workflowStepsChanged) && !calendarFieldsChanged
+    
+    if (onlyWorkflowFieldsChanged) {
+      req.payload.logger.info(`[Calendar Hook] Skipped (only workflow fields changed) - ${Date.now() - startTime}ms`)
+      return doc
+    }
     
     // If no calendar fields changed, skip entirely
     if (!calendarFieldsChanged) {

@@ -32,6 +32,9 @@ interface Job {
   tech?: {
     id: string
     name: string
+    user?: {
+      id: string
+    } | string
   }
   status: string
   city?: string
@@ -83,11 +86,28 @@ export function JobsCalendarContent() {
     newDate: string
   } | null>(null)
   const [showUndoNotification, setShowUndoNotification] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    fetchJobs()
+    fetchUser()
     fetchClients()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchJobs()
+    }
+  }, [user])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/users/me')
+      const data = await response.json()
+      setUser(data.user)
+    } catch (error) {
+      console.error('Error fetching user:', error)
+    }
+  }
 
   // Auto-select date when in Day view
   useEffect(() => {
@@ -98,9 +118,25 @@ export function JobsCalendarContent() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('/api/jobs?limit=1000&depth=1')
+      const response = await fetch('/api/jobs?limit=1000&depth=2')
       const data = await response.json()
-      setJobs(data.docs || [])
+      let fetchedJobs = data.docs || []
+
+      // Filter jobs for tech users
+      if (user?.role === 'tech') {
+        fetchedJobs = fetchedJobs.filter((job: Job) => {
+          const jobTech = job.tech
+          if (!jobTech) return false
+
+          const techUserId = typeof jobTech === 'object' && jobTech.user
+            ? (typeof jobTech.user === 'object' ? jobTech.user.id : jobTech.user)
+            : null
+
+          return techUserId === user.id
+        })
+      }
+
+      setJobs(fetchedJobs)
     } catch (error) {
       console.error('Error fetching jobs:', error)
     } finally {

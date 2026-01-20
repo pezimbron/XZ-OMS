@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeContext } from '@/contexts/ThemeContext'
@@ -34,6 +34,28 @@ export function Navigation() {
   const themeContext = React.useContext(ThemeContext)
   const theme = themeContext?.theme || 'light'
   const toggleTheme = themeContext?.toggleTheme || (() => {})
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    fetchUser()
+  }, [])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/users/me')
+      const data = await response.json()
+      setUser(data.user)
+    } catch (error) {
+      console.error('Error fetching user:', error)
+    }
+  }
+
+  // Filter nav items based on user role
+  const visibleNavItems = navItems.filter(item => {
+    if (!item.roles) return true // Show to all if no role restriction
+    if (!user) return false // Hide if user not loaded
+    return item.roles.includes(user.role)
+  })
 
   return (
     <nav className="flex flex-col h-full">
@@ -53,7 +75,7 @@ export function Navigation() {
       {/* Navigation Items */}
       <div className="flex-1 overflow-y-auto py-4">
         <div className="space-y-1 px-3">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
               <Link
@@ -99,8 +121,8 @@ export function Navigation() {
             U
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">User Name</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Admin</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user?.email || 'Loading...'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user?.role?.replace('-', ' ') || ''}</p>
           </div>
         </div>
 

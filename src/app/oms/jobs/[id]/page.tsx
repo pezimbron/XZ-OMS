@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { workflowTemplates, getWorkflowSteps } from '@/lib/workflows/templates'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
 import QCPanel from '@/components/oms/QCPanel'
+import { WorkflowTimeline } from '@/components/oms/WorkflowTimeline'
 
 interface Job {
   id: string
@@ -37,6 +37,8 @@ interface Job {
   subtotal?: number
   taxAmount?: number
   totalWithTax?: number
+  workflowTemplate?: any
+  workflowSteps?: any[]
   createdAt: string
   updatedAt: string
 }
@@ -400,50 +402,54 @@ export default function JobDetailPage() {
               ← Back to Jobs
             </Link>
             <div className="flex gap-2">
-              <NotifyClientButton 
-                jobId={job.id} 
-                clientName={job.client?.name}
-                clientEmail={job.client?.email}
-              />
-              {(job as any).completionToken && (
-                <button
-                  onClick={() => {
-                    const url = `${window.location.origin}/forms/job/${(job as any).completionToken}`
-                    navigator.clipboard.writeText(url)
-                    alert('Completion form link copied to clipboard!')
-                  }}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                  title="Copy completion form link for subcontractor"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copy Form Link
-                </button>
-              )}
-              {editMode ? (
+              {user?.role !== 'tech' && (
                 <>
-                  <button
-                    onClick={handleSaveJob}
-                    disabled={saving}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button
-                    onClick={handleEditToggle}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
+                  <NotifyClientButton 
+                    jobId={job.id} 
+                    clientName={job.client?.name}
+                    clientEmail={job.client?.email}
+                  />
+                  {(job as any).completionToken && (
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/forms/job/${(job as any).completionToken}`
+                        navigator.clipboard.writeText(url)
+                        alert('Completion form link copied to clipboard!')
+                      }}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      title="Copy completion form link for subcontractor"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy Form Link
+                    </button>
+                  )}
+                  {editMode ? (
+                    <>
+                      <button
+                        onClick={handleSaveJob}
+                        disabled={saving}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                      <button
+                        onClick={handleEditToggle}
+                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleEditToggle}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Edit Job
+                    </button>
+                  )}
                 </>
-              ) : (
-                <button
-                  onClick={handleEditToggle}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                  Edit Job
-                </button>
               )}
             </div>
           </div>
@@ -457,52 +463,68 @@ export default function JobDetailPage() {
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              {editingStatus ? (
-                <div className="flex items-center gap-2">
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
-                    className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="request">Request</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="scanned">Scanned</option>
-                    <option value="qc">QC</option>
-                    <option value="done">Done</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                  <button
-                    onClick={handleStatusUpdate}
-                    disabled={saving}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
-                  >
-                    {saving ? 'Saving...' : 'Save'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingStatus(false)
-                      setNewStatus(job.status)
-                    }}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setEditingStatus(true)}
-                  className={`px-3 py-1 rounded-full text-sm font-semibold cursor-pointer transition-all hover:ring-2 hover:ring-blue-500 ${
-                    job.status === 'request' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                    job.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                    job.status === 'scanned' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                    job.status === 'qc' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' :
-                    job.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                    job.status === 'archived' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
-                    'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
-                  }`}
-                >
+              {user?.role !== 'tech' ? (
+                <>
+                  {editingStatus ? (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={newStatus}
+                        onChange={(e) => setNewStatus(e.target.value)}
+                        className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="request">Request</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="scanned">Scanned</option>
+                        <option value="qc">QC</option>
+                        <option value="done">Done</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                      <button
+                        onClick={handleStatusUpdate}
+                        disabled={saving}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingStatus(false)
+                          setNewStatus(job.status)
+                        }}
+                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg font-medium transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingStatus(true)}
+                      className={`px-3 py-1 rounded-full text-sm font-semibold cursor-pointer transition-all hover:ring-2 hover:ring-blue-500 ${
+                        job.status === 'request' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                        job.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                        job.status === 'scanned' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
+                        job.status === 'qc' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' :
+                        job.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                        job.status === 'archived' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                      }`}
+                    >
                   {job.status || 'request'} ✏️
                 </button>
+                  )}
+                </>
+              ) : (
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  job.status === 'request' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                  job.status === 'scheduled' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                  job.status === 'scanned' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
+                  job.status === 'qc' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' :
+                  job.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                  job.status === 'archived' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300' :
+                  'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+                }`}>
+                  {job.status || 'request'}
+                </span>
               )}
               {job.region && (
                 <span className="px-3 py-1 rounded-full text-sm font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 capitalize">
@@ -511,6 +533,18 @@ export default function JobDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Workflow Timeline */}
+        <div className="px-8 py-4">
+          <WorkflowTimeline
+            workflowTemplate={job.workflowTemplate}
+            workflowSteps={job.workflowSteps || []}
+            currentStatus={job.status}
+            jobId={job.id}
+            onStepComplete={() => fetchJob(job.id)}
+            onTemplateChange={() => fetchJob(job.id)}
+          />
         </div>
 
         {/* Tabs */}
@@ -546,16 +580,18 @@ export default function JobDetailPage() {
             >
               Tech Feedback
             </button>
-            <button
-              onClick={() => setActiveTab('qc')}
-              className={`pb-3 px-1 font-medium transition-colors ${
-                activeTab === 'qc'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              QC
-            </button>
+            {user?.role !== 'tech' && (
+              <button
+                onClick={() => setActiveTab('qc')}
+                className={`pb-3 px-1 font-medium transition-colors ${
+                  activeTab === 'qc'
+                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                QC
+              </button>
+            )}
             {user?.role !== 'tech' && (
               <button
                 onClick={() => setActiveTab('financials')}
@@ -568,26 +604,18 @@ export default function JobDetailPage() {
                 Financials
               </button>
             )}
-            <button
-              onClick={() => setActiveTab('workflow')}
-              className={`pb-3 px-1 font-medium transition-colors ${
-                activeTab === 'workflow'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              Workflow
-            </button>
-            <button
-              onClick={() => setActiveTab('deliverables')}
-              className={`pb-3 px-1 font-medium transition-colors ${
-                activeTab === 'deliverables'
-                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-              }`}
-            >
-              Deliverables
-            </button>
+            {user?.role !== 'tech' && (
+              <button
+                onClick={() => setActiveTab('deliverables')}
+                className={`pb-3 px-1 font-medium transition-colors ${
+                  activeTab === 'deliverables'
+                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Deliverables
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1568,206 +1596,6 @@ export default function JobDetailPage() {
                 )
               })()}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'workflow' && (
-          <div className="space-y-6">
-            {/* Workflow Type Selection */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Workflow Type</h2>
-              {editMode ? (
-                <div className="space-y-4">
-                  <select
-                    value={(editedJob as any)?.workflowType || ''}
-                    onChange={(e) => {
-                      const workflowType = e.target.value
-                      const steps = getWorkflowSteps(workflowType).map(step => ({
-                        stepName: step.name,
-                        completed: false,
-                        completedAt: null,
-                        completedBy: null,
-                        notes: ''
-                      }))
-                      setEditedJob({
-                        ...editedJob,
-                        workflowType,
-                        workflowSteps: steps
-                      })
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  >
-                    <option value="">Select Workflow...</option>
-                    {Object.values(workflowTemplates).map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name}
-                      </option>
-                    ))}
-                  </select>
-                  {(editedJob as any)?.workflowType && (
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {workflowTemplates[(editedJob as any).workflowType]?.description}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  {(job as any).workflowType ? (
-                    <div>
-                      <p className="text-lg font-medium text-gray-900 dark:text-white">
-                        {workflowTemplates[(job as any).workflowType]?.name || (job as any).workflowType}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        {workflowTemplates[(job as any).workflowType]?.description}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 italic">No workflow assigned</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Workflow Progress */}
-            {((job as any).workflowType || (editedJob as any)?.workflowType) && (() => {
-              // Get current workflow type
-              const currentWorkflowType = editMode ? (editedJob as any)?.workflowType : (job as any).workflowType
-              
-              // Get or generate workflow steps
-              let workflowSteps = editMode ? (editedJob as any)?.workflowSteps : (job as any).workflowSteps
-              
-              // If no steps exist but we have a workflow type, generate them from template
-              if ((!workflowSteps || workflowSteps.length === 0) && currentWorkflowType) {
-                workflowSteps = getWorkflowSteps(currentWorkflowType).map(step => ({
-                  stepName: step.name,
-                  completed: false,
-                  completedAt: null,
-                  completedBy: null,
-                  notes: ''
-                }))
-              }
-              
-              return workflowSteps && workflowSteps.length > 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Workflow Progress</h2>
-                  <div className="space-y-3">
-                    {workflowSteps.map((step: any, index: number) => {
-                      const templateStep = currentWorkflowType ? getWorkflowSteps(currentWorkflowType)[index] : null
-
-                    return (
-                      <div
-                        key={index}
-                        className={`flex items-start gap-4 p-4 rounded-lg border-2 transition-all ${
-                          step.completed
-                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                            : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700'
-                        }`}
-                      >
-                        {editMode ? (
-                          <input
-                            type="checkbox"
-                            checked={step.completed || false}
-                            onChange={(e) => {
-                              const newSteps = [...(editedJob as any).workflowSteps]
-                              newSteps[index] = {
-                                ...newSteps[index],
-                                completed: e.target.checked,
-                                completedAt: e.target.checked ? new Date().toISOString() : null,
-                                completedBy: e.target.checked ? user?.email : null
-                              }
-                              setEditedJob({...editedJob, workflowSteps: newSteps})
-                            }}
-                            className="mt-1 w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500"
-                          />
-                        ) : (
-                          <div className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                            step.completed
-                              ? 'bg-green-600 border-green-600'
-                              : 'border-gray-300 dark:border-gray-600'
-                          }`}>
-                            {step.completed && (
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className={`font-semibold ${
-                                step.completed
-                                  ? 'text-green-900 dark:text-green-100'
-                                  : 'text-gray-900 dark:text-white'
-                              }`}>
-                                {step.stepName}
-                              </h3>
-                              {templateStep?.description && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                  {templateStep.description}
-                                </p>
-                              )}
-                              {templateStep?.assignedRole && (
-                                <span className="inline-block mt-2 px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded">
-                                  {templateStep.assignedRole.replace('-', ' ')}
-                                </span>
-                              )}
-                            </div>
-                            {step.completed && step.completedAt && (
-                              <div className="text-right text-sm">
-                                <p className="text-gray-600 dark:text-gray-400">
-                                  {new Date(step.completedAt).toLocaleDateString()}
-                                </p>
-                                {step.completedBy && (
-                                  <p className="text-gray-500 dark:text-gray-500 text-xs">
-                                    by {step.completedBy}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {step.notes && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
-                              Note: {step.notes}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                
-                {/* Progress Summary */}
-                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-semibold text-gray-900 dark:text-white">Progress</span>
-                    <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {(() => {
-                        const steps = editMode ? (editedJob as any)?.workflowSteps : (job as any).workflowSteps
-                        const completed = steps?.filter((s: any) => s.completed).length || 0
-                        const total = steps?.length || 0
-                        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0
-                        return `${completed}/${total} (${percentage}%)`
-                      })()}
-                    </span>
-                  </div>
-                  <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${(() => {
-                          const steps = editMode ? (editedJob as any)?.workflowSteps : (job as any).workflowSteps
-                          const completed = steps?.filter((s: any) => s.completed).length || 0
-                          const total = steps?.length || 0
-                          return total > 0 ? (completed / total) * 100 : 0
-                        })()}%`
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              ) : null
-            })()}
           </div>
         )}
 

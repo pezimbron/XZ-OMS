@@ -8,6 +8,10 @@ interface DashboardStats {
   activeJobs: number
   unassignedJobs: number
   todayJobs: number
+  myJobs?: number
+  upcomingJobs?: number
+  completedJobs?: number
+  pendingCommissions?: number
 }
 
 export default function OMSDashboard() {
@@ -18,27 +22,82 @@ export default function OMSDashboard() {
     todayJobs: 0,
   })
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    fetchStats()
+    fetchUser()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchStats()
+    }
+  }, [user])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/users/me')
+      const data = await response.json()
+      setUser(data.user)
+    } catch (error) {
+      console.error('Error fetching user:', error)
+    }
+  }
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/jobs?limit=1000')
+      const response = await fetch('/api/jobs?limit=1000&depth=2')
       const data = await response.json()
-      const jobs = data.docs || []
+      let jobs = data.docs || []
+
+      // Filter jobs for tech users
+      if (user?.role === 'tech') {
+        jobs = jobs.filter((job: any) => {
+          const jobTech = job.tech
+          if (!jobTech) return false
+          
+          const techUserId = typeof jobTech === 'object' && jobTech.user
+            ? (typeof jobTech.user === 'object' ? jobTech.user.id : jobTech.user)
+            : null
+          
+          return techUserId === user.id
+        })
+      }
 
       const today = new Date().toDateString()
-      setStats({
-        totalJobs: jobs.length,
-        activeJobs: jobs.filter((j: any) => j.status !== 'done' && j.status !== 'archived').length,
-        unassignedJobs: jobs.filter((j: any) => !j.tech).length,
-        todayJobs: jobs.filter((j: any) => {
-          if (!j.targetDate) return false
-          return new Date(j.targetDate).toDateString() === today
-        }).length,
-      })
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 7)
+      
+      if (user?.role === 'tech') {
+        // Tech-specific stats
+        setStats({
+          totalJobs: jobs.length,
+          activeJobs: jobs.filter((j: any) => j.status !== 'done' && j.status !== 'archived').length,
+          myJobs: jobs.length,
+          upcomingJobs: jobs.filter((j: any) => {
+            if (!j.targetDate) return false
+            const jobDate = new Date(j.targetDate)
+            return jobDate >= new Date() && jobDate <= tomorrow
+          }).length,
+          completedJobs: jobs.filter((j: any) => j.status === 'done').length,
+          pendingCommissions: jobs.filter((j: any) => j.status === 'done' && j.completionStatus === 'completed').reduce((sum: number, j: any) => {
+            return sum + (j.vendorPrice || 0) + (j.travelPayout || 0) + (j.offHoursPayout || 0)
+          }, 0),
+          todayJobs: 0,
+          unassignedJobs: 0,
+        })
+      } else {
+        // Admin stats
+        setStats({
+          totalJobs: jobs.length,
+          activeJobs: jobs.filter((j: any) => j.status !== 'done' && j.status !== 'archived').length,
+          unassignedJobs: jobs.filter((j: any) => !j.tech).length,
+          todayJobs: jobs.filter((j: any) => {
+            if (!j.targetDate) return false
+            return new Date(j.targetDate).toDateString() === today
+          }).length,
+        })
+      }
     } catch (error) {
       console.error('Error fetching stats:', error)
     } finally {
@@ -46,12 +105,18 @@ export default function OMSDashboard() {
     }
   }
 
-  const quickActions = [
-    { label: 'Quick Create Job', href: '/oms/quick-create', icon: '⚡', color: 'from-green-500 to-emerald-600' },
-    { label: 'View Calendar', href: '/oms/calendar', icon: '📅', color: 'from-blue-500 to-indigo-600' },
-    { label: 'Create Job', href: '/oms/jobs/create', icon: '➕', color: 'from-purple-500 to-pink-600' },
-    { label: 'All Jobs', href: '/oms/jobs', icon: '📋', color: 'from-orange-500 to-red-600' },
-  ]
+  const quickActions = user?.role === 'tech' 
+    ? [
+        { label: 'My Jobs', href: '/oms/jobs', icon: '📋', color: 'from-blue-500 to-indigo-600' },
+        { label: 'Calendar', href: '/oms/calendar', icon: '📅', color: 'from-green-500 to-emerald-600' },
+        { label: 'Commissions', href: '/oms/commissions', icon: '💵', color: 'from-purple-500 to-pink-600' },
+      ]
+    : [
+        { label: 'Quick Create Job', href: '/oms/quick-create', icon: '⚡', color: 'from-green-500 to-emerald-600' },
+        { label: 'View Calendar', href: '/oms/calendar', icon: '📅', color: 'from-blue-500 to-indigo-600' },
+        { label: 'Create Job', href: '/oms/jobs/create', icon: '➕', color: 'from-purple-500 to-pink-600' },
+        { label: 'All Jobs', href: '/oms/jobs', icon: '📋', color: 'from-orange-500 to-red-600' },
+      ]
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
@@ -65,61 +130,123 @@ export default function OMSDashboard() {
       <div className="p-8 space-y-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📊</span>
+          {user?.role === 'tech' ? (
+            <>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">My Jobs</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.myJobs}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Jobs</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {loading ? '...' : stats.totalJobs}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">✅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.activeJobs}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {loading ? '...' : stats.activeJobs}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">⏳</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Next 7 Days</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.upcomingJobs}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Unassigned</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {loading ? '...' : stats.unassignedJobs}
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">💵</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Pending Pay</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : `$${(stats.pendingCommissions || 0).toFixed(0)}`}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Today&apos;s Jobs</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {loading ? '...' : stats.todayJobs}
-                </p>
+            </>
+          ) : (
+            <>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Jobs</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.totalJobs}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">✅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.activeJobs}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">⏳</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Unassigned</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.unassignedJobs}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <span className="text-2xl">📅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Today&apos;s Jobs</p>
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                      {loading ? '...' : stats.todayJobs}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Quick Actions */}

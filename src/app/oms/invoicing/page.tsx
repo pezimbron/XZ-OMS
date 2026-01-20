@@ -8,6 +8,7 @@ interface Job {
   jobId: string
   modelName: string
   status: string
+  invoiceStatus?: string
   client: {
     id: string
     name: string

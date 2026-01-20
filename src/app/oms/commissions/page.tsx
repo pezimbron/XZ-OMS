@@ -14,6 +14,13 @@ interface Job {
   client?: {
     name: string
   }
+  tech?: {
+    id: string
+    name: string
+    user?: {
+      id: string
+    } | string
+  }
   vendorPrice?: number
   travelPayout?: number
   offHoursPayout?: number
@@ -27,8 +34,13 @@ export default function CommissionsPage() {
 
   useEffect(() => {
     fetchUser()
-    fetchJobs()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchJobs()
+    }
+  }, [user])
 
   const fetchUser = async () => {
     try {
@@ -42,9 +54,25 @@ export default function CommissionsPage() {
 
   const fetchJobs = async () => {
     try {
-      const response = await fetch('/api/jobs?limit=1000&depth=1')
+      const response = await fetch('/api/jobs?limit=1000&depth=2')
       const data = await response.json()
-      setJobs(data.docs || [])
+      let fetchedJobs = data.docs || []
+      
+      // Filter jobs for tech users - only show jobs assigned to them
+      if (user?.role === 'tech') {
+        fetchedJobs = fetchedJobs.filter((job: Job) => {
+          const jobTech = job.tech
+          if (!jobTech) return false
+          
+          const techUserId = typeof jobTech === 'object' && jobTech.user
+            ? (typeof jobTech.user === 'object' ? jobTech.user.id : jobTech.user)
+            : null
+          
+          return techUserId === user.id
+        })
+      }
+      
+      setJobs(fetchedJobs)
     } catch (error) {
       console.error('Error fetching jobs:', error)
     } finally {
@@ -52,12 +80,8 @@ export default function CommissionsPage() {
     }
   }
 
-  // Filter jobs assigned to current user
-  const myJobs = jobs.filter((job: any) => {
-    if (!user) return false
-    const techId = typeof job.tech === 'object' ? job.tech?.id : job.tech
-    return techId === user.id
-  })
+  // All jobs are already filtered in fetchJobs
+  const myJobs = jobs
 
   // Calculate totals
   const calculatePayout = (job: Job) => {

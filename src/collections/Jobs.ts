@@ -6,11 +6,13 @@ import { populateLineItemInstructions, populateTechInstructions } from './Jobs/h
 import { createCalendarInvite } from './Jobs/hooks/createCalendarInvite'
 import { afterWorkflowStepUpdate } from './Jobs/hooks/afterWorkflowStepUpdate'
 import { autoGenerateExpenses } from './Jobs/hooks/autoGenerateExpenses'
+import { workflowStepCompletion } from './Jobs/hooks/workflowStepCompletion'
+import { populateWorkflowSteps } from './Jobs/hooks/populateWorkflowSteps'
 
 export const Jobs: CollectionConfig = {
   slug: 'jobs',
   hooks: {
-    beforeChange: [autoGenerateExpenses],
+    beforeChange: [populateWorkflowSteps, autoGenerateExpenses, workflowStepCompletion],
     afterChange: [createCalendarInvite, afterWorkflowStepUpdate],
   },
   access: {
@@ -73,6 +75,21 @@ export const Jobs: CollectionConfig = {
         { label: 'Done', value: 'done' },
         { label: 'Archived', value: 'archived' },
       ],
+    },
+    {
+      name: 'invoiceStatus',
+      type: 'select',
+      label: 'Invoice Status',
+      defaultValue: 'not-invoiced',
+      options: [
+        { label: 'Not Invoiced', value: 'not-invoiced' },
+        { label: 'Ready', value: 'ready' },
+        { label: 'Invoiced', value: 'invoiced' },
+        { label: 'Paid', value: 'paid' },
+      ],
+      admin: {
+        description: 'Track invoicing status of completed jobs',
+      },
     },
     {
       name: 'client',
@@ -308,22 +325,13 @@ export const Jobs: CollectionConfig = {
       label: 'Off-Hours Payout',
     },
     {
-      name: 'workflowType',
-      type: 'select',
-      label: 'Workflow Type',
+      name: 'workflowTemplate',
+      type: 'relationship',
+      relationTo: 'workflow-templates' as any,
+      label: 'Workflow Template',
       admin: {
-        description: 'The workflow process for this job. Defaults to client\'s default workflow but can be overridden.',
+        description: 'The workflow template that defines steps and automation for this job',
       },
-      options: [
-        { label: 'Outsourced: Scan & Upload to Client', value: 'outsourced-scan-upload-client' },
-        { label: 'Outsourced: Scan & Transfer', value: 'outsourced-scan-transfer' },
-        { label: 'Outsourced: Scan, Survey & Images', value: 'outsourced-scan-survey-images' },
-        { label: 'Direct: Scan Hosted by Us', value: 'direct-scan-hosted' },
-        { label: 'Direct: Scan & Transfer', value: 'direct-scan-transfer' },
-        { label: 'Direct: Scan + Floor Plan', value: 'direct-scan-floorplan' },
-        { label: 'Direct: Scan + Floor Plan + Photos', value: 'direct-scan-floorplan-photos' },
-        { label: 'Direct: Scan + As-Builts', value: 'direct-scan-asbuilts' },
-      ],
     },
     {
       name: 'workflowSteps',

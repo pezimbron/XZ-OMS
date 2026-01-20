@@ -24,6 +24,7 @@ export interface Config {
     jobs: Job;
     notifications: Notification;
     'notification-templates': NotificationTemplate;
+    'workflow-templates': WorkflowTemplate;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -47,6 +48,7 @@ export interface Config {
     jobs: JobsSelect<false> | JobsSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
+    'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -723,6 +725,7 @@ export interface Technician {
   id: number;
   name: string;
   email: string;
+  user?: (number | null) | User;
   type: 'commission' | 'w2' | 'partner';
   baseCommissionRate?: number | null;
   phone?: string | null;
@@ -776,6 +779,7 @@ export interface Job {
   modelName: string;
   priority?: ('low' | 'normal' | 'high' | 'rush') | null;
   status: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+  invoiceStatus?: ('not-invoiced' | 'ready' | 'invoiced' | 'paid') | null;
   client: number | Client;
   endClientName?: string | null;
   endClientCompany?: string | null;
@@ -816,18 +820,7 @@ export interface Job {
   vendorPrice?: number | null;
   travelPayout?: number | null;
   offHoursPayout?: number | null;
-  workflowType?:
-    | (
-        | 'outsourced-scan-upload-client'
-        | 'outsourced-scan-transfer'
-        | 'outsourced-scan-survey-images'
-        | 'direct-scan-hosted'
-        | 'direct-scan-transfer'
-        | 'direct-scan-floorplan'
-        | 'direct-scan-floorplan-photos'
-        | 'direct-scan-asbuilts'
-      )
-    | null;
+  workflowTemplate?: (number | null) | WorkflowTemplate;
   workflowSteps?:
     | {
         stepName: string;
@@ -897,6 +890,40 @@ export interface Job {
     deliveryNotes?: string | null;
     deliveredDate?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-templates".
+ */
+export interface WorkflowTemplate {
+  id: number;
+  name: string;
+  jobType: 'outsourced-scan-only' | 'direct-scan-hosted' | 'direct-scan-floorplan' | 'custom';
+  isActive?: boolean | null;
+  description?: string | null;
+  steps: {
+    name: string;
+    description?: string | null;
+    order: number;
+    statusMapping: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+    requiredRole?: ('tech' | 'post-producer' | 'qc' | 'ops-manager' | 'sales-admin' | 'admin') | null;
+    actionLabel?: string | null;
+    requiresDeliverables?: boolean | null;
+    triggers?: {
+      sendNotification?: boolean | null;
+      notificationRecipients?: ('tech' | 'post-production' | 'qc' | 'ops-manager' | 'sales')[] | null;
+      notificationMessage?: string | null;
+      sendClientEmail?: boolean | null;
+      emailTemplate?: ('job-complete' | 'qc-approved' | 'custom') | null;
+      createInvoice?: boolean | null;
+      createRecurringInvoice?: boolean | null;
+      recurringInvoiceDelay?: number | null;
+      recurringInvoiceAmount?: number | null;
+    };
+    id?: string | null;
+  }[];
   updatedAt: string;
   createdAt: string;
 }
@@ -1067,6 +1094,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'notification-templates';
         value: number | NotificationTemplate;
+      } | null)
+    | ({
+        relationTo: 'workflow-templates';
+        value: number | WorkflowTemplate;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1486,6 +1517,7 @@ export interface ClientsSelect<T extends boolean = true> {
 export interface TechniciansSelect<T extends boolean = true> {
   name?: T;
   email?: T;
+  user?: T;
   type?: T;
   baseCommissionRate?: T;
   phone?: T;
@@ -1536,6 +1568,7 @@ export interface JobsSelect<T extends boolean = true> {
   modelName?: T;
   priority?: T;
   status?: T;
+  invoiceStatus?: T;
   client?: T;
   endClientName?: T;
   endClientCompany?: T;
@@ -1574,7 +1607,7 @@ export interface JobsSelect<T extends boolean = true> {
   vendorPrice?: T;
   travelPayout?: T;
   offHoursPayout?: T;
-  workflowType?: T;
+  workflowTemplate?: T;
   workflowSteps?:
     | T
     | {
@@ -1679,6 +1712,43 @@ export interface NotificationTemplatesSelect<T extends boolean = true> {
   subject?: T;
   body?: T;
   defaultTemplate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-templates_select".
+ */
+export interface WorkflowTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  jobType?: T;
+  isActive?: T;
+  description?: T;
+  steps?:
+    | T
+    | {
+        name?: T;
+        description?: T;
+        order?: T;
+        statusMapping?: T;
+        requiredRole?: T;
+        actionLabel?: T;
+        requiresDeliverables?: T;
+        triggers?:
+          | T
+          | {
+              sendNotification?: T;
+              notificationRecipients?: T;
+              notificationMessage?: T;
+              sendClientEmail?: T;
+              emailTemplate?: T;
+              createInvoice?: T;
+              createRecurringInvoice?: T;
+              recurringInvoiceDelay?: T;
+              recurringInvoiceAmount?: T;
+            };
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

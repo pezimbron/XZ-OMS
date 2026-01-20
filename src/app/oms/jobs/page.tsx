@@ -17,6 +17,9 @@ interface Job {
   tech?: {
     id: string
     name: string
+    user?: {
+      id: string
+    } | string
   }
   city?: string
   captureAddress?: string
@@ -118,8 +121,16 @@ export default function JobsListPage() {
   // Filter jobs based on user role
   const roleFilteredJobs = user?.role === 'tech' 
     ? jobs.filter((job) => {
-        const techId = typeof job.tech === 'object' ? job.tech?.id : job.tech
-        return techId === user.id
+        // For tech users, find their technician record and match jobs assigned to them
+        const jobTech = job.tech
+        if (!jobTech) return false
+        
+        // Check if the technician's user matches the current user
+        const techUserId = typeof jobTech === 'object' && jobTech.user 
+          ? (typeof jobTech.user === 'object' ? jobTech.user.id : jobTech.user)
+          : null
+        
+        return techUserId === user.id
       })
     : jobs
 
@@ -201,24 +212,26 @@ export default function JobsListPage() {
                 Manage and track all your jobs
               </p>
             </div>
-            <div className="relative">
-              <div className="flex gap-2">
-                <Link
-                  href="/oms/quick-create"
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <span className="text-xl">+</span>
-                  Quick Create
-                </Link>
-                <Link
-                  href="/admin/collections/jobs/create"
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                >
-                  <span className="text-xl">+</span>
-                  Manual Create
-                </Link>
+            {user?.role !== 'tech' && (
+              <div className="relative">
+                <div className="flex gap-2">
+                  <Link
+                    href="/oms/quick-create"
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <span className="text-xl">+</span>
+                    Quick Create
+                  </Link>
+                  <Link
+                    href="/admin/collections/jobs/create"
+                    className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <span className="text-xl">+</span>
+                    Manual Create
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

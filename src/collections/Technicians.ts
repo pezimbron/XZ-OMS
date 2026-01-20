@@ -38,6 +38,15 @@ export const Technicians: CollectionConfig = {
       unique: true,
     },
     {
+      name: 'user',
+      type: 'relationship',
+      relationTo: 'users',
+      label: 'User Account',
+      admin: {
+        description: 'Link this technician to a user account for portal access',
+      },
+    },
+    {
       name: 'type',
       type: 'select',
       required: true,
