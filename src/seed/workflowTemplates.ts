@@ -66,7 +66,7 @@ export const defaultWorkflowTemplates = [
         requiresDeliverables: false,
         triggers: {
           sendNotification: true,
-          notificationRecipients: ['post-production'],
+          notificationRecipients: ['post-producer'],
           notificationMessage: 'Scan uploaded for {{modelName}}',
           sendClientEmail: false,
           createInvoice: false,
@@ -190,7 +190,7 @@ export const defaultWorkflowTemplates = [
         requiresDeliverables: false,
         triggers: {
           sendNotification: true,
-          notificationRecipients: ['post-production'],
+          notificationRecipients: ['post-producer'],
           notificationMessage: 'Scan uploaded for {{modelName}}',
           sendClientEmail: false,
           createInvoice: false,
@@ -316,7 +316,7 @@ export const defaultWorkflowTemplates = [
         requiresDeliverables: false,
         triggers: {
           sendNotification: true,
-          notificationRecipients: ['post-production'],
+          notificationRecipients: ['post-producer'],
           notificationMessage: 'Scan uploaded for {{modelName}}. Floor plan drafting can begin.',
           sendClientEmail: false,
           createInvoice: false,
@@ -333,7 +333,7 @@ export const defaultWorkflowTemplates = [
         requiresDeliverables: false,
         triggers: {
           sendNotification: true,
-          notificationRecipients: ['post-production'],
+          notificationRecipients: ['post-producer'],
           notificationMessage: 'Floor plans received for {{jobId}}. Ready for integration.',
           sendClientEmail: false,
           createInvoice: false,
