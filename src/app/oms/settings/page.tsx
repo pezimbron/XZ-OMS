@@ -10,8 +10,15 @@ function SettingsContent() {
   const [qbConnected, setQbConnected] = useState(false)
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success' | 'error'>('idle')
   const [importMessage, setImportMessage] = useState('')
+  const [user, setUser] = useState<any>(null)
+  const [email, setEmail] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [saveMessage, setSaveMessage] = useState('')
 
   useEffect(() => {
+    fetchUser()
     const qbStatus = searchParams.get('quickbooks')
     const message = searchParams.get('message')
 
@@ -22,6 +29,67 @@ function SettingsContent() {
       setSyncMessage(`QuickBooks connection error: ${message || 'Unknown error'}`)
     }
   }, [searchParams])
+
+  const fetchUser = async () => {
+    try {
+      const response = await fetch('/api/users/me')
+      const data = await response.json()
+      setUser(data.user)
+      setEmail(data.user?.email || '')
+    } catch (error) {
+      console.error('Error fetching user:', error)
+    }
+  }
+
+  const handleUpdateProfile = async () => {
+    setSaveMessage('Saving...')
+    try {
+      const response = await fetch('/api/users/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (response.ok) {
+        setSaveMessage('✓ Profile updated successfully!')
+        setTimeout(() => setSaveMessage(''), 3000)
+      } else {
+        setSaveMessage('✗ Failed to update profile')
+      }
+    } catch (error) {
+      setSaveMessage('✗ Error updating profile')
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      setSaveMessage('✗ Passwords do not match')
+      return
+    }
+    if (newPassword.length < 8) {
+      setSaveMessage('✗ Password must be at least 8 characters')
+      return
+    }
+    setSaveMessage('Updating password...')
+    try {
+      const response = await fetch('/api/users/me/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      if (response.ok) {
+        setSaveMessage('✓ Password changed successfully!')
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+        setTimeout(() => setSaveMessage(''), 3000)
+      } else {
+        const data = await response.json()
+        setSaveMessage(`✗ ${data.error || 'Failed to change password'}`)
+      }
+    } catch (error) {
+      setSaveMessage('✗ Error changing password')
+    }
+  }
 
   const handleConnectQuickBooks = () => {
     window.location.href = '/api/quickbooks/auth'
@@ -82,6 +150,123 @@ function SettingsContent() {
     }
   }
 
+  // Tech users see simplified settings
+  if (user?.role === 'tech') {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Header */}
+        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="px-4 md:px-8 py-4 md:py-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">
+              Manage your account settings
+            </p>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-4 md:p-8">
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Save Message */}
+            {saveMessage && (
+              <div className={`p-4 rounded-lg ${
+                saveMessage.includes('✓')
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
+              }`}>
+                <p className="font-medium">{saveMessage}</p>
+              </div>
+            )}
+
+            {/* Email Settings */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Email Address</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleUpdateProfile}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Update Email
+                </button>
+              </div>
+            </div>
+
+            {/* Password Settings */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Change Password</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleChangePassword}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Change Password
+                </button>
+              </div>
+            </div>
+
+            {/* Calendar Settings */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Calendar Settings</h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Your assigned jobs will automatically appear in your Google Calendar.
+              </p>
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-100">
+                  📅 Calendar invites are sent automatically when you're assigned to a job.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Admin users see full settings
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}

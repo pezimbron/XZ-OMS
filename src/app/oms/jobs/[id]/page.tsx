@@ -535,16 +535,71 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {/* Workflow Timeline */}
-        <div className="px-8 py-4">
-          <WorkflowTimeline
-            workflowTemplate={job.workflowTemplate}
-            workflowSteps={job.workflowSteps || []}
-            currentStatus={job.status}
-            jobId={job.id}
-            onStepComplete={() => fetchJob(job.id)}
-            onTemplateChange={() => fetchJob(job.id)}
-          />
+        {/* Workflow Section */}
+        <div className="px-4 md:px-8 py-4">
+          {user?.role === 'tech' ? (
+            // Simple buttons for tech users
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Job Actions</h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch(`/api/jobs/${job.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'scanned' }),
+                      })
+                      fetchJob(job.id)
+                    } catch (error) {
+                      console.error('Error updating status:', error)
+                    }
+                  }}
+                  disabled={job.status === 'scanned' || job.status === 'done'}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">📸</span>
+                  <span>{job.status === 'scanned' || job.status === 'done' ? 'Scan Completed' : 'Complete Scan'}</span>
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch(`/api/jobs/${job.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'done' }),
+                      })
+                      fetchJob(job.id)
+                    } catch (error) {
+                      console.error('Error updating status:', error)
+                    }
+                  }}
+                  disabled={job.status !== 'scanned'}
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <span className="text-xl">☁️</span>
+                  <span>{job.status === 'done' ? 'Upload Completed' : 'Complete Upload'}</span>
+                </button>
+              </div>
+              {job.status === 'done' && (
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100 text-center">
+                    ✅ Job completed! Great work!
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Full workflow timeline for admin users
+            <WorkflowTimeline
+              workflowTemplate={job.workflowTemplate}
+              workflowSteps={job.workflowSteps || []}
+              currentStatus={job.status}
+              jobId={job.id}
+              onStepComplete={() => fetchJob(job.id)}
+              onTemplateChange={() => fetchJob(job.id)}
+            />
+          )}
         </div>
 
         {/* Tabs */}
