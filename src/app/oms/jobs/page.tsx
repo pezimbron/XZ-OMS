@@ -356,99 +356,232 @@ export default function JobsListPage() {
         </div>
       </div>
 
-      {/* Jobs List - Responsive Cards */}
+      {/* Jobs List - Table on Desktop, Cards on Mobile */}
       <div className="p-4 md:p-8">
         {sortedJobs.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
             <p className="text-gray-500 dark:text-gray-400">No jobs found matching your filters</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {sortedJobs.map((job) => {
-              const workflowType = (job as any).workflowType
-              const workflowSteps = (job as any).workflowSteps || []
-              const completedSteps = workflowSteps.filter((step: any) => step.completed).length
-              const totalSteps = workflowSteps.length
-              const workflowPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
-              const hasWorkflow = workflowType || totalSteps > 0
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Client
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Model
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Location
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Tech
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Workflow
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Region
+                      </th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {sortedJobs.map((job) => {
+                      const workflowType = (job as any).workflowType
+                      const workflowSteps = (job as any).workflowSteps || []
+                      const completedSteps = workflowSteps.filter((step: any) => step.completed).length
+                      const totalSteps = workflowSteps.length
+                      const workflowPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
+                      const hasWorkflow = workflowType || totalSteps > 0
 
-              return (
-                <Link
-                  key={job.id}
-                  href={`/oms/jobs/${job.id}`}
-                  className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all"
-                >
-                  <div className="p-4">
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                          {job.modelName || 'N/A'}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                          {job.client?.name || 'N/A'}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColors[job.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
-                        {job.status || 'pending'}
-                      </span>
-                    </div>
+                      return (
+                        <tr
+                          key={job.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                          onClick={() => window.location.href = `/oms/jobs/${job.id}`}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-white font-medium">
+                              {job.client?.name || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {job.modelName || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {job.city || 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {job.targetDate ? new Date(job.targetDate).toLocaleDateString() : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-white">
+                              {job.tech?.name || (
+                                <span className="text-gray-400 dark:text-gray-500 italic">Unassigned</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[job.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+                              {job.status || 'pending'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {hasWorkflow ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 min-w-[80px]">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${
+                                      workflowPercentage === 100
+                                        ? 'bg-green-500'
+                                        : workflowPercentage >= 50
+                                        ? 'bg-blue-500'
+                                        : 'bg-yellow-500'
+                                    }`}
+                                    style={{ width: `${workflowPercentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                                  {workflowPercentage}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-400 dark:text-gray-500 italic">No workflow</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full ${regionColors[job.region as keyof typeof regionColors] || 'bg-gray-500'}`}></div>
+                              <span className="text-sm text-gray-900 dark:text-white capitalize">
+                                {job.region?.replace('-', ' ') || 'other'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <Link
+                              href={`/oms/jobs/${job.id}`}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400">Location:</span>
-                        <p className="text-gray-900 dark:text-white font-medium truncate">{job.city || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400">Date:</span>
-                        <p className="text-gray-900 dark:text-white font-medium">
-                          {job.targetDate ? new Date(job.targetDate).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400">Tech:</span>
-                        <p className="text-gray-900 dark:text-white font-medium truncate">
-                          {job.tech?.name || <span className="text-gray-400 dark:text-gray-500 italic">Unassigned</span>}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-500 dark:text-gray-400">Region:</span>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${regionColors[job.region as keyof typeof regionColors] || 'bg-gray-500'}`}></div>
-                          <p className="text-gray-900 dark:text-white font-medium capitalize truncate">
-                            {job.region?.replace('-', ' ') || 'other'}
+            {/* Mobile Card View */}
+            <div className="lg:hidden grid grid-cols-1 gap-4">
+              {sortedJobs.map((job) => {
+                const workflowType = (job as any).workflowType
+                const workflowSteps = (job as any).workflowSteps || []
+                const completedSteps = workflowSteps.filter((step: any) => step.completed).length
+                const totalSteps = workflowSteps.length
+                const workflowPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0
+                const hasWorkflow = workflowType || totalSteps > 0
+
+                return (
+                  <Link
+                    key={job.id}
+                    href={`/oms/jobs/${job.id}`}
+                    className="block bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all"
+                  >
+                    <div className="p-4">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                            {job.modelName || 'N/A'}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {job.client?.name || 'N/A'}
                           </p>
                         </div>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${statusColors[job.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+                          {job.status || 'pending'}
+                        </span>
                       </div>
-                    </div>
 
-                    {/* Workflow Progress */}
-                    {hasWorkflow && (
-                      <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Workflow Progress</span>
-                          <span className="text-xs font-medium text-gray-900 dark:text-white">{workflowPercentage}%</span>
+                      {/* Info Grid */}
+                      <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Location:</span>
+                          <p className="text-gray-900 dark:text-white font-medium truncate">{job.city || 'N/A'}</p>
                         </div>
-                        <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${
-                              workflowPercentage === 100
-                                ? 'bg-green-500'
-                                : workflowPercentage >= 50
-                                ? 'bg-blue-500'
-                                : 'bg-yellow-500'
-                            }`}
-                            style={{ width: `${workflowPercentage}%` }}
-                          />
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Date:</span>
+                          <p className="text-gray-900 dark:text-white font-medium">
+                            {job.targetDate ? new Date(job.targetDate).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Tech:</span>
+                          <p className="text-gray-900 dark:text-white font-medium truncate">
+                            {job.tech?.name || <span className="text-gray-400 dark:text-gray-500 italic">Unassigned</span>}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 dark:text-gray-400">Region:</span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${regionColors[job.region as keyof typeof regionColors] || 'bg-gray-500'}`}></div>
+                            <p className="text-gray-900 dark:text-white font-medium capitalize truncate">
+                              {job.region?.replace('-', ' ') || 'other'}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+
+                      {/* Workflow Progress */}
+                      {hasWorkflow && (
+                        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Workflow Progress</span>
+                            <span className="text-xs font-medium text-gray-900 dark:text-white">{workflowPercentage}%</span>
+                          </div>
+                          <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                workflowPercentage === 100
+                                  ? 'bg-green-500'
+                                  : workflowPercentage >= 50
+                                  ? 'bg-blue-500'
+                                  : 'bg-yellow-500'
+                              }`}
+                              style={{ width: `${workflowPercentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
