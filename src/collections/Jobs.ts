@@ -75,6 +75,16 @@ export const Jobs: CollectionConfig = {
         { label: 'Done', value: 'done' },
         { label: 'Archived', value: 'archived' },
       ],
+      access: {
+        update: ({ req: { user } }) => {
+          if (!user) return false
+          // Allow admins and tech users to update status
+          if (['super-admin', 'sales-admin', 'ops-manager', 'post-producer', 'tech'].includes(user.role)) {
+            return true
+          }
+          return false
+        },
+      },
     },
     {
       name: 'invoiceStatus',
