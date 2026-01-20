@@ -91,8 +91,20 @@ export function WorkflowTimeline({
     }
   }
 
-  // Show template selector if no template assigned
+  // Show template selector if no template assigned (admin only)
   if (!workflowTemplate || !workflowTemplate.steps) {
+    // Tech users can't assign workflows
+    if (user?.role === 'tech') {
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">Workflow</h3>
+          </div>
+          <p className="text-sm text-gray-600">No workflow assigned to this job yet.</p>
+        </div>
+      )
+    }
+
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
@@ -167,13 +179,15 @@ export function WorkflowTimeline({
           <h3 className="text-lg font-semibold text-gray-900">
             Workflow: {workflowTemplate.name}
           </h3>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-            title="Change workflow template"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
+          {user?.role !== 'tech' && (
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Change workflow template"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
         <span className="text-sm text-gray-500">
           Step {currentStepIndex} of {templateSteps.length}

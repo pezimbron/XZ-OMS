@@ -119,69 +119,69 @@ export default function OMSDashboard() {
       ]
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" style={{ backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb', padding: '24px 32px' }}>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ fontSize: '30px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1" style={{ color: '#6b7280', fontSize: '14px' }}>Welcome back! Here&apos;s your overview.</p>
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4 md:py-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1">Welcome back! Here&apos;s your overview.</p>
       </div>
 
       {/* Main Content */}
-      <div className="p-8 space-y-8">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           {user?.role === 'tech' ? (
             <>
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">📋</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">📋</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">My Jobs</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">My Jobs</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.myJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">✅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">✅</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.activeJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">📅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">📅</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Next 7 Days</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Next 7 Days</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.upcomingJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">💵</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">💵</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Pending Pay</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Pending Pay</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : `$${(stats.pendingCommissions || 0).toFixed(0)}`}
                     </p>
                   </div>
@@ -190,56 +190,56 @@ export default function OMSDashboard() {
             </>
           ) : (
             <>
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">📊</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">📊</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Jobs</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Total Jobs</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.totalJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">✅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">✅</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Active Jobs</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.activeJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">⏳</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-100 dark:bg-amber-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">⏳</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Unassigned</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Unassigned</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.unassignedJobs}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">📅</span>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 md:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl md:text-2xl">📅</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Today&apos;s Jobs</p>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  <div className="min-w-0">
+                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">Today&apos;s Jobs</p>
+                    <p className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white truncate">
                       {loading ? '...' : stats.todayJobs}
                     </p>
                   </div>
@@ -251,18 +251,18 @@ export default function OMSDashboard() {
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {quickActions.map((action) => (
               <Link
                 key={action.href}
                 href={action.href}
                 className="group"
               >
-                <div className={`bg-gradient-to-br ${action.color} rounded-xl p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105`}>
+                <div className={`bg-gradient-to-br ${action.color} rounded-xl p-4 md:p-6 shadow-lg hover:shadow-xl transition-all transform hover:scale-105`}>
                   <div className="text-white">
-                    <div className="text-4xl mb-3">{action.icon}</div>
-                    <h3 className="text-lg font-semibold">{action.label}</h3>
+                    <div className="text-3xl md:text-4xl mb-2 md:mb-3">{action.icon}</div>
+                    <h3 className="text-sm md:text-lg font-semibold">{action.label}</h3>
                   </div>
                 </div>
               </Link>
@@ -271,7 +271,7 @@ export default function OMSDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           {/* Recent Jobs */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-4">

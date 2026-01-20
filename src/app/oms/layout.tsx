@@ -13,15 +13,13 @@ export default function OMSLayout({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
           <AuthGuard>
             <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-              {/* Sidebar */}
-              <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0">
-                <Navigation />
-              </aside>
+              {/* Navigation - handles both mobile and desktop */}
+              <Navigation />
 
-              {/* Main Content */}
-              <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Main Content - Full width on mobile, constrained on desktop */}
+              <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
                 {/* Top Bar with Notifications */}
-                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-end items-center">
+                <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-6 py-3 flex justify-end items-center">
                   <NotificationBell />
                 </div>
                 
