@@ -70,5 +70,43 @@ export const Products: CollectionConfig = {
         description: 'Default instructions that will auto-populate when this product is added to a job. Can be customized per-job.',
       },
     },
+    {
+      name: 'taxable',
+      type: 'checkbox',
+      label: 'Taxable Product',
+      defaultValue: true,
+      admin: {
+        description: 'Whether this product is subject to sales tax',
+      },
+    },
+    {
+      name: 'hasDefaultExpense',
+      type: 'checkbox',
+      label: 'Auto-Generate Expense',
+      defaultValue: false,
+      admin: {
+        description: 'Automatically add an external expense when this product is added to a job (e.g., floor plans, photo editing)',
+      },
+    },
+    {
+      name: 'defaultExpenseCost',
+      type: 'number',
+      label: 'Default Expense Cost',
+      admin: {
+        step: 0.01,
+        description: 'Default cost for the auto-generated expense (can be edited per job)',
+        condition: (data) => data.hasDefaultExpense === true,
+      },
+    },
+    {
+      name: 'expenseDescription',
+      type: 'text',
+      label: 'Expense Description',
+      admin: {
+        placeholder: 'e.g., Floor Plan Drafting',
+        description: 'Description for the auto-generated expense',
+        condition: (data) => data.hasDefaultExpense === true,
+      },
+    },
   ],
 }

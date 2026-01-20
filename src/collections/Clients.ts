@@ -147,6 +147,36 @@ export const Clients: CollectionConfig = {
             description: 'Skip manual approval and automatically create draft invoices in QuickBooks',
           },
         },
+        {
+          name: 'taxExempt',
+          type: 'checkbox',
+          label: 'Tax Exempt',
+          defaultValue: false,
+          admin: {
+            description: 'Client is exempt from sales tax',
+          },
+        },
+        {
+          name: 'taxRate',
+          type: 'number',
+          label: 'Tax Rate (%)',
+          defaultValue: 0,
+          admin: {
+            step: 0.01,
+            description: 'Sales tax percentage based on client location (e.g., 8.25 for 8.25%)',
+            condition: (data) => !data.invoicingPreferences?.taxExempt,
+          },
+        },
+        {
+          name: 'taxJurisdiction',
+          type: 'text',
+          label: 'Tax Jurisdiction',
+          admin: {
+            placeholder: 'e.g., Austin, TX',
+            description: 'Location determining tax rate',
+            condition: (data) => !data.invoicingPreferences?.taxExempt,
+          },
+        },
       ],
     },
     {

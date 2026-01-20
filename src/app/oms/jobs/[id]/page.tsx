@@ -28,6 +28,15 @@ interface Job {
   qcStatus?: string
   qcNotes?: string
   totalPayout?: number
+  externalExpenses?: any[]
+  discount?: {
+    type?: string
+    value?: number
+    amount?: number
+  }
+  subtotal?: number
+  taxAmount?: number
+  totalWithTax?: number
   createdAt: string
   updatedAt: string
 }
@@ -199,6 +208,33 @@ export default function JobDetailPage() {
         targetDateISO = dateStr + offset
       }
 
+      // Calculate financial values
+      const subtotal = calculatedTotal
+      const discountAmount = editedJob.discount?.type === 'fixed' 
+        ? (editedJob.discount?.value || 0)
+        : editedJob.discount?.type === 'percentage'
+        ? subtotal * ((editedJob.discount?.value || 0) / 100)
+        : 0
+      
+      // Calculate tax based on client settings and taxable products
+      let taxAmount = 0
+      const client = clients.find(c => c.id === clientValue)
+      if (client && !client.invoicingPreferences?.taxExempt && client.invoicingPreferences?.taxRate) {
+        let taxableAmount = 0
+        formattedLineItems.forEach((item: any) => {
+          const product = products.find(p => p.id === item.product)
+          if (product?.taxable) {
+            const price = product.basePrice || 0
+            const jobSqFt = parseInt(editedJob.sqFt) || 0
+            const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : item.quantity
+            taxableAmount += price * multiplier
+          }
+        })
+        taxAmount = taxableAmount * ((client.invoicingPreferences.taxRate || 0) / 100)
+      }
+      
+      const totalWithTax = subtotal + taxAmount - discountAmount
+
       const updateData: any = {
         jobId: editedJob.jobId,
         modelName: editedJob.modelName,
@@ -219,6 +255,19 @@ export default function JobDetailPage() {
         travelPayout: parseFloat(editedJob.travelPayout) || 0,
         offHoursPayout: parseFloat(editedJob.offHoursPayout) || 0,
         totalPrice: calculatedTotal > 0 ? calculatedTotal : (parseFloat(editedJob.totalPrice) || 0),
+        // Don't send externalExpenses - let the hook manage auto-generation
+        // Only send if user explicitly modified them
+        ...(editedJob.externalExpenses && editedJob.externalExpenses.length > 0 
+          ? { externalExpenses: editedJob.externalExpenses }
+          : {}),
+        discount: {
+          type: editedJob.discount?.type || 'none',
+          value: editedJob.discount?.value || 0,
+          amount: discountAmount,
+        },
+        subtotal: subtotal,
+        taxAmount: taxAmount,
+        totalWithTax: totalWithTax,
         workflowType: editedJob.workflowType || null,
         workflowSteps: editedJob.workflowSteps || [],
       }
@@ -258,13 +307,10 @@ export default function JobDetailPage() {
         }
       }
 
-      // Refresh job data
-      const updatedJob = await response.json()
-      setJob(updatedJob)
-      setEditedJob(updatedJob)
+      // Refresh job data - fetch fresh to get data modified by hooks
       setEditMode(false)
+      await fetchJob(job?.id as string)
       alert('Job updated successfully!')
-      fetchJob(job?.id as string)
     } catch (error) {
       console.error('Error updating job:', error)
       alert(`Error updating job: ${error}`)
@@ -1115,135 +1161,412 @@ export default function JobDetailPage() {
               )}
             </div>
 
-            {/* Pricing & Payouts */}
+            {/* Invoice Breakdown */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Pricing & Payouts</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Price (Client)</label>
-                  {editMode ? (
-                    <div>
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">
-                        ${(() => {
-                          let total = 0
-                          const jobSqFt = parseInt(editedJob?.sqFt) || 0
-                          ;(editedJob?.lineItems || []).forEach((item: any) => {
-                            const productId = typeof item.product === 'object' ? item.product?.id : item.product
-                            const product = products.find(p => p.id === parseInt(productId))
-                            if (product) {
-                              const price = product.basePrice || 0
-                              const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : item.quantity
-                              total += price * multiplier
-                            }
-                          })
-                          return total.toFixed(2)
-                        })()}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Auto-calculated from products</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Invoice Breakdown</h2>
+              
+              {(() => {
+                const currentJob = editMode ? editedJob : job
+                const jobSqFt = parseInt(currentJob?.sqFt) || 0
+                
+                // Calculate subtotal
+                let subtotal = 0
+                if (currentJob?.lineItems && currentJob.lineItems.length > 0) {
+                  currentJob.lineItems.forEach((item: any) => {
+                    const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                    const product = products.find(p => p.id === productId)
+                    if (product?.basePrice) {
+                      const price = product.basePrice
+                      const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                      subtotal += price * multiplier
+                    }
+                  })
+                }
+                
+                // Calculate discount
+                const discountType = currentJob?.discount?.type || 'none'
+                const discountValue = currentJob?.discount?.value || 0
+                const discountAmount = discountType === 'fixed' 
+                  ? discountValue
+                  : discountType === 'percentage'
+                  ? subtotal * (discountValue / 100)
+                  : 0
+                
+                // Calculate tax
+                let taxAmount = 0
+                const clientData = clients.find(c => c.id === (typeof currentJob?.client === 'object' ? currentJob.client?.id : currentJob?.client))
+                if (clientData && !clientData.invoicingPreferences?.taxExempt && clientData.invoicingPreferences?.taxRate) {
+                  let taxableAmount = 0
+                  currentJob?.lineItems?.forEach((item: any) => {
+                    const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                    const product = products.find(p => p.id === productId)
+                    if (product?.taxable) {
+                      const price = product.basePrice || 0
+                      const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                      taxableAmount += price * multiplier
+                    }
+                  })
+                  taxAmount = taxableAmount * ((clientData.invoicingPreferences.taxRate || 0) / 100)
+                }
+                
+                const totalWithTax = subtotal + taxAmount - discountAmount
+                
+                return (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                        ${subtotal.toFixed(2)}
+                      </span>
                     </div>
-                  ) : (
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                        ${(() => {
-                          // Calculate from line items using the products list
-                          let total = 0
-                          const jobSqFt = parseInt((job as any).sqFt) || 0
-                          console.log('Calculating total price...')
-                          console.log('Job sqft:', jobSqFt)
-                          console.log('Line items:', job.lineItems)
-                          console.log('Products loaded:', products.length)
-                          
-                          if (job.lineItems && job.lineItems.length > 0) {
-                            job.lineItems.forEach((item: any) => {
-                              const productId = typeof item.product === 'object' ? item.product?.id : item.product
-                              console.log('Looking for product ID:', productId)
-                              const product = products.find(p => p.id === productId)
-                              console.log('Found product:', product)
-                              if (product?.basePrice) {
-                                const price = product.basePrice
-                                const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
-                                const itemTotal = price * multiplier
-                                console.log(`${product.name}: ${price} x ${multiplier} (${product.unitType === 'per-sq-ft' ? 'sqft' : 'qty'}) = ${itemTotal}`)
-                                total += itemTotal
-                              }
-                            })
-                          }
-                          console.log('Final total:', total)
-                          // Fall back to stored totalPrice if calculation fails
-                          return total > 0 ? total.toFixed(2) : ((job as any).totalPrice?.toFixed(2) || '0.00')
-                        })()}
-                      </p>
-                      {job.lineItems && job.lineItems.length > 0 && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Calculated from products</p>
-                      )}
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-600 dark:text-gray-400">Tax:</span>
+                        {clientData?.invoicingPreferences?.taxRate && (
+                          <span className="text-sm text-gray-500">({clientData.invoicingPreferences.taxRate}%)</span>
+                        )}
+                        {clientData?.invoicingPreferences?.taxExempt && (
+                          <span className="text-sm text-gray-500">(Tax Exempt)</span>
+                        )}
+                      </div>
+                      <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                        ${taxAmount.toFixed(2)}
+                      </span>
                     </div>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Capture Payout</label>
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editedJob?.vendorPrice || ''}
-                      onChange={(e) => setEditedJob({...editedJob, vendorPrice: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="0.00"
-                    />
-                  ) : (
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      ${((job as any).vendorPrice?.toFixed(2) || '0.00')}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Travel Payout</label>
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editedJob?.travelPayout || ''}
-                      onChange={(e) => setEditedJob({...editedJob, travelPayout: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="0.00"
-                    />
-                  ) : (
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      ${((job as any).travelPayout?.toFixed(2) || '0.00')}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Off-Hours Payout</label>
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editedJob?.offHoursPayout || ''}
-                      onChange={(e) => setEditedJob({...editedJob, offHoursPayout: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="0.00"
-                    />
-                  ) : (
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                      ${((job as any).offHoursPayout?.toFixed(2) || '0.00')}
-                    </p>
-                  )}
+                    
+                    {editMode && (
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400">Discount:</span>
+                          <select
+                            value={editedJob?.discount?.type || 'none'}
+                            onChange={(e) => setEditedJob({
+                              ...editedJob,
+                              discount: { ...editedJob?.discount, type: e.target.value, value: 0 }
+                            })}
+                            className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="none">None</option>
+                            <option value="fixed">Fixed $</option>
+                            <option value="percentage">Percentage %</option>
+                          </select>
+                          {editedJob?.discount?.type !== 'none' && (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editedJob?.discount?.value || 0}
+                              onChange={(e) => setEditedJob({
+                                ...editedJob,
+                                discount: { ...editedJob?.discount, value: parseFloat(e.target.value) || 0 }
+                              })}
+                              className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="0"
+                            />
+                          )}
+                        </div>
+                        <span className="text-lg font-semibold text-red-600 dark:text-red-400">
+                          -${discountAmount.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {!editMode && discountAmount > 0 && (
+                      <div className="flex justify-between items-center text-red-600 dark:text-red-400">
+                        <span>Discount:</span>
+                        <span className="text-lg font-semibold">
+                          -${discountAmount.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div className="border-t-2 border-gray-300 dark:border-gray-600 my-3"></div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-xl font-bold text-gray-900 dark:text-white">
+                        Total (Client Invoice):
+                      </span>
+                      <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        ${totalWithTax.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Costs & Expenses */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Costs & Expenses</h2>
+              
+              {/* Tech Payouts Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Tech Payouts</h3>
+                <div className="space-y-2 pl-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Capture Payout:</span>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedJob?.vendorPrice || ''}
+                        onChange={(e) => setEditedJob({...editedJob, vendorPrice: parseFloat(e.target.value) || 0})}
+                        className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                        placeholder="0.00"
+                      />
+                    ) : (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).vendorPrice?.toFixed(2) || '0.00')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Travel Payout:</span>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedJob?.travelPayout || ''}
+                        onChange={(e) => setEditedJob({...editedJob, travelPayout: parseFloat(e.target.value) || 0})}
+                        className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                        placeholder="0.00"
+                      />
+                    ) : (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).travelPayout?.toFixed(2) || '0.00')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400">Off-Hours Payout:</span>
+                    {editMode ? (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editedJob?.offHoursPayout || ''}
+                        onChange={(e) => setEditedJob({...editedJob, offHoursPayout: parseFloat(e.target.value) || 0})}
+                        className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                        placeholder="0.00"
+                      />
+                    ) : (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).offHoursPayout?.toFixed(2) || '0.00')}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-gray-900 dark:text-white">Subtotal Tech:</span>
+                      <span className="text-gray-900 dark:text-white">
+                        ${(
+                          ((editMode ? editedJob?.vendorPrice : (job as any).vendorPrice) || 0) +
+                          ((editMode ? editedJob?.travelPayout : (job as any).travelPayout) || 0) +
+                          ((editMode ? editedJob?.offHoursPayout : (job as any).offHoursPayout) || 0)
+                        ).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">Total Tech Payout</span>
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    ${(
-                      ((editMode ? editedJob?.vendorPrice : (job as any).vendorPrice) || 0) +
-                      ((editMode ? editedJob?.travelPayout : (job as any).travelPayout) || 0) +
-                      ((editMode ? editedJob?.offHoursPayout : (job as any).offHoursPayout) || 0)
-                    ).toFixed(2)}
-                  </span>
+              {/* External Expenses Section */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">External Supplier Expenses</h3>
+                  {editMode && (
+                    <button
+                      onClick={() => {
+                        const newExpenses = [...(editedJob?.externalExpenses || []), {
+                          description: '',
+                          supplier: '',
+                          contactInfo: '',
+                          amount: 0,
+                          paymentStatus: 'unpaid',
+                          notes: ''
+                        }]
+                        setEditedJob({...editedJob, externalExpenses: newExpenses})
+                      }}
+                      className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      + Add Expense
+                    </button>
+                  )}
+                </div>
+                
+                <div className="space-y-2 pl-4">
+                  {editMode ? (
+                    <>
+                      {(editedJob?.externalExpenses || []).map((expense: any, index: number) => (
+                        <div key={index} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={expense.description || ''}
+                              onChange={(e) => {
+                                const newExpenses = [...(editedJob.externalExpenses || [])]
+                                newExpenses[index] = {...newExpenses[index], description: e.target.value}
+                                setEditedJob({...editedJob, externalExpenses: newExpenses})
+                              }}
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Description (e.g., Floor Plans)"
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={expense.amount || ''}
+                              onChange={(e) => {
+                                const newExpenses = [...(editedJob.externalExpenses || [])]
+                                newExpenses[index] = {...newExpenses[index], amount: parseFloat(e.target.value) || 0}
+                                setEditedJob({...editedJob, externalExpenses: newExpenses})
+                              }}
+                              className="w-28 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                              placeholder="0.00"
+                            />
+                            <button
+                              onClick={() => {
+                                const newExpenses = editedJob.externalExpenses.filter((_: any, i: number) => i !== index)
+                                setEditedJob({...editedJob, externalExpenses: newExpenses})
+                              }}
+                              className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={expense.supplier || ''}
+                            onChange={(e) => {
+                              const newExpenses = [...(editedJob.externalExpenses || [])]
+                              newExpenses[index] = {...newExpenses[index], supplier: e.target.value}
+                              setEditedJob({...editedJob, externalExpenses: newExpenses})
+                            }}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Supplier name (optional)"
+                          />
+                        </div>
+                      ))}
+                      {(!editedJob?.externalExpenses || editedJob.externalExpenses.length === 0) && (
+                        <p className="text-gray-400 italic text-center py-2 text-sm">No external expenses. Click &quot;Add Expense&quot; to add one.</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {(job.externalExpenses && job.externalExpenses.length > 0) ? (
+                        job.externalExpenses.map((expense: any, index: number) => (
+                          <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-900 rounded">
+                            <div>
+                              <span className="font-medium text-gray-900 dark:text-white">{expense.description}</span>
+                              {expense.supplier && (
+                                <span className="text-sm text-gray-500"> ({expense.supplier})</span>
+                              )}
+                            </div>
+                            <span className="font-semibold text-gray-900 dark:text-white">${expense.amount.toFixed(2)}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-400 italic text-center py-2 text-sm">No external expenses</p>
+                      )}
+                    </>
+                  )}
+                  
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-gray-900 dark:text-white">Subtotal Expenses:</span>
+                      <span className="text-gray-900 dark:text-white">
+                        ${(() => {
+                          const currentJob = editMode ? editedJob : job
+                          return (currentJob?.externalExpenses || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0).toFixed(2)
+                        })()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
+              
+              {/* Total Costs & Profit */}
+              {(() => {
+                const currentJob = editMode ? editedJob : job
+                const jobSqFt = parseInt(currentJob?.sqFt) || 0
+                
+                // Calculate revenue
+                let subtotal = 0
+                if (currentJob?.lineItems && currentJob.lineItems.length > 0) {
+                  currentJob.lineItems.forEach((item: any) => {
+                    const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                    const product = products.find(p => p.id === productId)
+                    if (product?.basePrice) {
+                      const price = product.basePrice
+                      const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                      subtotal += price * multiplier
+                    }
+                  })
+                }
+                
+                const discountType = currentJob?.discount?.type || 'none'
+                const discountValue = currentJob?.discount?.value || 0
+                const discountAmount = discountType === 'fixed' 
+                  ? discountValue
+                  : discountType === 'percentage'
+                  ? subtotal * (discountValue / 100)
+                  : 0
+                
+                let taxAmount = 0
+                const clientData = clients.find(c => c.id === (typeof currentJob?.client === 'object' ? currentJob.client?.id : currentJob?.client))
+                if (clientData && !clientData.invoicingPreferences?.taxExempt && clientData.invoicingPreferences?.taxRate) {
+                  let taxableAmount = 0
+                  currentJob?.lineItems?.forEach((item: any) => {
+                    const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                    const product = products.find(p => p.id === productId)
+                    if (product?.taxable) {
+                      const price = product.basePrice || 0
+                      const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                      taxableAmount += price * multiplier
+                    }
+                  })
+                  taxAmount = taxableAmount * ((clientData.invoicingPreferences.taxRate || 0) / 100)
+                }
+                
+                const revenue = subtotal + taxAmount - discountAmount
+                
+                // Calculate costs
+                const techPayout = (currentJob?.vendorPrice || 0) + (currentJob?.travelPayout || 0) + (currentJob?.offHoursPayout || 0)
+                const externalExpenses = (currentJob?.externalExpenses || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0)
+                const totalCosts = techPayout + externalExpenses
+                
+                // Calculate profit and margin
+                const grossProfit = revenue - totalCosts
+                const margin = revenue > 0 ? (grossProfit / revenue) * 100 : 0
+                
+                return (
+                  <div className="border-t-2 border-gray-300 dark:border-gray-600 pt-4 space-y-3">
+                    <div className="flex justify-between items-center text-lg font-bold">
+                      <span className="text-gray-900 dark:text-white">Total Costs:</span>
+                      <span className="text-red-600 dark:text-red-400">
+                        ${totalCosts.toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center text-xl font-bold">
+                      <span className="text-gray-900 dark:text-white">Gross Profit:</span>
+                      <span className={grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                        ${grossProfit.toFixed(2)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400">Margin:</span>
+                      <span className={`text-lg font-semibold ${margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                        {margin.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         )}
