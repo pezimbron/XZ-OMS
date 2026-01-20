@@ -31,6 +31,7 @@ export const populateWorkflowSteps: CollectionBeforeChangeHook = async ({
     const template = await payload.findByID({
       collection: 'workflow-templates',
       id: workflowTemplateId,
+      overrideAccess: true,
     })
 
     if (!template || !template.steps || template.steps.length === 0) {

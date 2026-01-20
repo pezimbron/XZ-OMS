@@ -47,6 +47,7 @@ export const autoGenerateExpenses: CollectionBeforeChangeHook = async ({
         },
       },
       limit: 100,
+      overrideAccess: true,
     })
 
     // Filter products that have auto-expense enabled

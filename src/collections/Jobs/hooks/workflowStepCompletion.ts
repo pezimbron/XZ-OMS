@@ -39,6 +39,7 @@ export const workflowStepCompletion: CollectionBeforeChangeHook = async ({
     const template = await payload.findByID({
       collection: 'workflow-templates',
       id: templateId,
+      overrideAccess: true,
     })
 
     if (!template || !template.steps) {
@@ -156,6 +157,7 @@ async function getUsersByRoles(payload: any, roles: string[], job: any) {
       const tech = await payload.findByID({
         collection: 'technicians',
         id: techId,
+        overrideAccess: true,
       })
       if (tech && tech.user) {
         const userId = typeof tech.user === 'object' ? tech.user.id : tech.user
@@ -171,6 +173,7 @@ async function getUsersByRoles(payload: any, roles: string[], job: any) {
           },
         },
         limit: 100,
+        overrideAccess: true,
       })
       users.push(...roleUsers.docs)
     }
@@ -192,6 +195,7 @@ async function sendClientEmail(payload: any, job: any, template: string) {
     const client = await payload.findByID({
       collection: 'clients',
       id: clientId,
+      overrideAccess: true,
     })
 
     if (!client?.email) {

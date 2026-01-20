@@ -544,41 +544,73 @@ export default function JobDetailPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={async () => {
+                    if (!job?.id || !job.workflowSteps) {
+                      console.error('Job ID or workflow steps missing')
+                      return
+                    }
                     try {
-                      await fetch(`/api/jobs/${job.id}`, {
+                      // Find the "Scanned" workflow step and mark it as complete
+                      const updatedSteps = job.workflowSteps.map((step: any) => {
+                        if (step.stepName === 'Scanned' && !step.completed) {
+                          return { ...step, completed: true, completedAt: new Date().toISOString() }
+                        }
+                        return step
+                      })
+                      
+                      const response = await fetch(`/api/jobs/${job.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'scanned' }),
+                        body: JSON.stringify({ workflowSteps: updatedSteps }),
                       })
-                      fetchJob(job.id)
+                      if (response.ok) {
+                        await fetchJob(job.id)
+                      } else {
+                        console.error('Failed to complete scan:', await response.text())
+                      }
                     } catch (error) {
-                      console.error('Error updating status:', error)
+                      console.error('Error completing scan:', error)
                     }
                   }}
-                  disabled={job.status === 'scanned' || job.status === 'done'}
+                  disabled={!job?.id || !job.workflowSteps || job.workflowSteps.find((s: any) => s.stepName === 'Scanned')?.completed}
                   className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <span className="text-xl">📸</span>
-                  <span>{job.status === 'scanned' || job.status === 'done' ? 'Scan Completed' : 'Complete Scan'}</span>
+                  <span>{job.workflowSteps?.find((s: any) => s.stepName === 'Scanned')?.completed ? 'Scan Completed' : 'Complete Scan'}</span>
                 </button>
                 <button
                   onClick={async () => {
+                    if (!job?.id || !job.workflowSteps) {
+                      console.error('Job ID or workflow steps missing')
+                      return
+                    }
                     try {
-                      await fetch(`/api/jobs/${job.id}`, {
+                      // Find the "Scan Uploaded" workflow step and mark it as complete
+                      const updatedSteps = job.workflowSteps.map((step: any) => {
+                        if (step.stepName === 'Scan Uploaded' && !step.completed) {
+                          return { ...step, completed: true, completedAt: new Date().toISOString() }
+                        }
+                        return step
+                      })
+                      
+                      const response = await fetch(`/api/jobs/${job.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: 'done' }),
+                        body: JSON.stringify({ workflowSteps: updatedSteps }),
                       })
-                      fetchJob(job.id)
+                      if (response.ok) {
+                        await fetchJob(job.id)
+                      } else {
+                        console.error('Failed to complete upload:', await response.text())
+                      }
                     } catch (error) {
-                      console.error('Error updating status:', error)
+                      console.error('Error completing upload:', error)
                     }
                   }}
-                  disabled={job.status !== 'scanned'}
+                  disabled={!job?.id || !job.workflowSteps || !job.workflowSteps.find((s: any) => s.stepName === 'Scanned')?.completed || job.workflowSteps.find((s: any) => s.stepName === 'Scan Uploaded')?.completed}
                   className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <span className="text-xl">☁️</span>
-                  <span>{job.status === 'done' ? 'Upload Completed' : 'Complete Upload'}</span>
+                  <span>{job.workflowSteps?.find((s: any) => s.stepName === 'Scan Uploaded')?.completed ? 'Upload Completed' : 'Complete Upload'}</span>
                 </button>
               </div>
               {job.status === 'done' && (
