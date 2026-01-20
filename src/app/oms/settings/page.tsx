@@ -256,7 +256,7 @@ function SettingsContent() {
               </p>
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <p className="text-sm text-blue-900 dark:text-blue-100">
-                  📅 Calendar invites are sent automatically when you're assigned to a job.
+                  📅 Calendar invites are sent automatically when you&apos;re assigned to a job.
                 </p>
               </div>
             </div>
