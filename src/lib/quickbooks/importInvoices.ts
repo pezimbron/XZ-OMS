@@ -280,7 +280,7 @@ export async function importSingleInvoiceFromQuickBooks(
 
     return {
       success: true,
-      invoiceId: newInvoice.id,
+      invoiceId: newInvoice.id.toString(),
     }
   } catch (error: any) {
     console.error('[QB Import] Error importing single invoice:', error)
