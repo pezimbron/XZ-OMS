@@ -278,7 +278,7 @@ export default function JobDetailPage() {
         subtotal: subtotal,
         taxAmount: taxAmount,
         totalWithTax: totalWithTax,
-        workflowType: editedJob.workflowType || null,
+        workflowTemplate: editedJob.workflowTemplate || null,
         workflowSteps: editedJob.workflowSteps || [],
       }
       

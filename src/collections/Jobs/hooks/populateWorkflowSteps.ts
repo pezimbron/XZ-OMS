@@ -27,6 +27,12 @@ export const populateWorkflowSteps: CollectionBeforeChangeHook = async ({
 
     console.log('[Workflow] Template assigned/changed, populating steps...')
 
+    // Validate that the template ID is valid
+    if (!workflowTemplateId || (typeof workflowTemplateId !== 'string' && typeof workflowTemplateId !== 'number')) {
+      console.log('[Workflow] Invalid template ID:', workflowTemplateId)
+      return data
+    }
+
     // Fetch the workflow template
     const template = await payload.findByID({
       collection: 'workflow-templates',
@@ -58,6 +64,7 @@ export const populateWorkflowSteps: CollectionBeforeChangeHook = async ({
     return data
   } catch (error) {
     console.error('[Workflow] Error populating workflow steps:', error)
+    // Don't fail the entire operation, just log and continue
     return data
   }
 }
