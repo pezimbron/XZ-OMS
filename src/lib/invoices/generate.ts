@@ -172,7 +172,7 @@ export async function generateInvoiceFromJobs({
       data: {
         status: 'draft',
         client: clientId,
-        jobs: jobIds,
+        jobs: jobIds.map(id => parseInt(id)),
         lineItems,
         subtotal,
         taxRate,
@@ -182,7 +182,7 @@ export async function generateInvoiceFromJobs({
         dueDate: dueDate.toISOString(),
         terms,
         notes: client.invoicingPreferences?.invoiceNotes || '',
-        createdBy: userId,
+        createdBy: parseInt(userId),
         quickbooks: {
           syncStatus: 'not-synced',
         },
