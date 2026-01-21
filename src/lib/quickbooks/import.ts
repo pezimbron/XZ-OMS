@@ -42,6 +42,13 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
           name: qbCustomer.DisplayName || qbCustomer.FullyQualifiedName || 'Unknown',
           clientType: 'retail',
           billingPreference: 'immediate',
+          integrations: {
+            quickbooks: {
+              customerId: qbId,
+              syncStatus: 'synced',
+              lastSyncedAt: new Date().toISOString(),
+            },
+          },
         }
 
         // Only add optional fields if they have values

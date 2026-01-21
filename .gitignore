@@ -9,5 +9,8 @@ node_modules
 # Google OAuth token generation script (contains credentials)
 get-google-token.js
 
+# QuickBooks OAuth token (contains sensitive credentials)
+.quickbooks-token.json
+
 # Payload default media upload directory
 public/media/

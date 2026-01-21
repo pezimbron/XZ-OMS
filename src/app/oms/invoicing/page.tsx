@@ -26,6 +26,8 @@ export default function InvoicingPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'immediate' | 'weekly-batch' | 'monthly-batch' | 'payment-first'>('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [clientFilter, setClientFilter] = useState('all')
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -53,8 +55,22 @@ export default function InvoicingPage() {
   }
 
   const filteredJobs = jobs.filter(job => {
-    if (filter === 'all') return true
-    return job.client?.billingPreference === filter
+    // Billing preference filter
+    if (filter !== 'all' && job.client?.billingPreference !== filter) return false
+    
+    // Client filter
+    if (clientFilter !== 'all' && job.client?.id !== clientFilter) return false
+    
+    // Search term (job ID, model name, or client name)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      const matchesJobId = job.jobId?.toLowerCase().includes(search)
+      const matchesModelName = job.modelName?.toLowerCase().includes(search)
+      const matchesClientName = job.client?.name?.toLowerCase().includes(search)
+      if (!matchesJobId && !matchesModelName && !matchesClientName) return false
+    }
+    
+    return true
   })
 
   const groupedJobs = {
@@ -86,8 +102,70 @@ export default function InvoicingPage() {
       return
     }
 
-    // TODO: Implement invoice creation
-    alert(`Creating invoices for ${selectedJobs.size} jobs...`)
+    try {
+      // Get current user
+      const userResponse = await fetch('/api/users/me')
+      const userData = await userResponse.json()
+      const userId = userData.user?.id
+
+      if (!userId) {
+        alert('Unable to identify current user')
+        return
+      }
+
+      // Group selected jobs by client
+      const selectedJobsArray = jobs.filter(job => selectedJobs.has(job.id))
+      const jobsByClient: Record<string, string[]> = {}
+
+      selectedJobsArray.forEach(job => {
+        const clientId = typeof job.client === 'object' ? job.client.id : job.client
+        if (!jobsByClient[clientId]) {
+          jobsByClient[clientId] = []
+        }
+        jobsByClient[clientId].push(job.id)
+      })
+
+      // Create invoices for each client
+      const results: Array<{
+        clientId: string
+        jobCount: number
+        success: boolean
+        result: any
+      }> = []
+      for (const [clientId, jobIds] of Object.entries(jobsByClient)) {
+        const response = await fetch('/api/invoices/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobIds, userId }),
+        })
+
+        const result = await response.json()
+        results.push({
+          clientId,
+          jobCount: jobIds.length,
+          success: response.ok,
+          result,
+        })
+      }
+
+      // Show results
+      const successCount = results.filter(r => r.success).length
+      const failCount = results.filter(r => !r.success).length
+
+      if (failCount === 0) {
+        alert(`Successfully created ${successCount} invoice(s)!`)
+        setSelectedJobs(new Set())
+        fetchJobsReadyToInvoice()
+      } else {
+        const failedResults = results.filter(r => !r.success)
+        const errorMessages = failedResults.map(r => r.result.error).join('\n')
+        alert(`Created ${successCount} invoice(s), but ${failCount} failed:\n${errorMessages}`)
+        fetchJobsReadyToInvoice()
+      }
+    } catch (error: any) {
+      console.error('Error creating invoices:', error)
+      alert('Failed to create invoices: ' + error.message)
+    }
   }
 
   const JobCard = ({ job }: { job: Job }) => {
@@ -223,27 +301,75 @@ export default function InvoicingPage() {
 
       {/* Filters */}
       <div className="px-8 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex gap-2">
-          {[
-            { value: 'all', label: 'All Jobs', count: filteredJobs.length },
-            { value: 'immediate', label: 'Immediate', count: groupedJobs.immediate.length },
-            { value: 'weekly-batch', label: 'Weekly Batch', count: groupedJobs.weeklyBatch.length },
-            { value: 'monthly-batch', label: 'Monthly Batch', count: groupedJobs.monthlyBatch.length },
-            { value: 'payment-first', label: 'Payment First', count: groupedJobs.paymentFirst.length },
-          ].map(({ value, label, count }) => (
-            <button
-              key={value}
-              onClick={() => setFilter(value as any)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              {label} ({count})
-            </button>
-          ))}
+        {/* Billing Preference Filters */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Billing Preference</label>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { value: 'all', label: 'All Jobs', count: filteredJobs.length },
+              { value: 'immediate', label: 'Immediate', count: groupedJobs.immediate.length },
+              { value: 'weekly-batch', label: 'Weekly Batch', count: groupedJobs.weeklyBatch.length },
+              { value: 'monthly-batch', label: 'Monthly Batch', count: groupedJobs.monthlyBatch.length },
+              { value: 'payment-first', label: 'Payment First', count: groupedJobs.paymentFirst.length },
+            ].map(({ value, label, count }) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value as any)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  filter === value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Search and Client Filter */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+            <input
+              type="text"
+              placeholder="Job ID, Model Name, or Client"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client</label>
+            <select
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Clients</option>
+              {Array.from(new Set(jobs.map(job => job.client?.id))).filter(Boolean).map(clientId => {
+                const client = jobs.find(job => job.client?.id === clientId)?.client
+                return client ? <option key={clientId} value={clientId}>{client.name}</option> : null
+              })}
+            </select>
+          </div>
+        </div>
+
+        {/* Clear Filters */}
+        {(filter !== 'all' || searchTerm || clientFilter !== 'all') && (
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                setFilter('all')
+                setSearchTerm('')
+                setClientFilter('all')
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Content */}

@@ -8,11 +8,12 @@ import { afterWorkflowStepUpdate } from './Jobs/hooks/afterWorkflowStepUpdate'
 import { autoGenerateExpenses } from './Jobs/hooks/autoGenerateExpenses'
 import { workflowStepCompletion } from './Jobs/hooks/workflowStepCompletion'
 import { populateWorkflowSteps } from './Jobs/hooks/populateWorkflowSteps'
+import { updateInvoiceStatus } from './Jobs/hooks/updateInvoiceStatus'
 
 export const Jobs: CollectionConfig = {
   slug: 'jobs',
   hooks: {
-    beforeChange: [populateWorkflowSteps, autoGenerateExpenses, workflowStepCompletion],
+    beforeChange: [populateWorkflowSteps, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus],
     afterChange: [createCalendarInvite, afterWorkflowStepUpdate],
   },
   access: {
@@ -99,6 +100,23 @@ export const Jobs: CollectionConfig = {
       ],
       admin: {
         description: 'Track invoicing status of completed jobs',
+      },
+    },
+    {
+      name: 'invoice',
+      type: 'relationship',
+      relationTo: 'invoices' as any,
+      hasMany: false,
+      admin: {
+        description: 'Invoice this job is included in',
+      },
+    },
+    {
+      name: 'invoicedAt',
+      type: 'date',
+      admin: {
+        description: 'Date this job was invoiced',
+        readOnly: true,
       },
     },
     {

@@ -17,6 +17,7 @@ import { Technicians } from './collections/Technicians'
 import { Products } from './collections/Products'
 import { Equipment } from './collections/Equipment'
 import { Jobs } from './collections/Jobs'
+import { Invoices } from './collections/Invoices'
 import { Notifications } from './collections/Notifications'
 import { NotificationTemplates } from './collections/NotificationTemplates'
 import { WorkflowTemplates } from './collections/WorkflowTemplates'
@@ -92,6 +93,7 @@ export default buildConfig({
     Products,
     Equipment,
     Jobs,
+    Invoices,
     Notifications,
     NotificationTemplates,
     WorkflowTemplates,

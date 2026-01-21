@@ -22,6 +22,7 @@ export interface Config {
     products: Product;
     equipment: Equipment;
     jobs: Job;
+    invoices: Invoice;
     notifications: Notification;
     'notification-templates': NotificationTemplate;
     'workflow-templates': WorkflowTemplate;
@@ -46,6 +47,7 @@ export interface Config {
     products: ProductsSelect<false> | ProductsSelect<true>;
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     jobs: JobsSelect<false> | JobsSelect<true>;
+    invoices: InvoicesSelect<false> | InvoicesSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
     'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
@@ -780,6 +782,8 @@ export interface Job {
   priority?: ('low' | 'normal' | 'high' | 'rush') | null;
   status: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
   invoiceStatus?: ('not-invoiced' | 'ready' | 'invoiced' | 'paid') | null;
+  invoice?: (number | null) | Invoice;
+  invoicedAt?: string | null;
   client: number | Client;
   endClientName?: string | null;
   endClientCompany?: string | null;
@@ -890,6 +894,48 @@ export interface Job {
     deliveryNotes?: string | null;
     deliveredDate?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "invoices".
+ */
+export interface Invoice {
+  id: number;
+  invoiceNumber?: string | null;
+  status: 'draft' | 'pending-approval' | 'approved' | 'sent' | 'paid' | 'partial-payment' | 'overdue' | 'void';
+  client: number | Client;
+  jobs?: (number | Job)[] | null;
+  lineItems: {
+    description: string;
+    quantity: number;
+    rate: number;
+    amount: number;
+    taxable?: boolean | null;
+    jobReference?: string | null;
+    id?: string | null;
+  }[];
+  subtotal: number;
+  taxRate?: number | null;
+  taxAmount?: number | null;
+  total: number;
+  invoiceDate: string;
+  dueDate: string;
+  paidDate?: string | null;
+  paidAmount?: number | null;
+  terms?: ('due-on-receipt' | 'net-15' | 'net-30' | 'net-45' | 'net-60') | null;
+  notes?: string | null;
+  internalNotes?: string | null;
+  quickbooks?: {
+    invoiceId?: string | null;
+    syncStatus?: ('not-synced' | 'synced' | 'error') | null;
+    lastSyncedAt?: string | null;
+    syncError?: string | null;
+  };
+  approvedBy?: (number | null) | User;
+  approvedAt?: string | null;
+  createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
 }
@@ -1086,6 +1132,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'jobs';
         value: number | Job;
+      } | null)
+    | ({
+        relationTo: 'invoices';
+        value: number | Invoice;
       } | null)
     | ({
         relationTo: 'notifications';
@@ -1569,6 +1619,8 @@ export interface JobsSelect<T extends boolean = true> {
   priority?: T;
   status?: T;
   invoiceStatus?: T;
+  invoice?: T;
+  invoicedAt?: T;
   client?: T;
   endClientName?: T;
   endClientCompany?: T;
@@ -1683,6 +1735,51 @@ export interface JobsSelect<T extends boolean = true> {
         deliveryNotes?: T;
         deliveredDate?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "invoices_select".
+ */
+export interface InvoicesSelect<T extends boolean = true> {
+  invoiceNumber?: T;
+  status?: T;
+  client?: T;
+  jobs?: T;
+  lineItems?:
+    | T
+    | {
+        description?: T;
+        quantity?: T;
+        rate?: T;
+        amount?: T;
+        taxable?: T;
+        jobReference?: T;
+        id?: T;
+      };
+  subtotal?: T;
+  taxRate?: T;
+  taxAmount?: T;
+  total?: T;
+  invoiceDate?: T;
+  dueDate?: T;
+  paidDate?: T;
+  paidAmount?: T;
+  terms?: T;
+  notes?: T;
+  internalNotes?: T;
+  quickbooks?:
+    | T
+    | {
+        invoiceId?: T;
+        syncStatus?: T;
+        lastSyncedAt?: T;
+        syncError?: T;
+      };
+  approvedBy?: T;
+  approvedAt?: T;
+  createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

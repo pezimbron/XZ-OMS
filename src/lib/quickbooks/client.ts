@@ -149,6 +149,26 @@ class QuickBooksClient {
     return this.makeApiCall(`query?query=${encodeURIComponent(query)}`, 'GET')
   }
 
+  async createInvoice(invoiceData: any) {
+    return this.makeApiCall('invoice', 'POST', invoiceData)
+  }
+
+  async getInvoice(invoiceId: string) {
+    return this.makeApiCall(`invoice/${invoiceId}`, 'GET')
+  }
+
+  async voidInvoice(invoiceId: string) {
+    // QuickBooks requires fetching the invoice first to get the SyncToken
+    const invoice = await this.getInvoice(invoiceId)
+    const voidData = {
+      Id: invoiceId,
+      SyncToken: invoice.Invoice.SyncToken,
+      sparse: true,
+      PrivateNote: 'Voided',
+    }
+    return this.makeApiCall('invoice?operation=void', 'POST', voidData)
+  }
+
   isConnected() {
     const token = this.oauthClient.getToken()
     return token && token.access_token && !this.oauthClient.isAccessTokenValid()

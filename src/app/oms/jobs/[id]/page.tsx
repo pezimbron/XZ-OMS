@@ -39,6 +39,14 @@ interface Job {
   totalWithTax?: number
   workflowTemplate?: any
   workflowSteps?: any[]
+  invoiceStatus?: string
+  invoice?: {
+    id: string
+    invoiceNumber?: string
+    status: string
+    total: number
+  }
+  invoicedAt?: string
   createdAt: string
   updatedAt: string
 }
@@ -1169,6 +1177,45 @@ export default function JobDetailPage() {
 
         {activeTab === 'financials' && (
           <div className="space-y-6">
+            {/* Invoice Status */}
+            {job.invoiceStatus && job.invoiceStatus !== 'not-invoiced' && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Invoice Status</h2>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
+                        job.invoiceStatus === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                        job.invoiceStatus === 'invoiced' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                        job.invoiceStatus === 'ready' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {job.invoiceStatus?.toUpperCase()}
+                      </span>
+                    </div>
+                    {job.invoice && (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                        <p>Invoice: {job.invoice.invoiceNumber || `#${String(job.invoice.id).slice(0, 8)}`}</p>
+                        <p>Amount: ${job.invoice.total?.toFixed(2)}</p>
+                        {job.invoicedAt && (
+                          <p>Invoiced: {new Date(job.invoicedAt).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {job.invoice && (
+                    <Link
+                      href={`/oms/invoices/${job.invoice.id}`}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      View Invoice
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Line Items / Products */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">

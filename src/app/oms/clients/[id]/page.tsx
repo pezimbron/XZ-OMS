@@ -27,17 +27,31 @@ interface Job {
   status: string
 }
 
+interface Invoice {
+  id: string
+  invoiceNumber?: string
+  status: string
+  invoiceDate: string
+  dueDate: string
+  subtotal: number
+  taxAmount: number
+  total: number
+  paidAmount: number
+}
+
 export default function ClientDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [client, setClient] = useState<Client | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (params.id) {
       fetchClient(params.id as string)
       fetchClientJobs(params.id as string)
+      fetchClientInvoices(params.id as string)
     }
   }, [params.id])
 
@@ -61,6 +75,35 @@ export default function ClientDetailPage() {
     } catch (error) {
       console.error('Error fetching client jobs:', error)
     }
+  }
+
+  const fetchClientInvoices = async (clientId: string) => {
+    try {
+      const response = await fetch(`/api/invoices?where[client][equals]=${clientId}&limit=100&depth=1&sort=-createdAt`)
+      const data = await response.json()
+      setInvoices(data.docs || [])
+    } catch (error) {
+      console.error('Error fetching client invoices:', error)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+      'pending-approval': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+      approved: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+      sent: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300',
+      paid: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+      'partial-payment': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+      overdue: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+      void: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+    }
+    
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || styles.draft}`}>
+        {status?.replace('-', ' ').toUpperCase() || 'DRAFT'}
+      </span>
+    )
   }
 
   if (loading) {
@@ -130,7 +173,7 @@ export default function ClientDetailPage() {
 
       {/* Content */}
       <div className="p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           {/* Contact Information */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
@@ -231,6 +274,97 @@ export default function ClientDetailPage() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Invoices Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Invoices</h2>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {invoices.length} total invoices
+              </span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">
+                Total: ${invoices.reduce((sum, inv) => sum + inv.total, 0).toFixed(2)}
+              </span>
+            </div>
+          </div>
+
+          {invoices.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">No invoices found for this client</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Invoice #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Paid
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Balance
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {invoices.map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {invoice.invoiceNumber || `INV-${invoice.id.slice(0, 8)}`}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(invoice.invoiceDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(invoice.dueDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {getStatusBadge(invoice.status)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-gray-900 dark:text-white">
+                        ${invoice.total.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-600 dark:text-gray-400">
+                        ${invoice.paidAmount.toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium text-gray-900 dark:text-white">
+                        ${(invoice.total - invoice.paidAmount).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        <Link
+                          href={`/admin/collections/invoices/${invoice.id}`}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
