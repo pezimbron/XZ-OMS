@@ -3,6 +3,23 @@
 import React, { useState, useEffect } from 'react'
 import { CheckCircle, Circle, Clock, Edit2 } from 'lucide-react'
 
+ const normalizeRelationId = (value: unknown): number | string | null => {
+   if (value === null || value === undefined) return null
+   if (typeof value === 'number') return value
+   if (typeof value === 'string') {
+     const trimmed = value.trim()
+     if (trimmed === '') return null
+     const asNumber = Number(trimmed)
+     if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) return asNumber
+     return trimmed
+   }
+   if (typeof value === 'object' && value !== null && 'id' in value) {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     return normalizeRelationId((value as any).id)
+   }
+   return null
+ }
+
 interface WorkflowStep {
   name: string
   description: string
@@ -76,11 +93,18 @@ export function WorkflowTimeline({
 
   const handleTemplateAssign = async (templateId: string) => {
     try {
+      const normalizedTemplateId = normalizeRelationId(templateId)
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflowTemplate: templateId }),
+        body: JSON.stringify({ workflowTemplate: normalizedTemplateId }),
       })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Error assigning workflow template:', errorText)
+        return
+      }
 
       if (response.ok) {
         setIsEditing(false)

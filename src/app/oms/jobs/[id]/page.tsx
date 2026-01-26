@@ -66,6 +66,23 @@ export default function JobDetailPage() {
   const [techs, setTechs] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
+
+  const normalizeRelationId = (value: unknown): number | string | null => {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed === '') return null
+      const asNumber = Number(trimmed)
+      if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) return asNumber
+      return trimmed
+    }
+    if (typeof value === 'object' && value !== null && 'id' in value) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return normalizeRelationId((value as any).id)
+    }
+    return null
+  }
   
   // Generate random job ID for direct customers
   const generateJobId = () => {
@@ -166,6 +183,7 @@ export default function JobDetailPage() {
     setSaving(true)
     try {
       const clientValue = typeof editedJob.client === 'object' ? editedJob.client.id : editedJob.client
+      const workflowTemplateValue = normalizeRelationId(editedJob.workflowTemplate)
       
       // Get the tech value for separate update
       let techValue = null
@@ -278,7 +296,7 @@ export default function JobDetailPage() {
         subtotal: subtotal,
         taxAmount: taxAmount,
         totalWithTax: totalWithTax,
-        workflowTemplate: editedJob.workflowTemplate || null,
+        workflowTemplate: workflowTemplateValue,
         workflowSteps: editedJob.workflowSteps || [],
       }
       
