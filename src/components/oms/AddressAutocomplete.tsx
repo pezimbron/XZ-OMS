@@ -12,11 +12,20 @@ type ParsedAddress = {
 
 const libraries = ['places'] as ('places')[]
 
-const parsePlace = (place: google.maps.places.PlaceResult): ParsedAddress | null => {
-  if (!place.address_components) return null
+const parsePlace = (place: any): ParsedAddress | null => {
+  const components = place?.address_components || place?.addressComponents
+  if (!components || !Array.isArray(components)) return null
 
-  const get = (type: string) =>
-    place.address_components?.find((c) => c.types.includes(type))?.long_name || ''
+  const get = (type: string) => {
+    const c = components.find((x: any) => Array.isArray(x?.types) && x.types.includes(type))
+    return (
+      c?.long_name ||
+      c?.longText ||
+      c?.short_name ||
+      c?.shortText ||
+      ''
+    )
+  }
 
   const streetNumber = get('street_number')
   const route = get('route')
@@ -52,29 +61,65 @@ export const AddressAutocomplete: React.FC<{
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const elementRef = useRef<any>(null)
+  const isFocusedRef = useRef(false)
+  const lastAppliedRef = useRef<{ disabled: boolean; placeholder: string }>({ disabled: false, placeholder: '' })
 
   const handlePlaceSelect = useCallback(
     async (event: any) => {
-      const place = event?.place || event?.detail?.place
+      console.log('AddressAutocomplete place select event:', event)
+      const prediction =
+        event?.placePrediction || event?.detail?.placePrediction || event?.detail?.place_prediction
+
+      let place: any = event?.place || event?.detail?.place || event?.detail
+
+      try {
+        if (!place && prediction && typeof prediction.toPlace === 'function') {
+          place = await prediction.toPlace()
+        }
+      } catch (e) {
+        console.error('PlaceAutocompleteElement toPlace() failed:', e)
+      }
+
       if (!place) return
+
+      let placeObj: any = place
 
       try {
         if (typeof place.fetchFields === 'function') {
           await place.fetchFields({ fields: ['addressComponents', 'formattedAddress', 'displayName'] })
         }
+      } catch (e) {
+        console.error('PlaceAutocompleteElement fetchFields failed:', e)
+      }
 
-        const addressComponents = place.addressComponents || place.address_components
-        const formattedAddress = place.formattedAddress || place.formatted_address
-        const displayName = place.displayName || place.name
+      try {
+        if (typeof place.toJSON === 'function') {
+          placeObj = place.toJSON()
+        }
 
-        const parsed = parsePlace({ address_components: addressComponents } as any)
-        if (!parsed) return
+        const formattedAddress = placeObj?.formattedAddress || placeObj?.formatted_address
+        const displayName = placeObj?.displayName || placeObj?.name
 
-        const line1 = parsed.addressLine1 || displayName || formattedAddress || ''
+        const parsed = parsePlace(placeObj)
+        const line1 = parsed?.addressLine1 || displayName || formattedAddress || ''
+        if (!line1) return
+
+        try {
+          const el = elementRef.current?.el
+          if (el && typeof el.value !== 'undefined') el.value = line1
+        } catch {
+          // ignore
+        }
+
         onChange(line1)
-        onSelect({ ...parsed, addressLine1: line1 })
-      } catch {
-        // ignore
+        onSelect({
+          addressLine1: line1,
+          city: parsed?.city || '',
+          state: parsed?.state || '',
+          zip: parsed?.zip || '',
+        })
+      } catch (e) {
+        console.error('PlaceAutocompleteElement placeselect handler failed:', e)
       }
     },
     [onChange, onSelect],
@@ -108,17 +153,63 @@ export const AddressAutocomplete: React.FC<{
     if (placeholder) el.placeholder = placeholder
     if (value) el.value = value
 
-    const listener = (e: any) => {
-      void handlePlaceSelect(e?.detail)
+    lastAppliedRef.current.disabled = !!disabled
+    lastAppliedRef.current.placeholder = placeholder || ''
+
+    const onFocusIn = () => {
+      isFocusedRef.current = true
     }
 
-    el.addEventListener('gmp-placeselect', listener)
+    const onFocusOut = () => {
+      isFocusedRef.current = false
+    }
+
+    const onPlaceSelect = (e: any) => {
+      void handlePlaceSelect(e)
+    }
+
+    const onPlaceSelectCapture = (e: any) => {
+      void handlePlaceSelect(e)
+    }
+
+    const onSelect = (e: any) => {
+      void handlePlaceSelect(e)
+    }
+
+    const onSelectCapture = (e: any) => {
+      void handlePlaceSelect(e)
+    }
+
+    el.addEventListener('focusin', onFocusIn)
+    el.addEventListener('focusout', onFocusOut)
+    // New Places UI Kit event name is gmp-select
+    el.addEventListener('gmp-select', onSelect)
+    containerEl.addEventListener('gmp-select', onSelectCapture, true)
+
+    // Backward/variant compatibility
+    el.addEventListener('gmp-placeselect', onPlaceSelect)
+    containerEl.addEventListener('gmp-placeselect', onPlaceSelectCapture, true)
     containerEl.appendChild(el)
-    elementRef.current = { el, listener }
+    elementRef.current = {
+      el,
+      onSelect,
+      onSelectCapture,
+      onPlaceSelect,
+      onPlaceSelectCapture,
+      onFocusIn,
+      onFocusOut,
+    }
 
     return () => {
       try {
-        el.removeEventListener('gmp-placeselect', listener)
+        el.removeEventListener('focusin', onFocusIn)
+        el.removeEventListener('focusout', onFocusOut)
+
+        el.removeEventListener('gmp-select', onSelect)
+        containerEl.removeEventListener('gmp-select', onSelectCapture, true)
+
+        el.removeEventListener('gmp-placeselect', onPlaceSelect)
+        containerEl.removeEventListener('gmp-placeselect', onPlaceSelectCapture, true)
         containerEl.removeChild(el)
       } catch {
         // ignore
@@ -132,9 +223,19 @@ export const AddressAutocomplete: React.FC<{
     const current = elementRef.current?.el
     if (!current) return
     try {
-      current.disabled = !!disabled
-      current.placeholder = placeholder || ''
-      current.value = value || ''
+      const nextDisabled = !!disabled
+      const nextPlaceholder = placeholder || ''
+
+      if (!isFocusedRef.current) {
+        if (lastAppliedRef.current.disabled !== nextDisabled) {
+          current.disabled = nextDisabled
+          lastAppliedRef.current.disabled = nextDisabled
+        }
+        if (lastAppliedRef.current.placeholder !== nextPlaceholder) {
+          current.placeholder = nextPlaceholder
+          lastAppliedRef.current.placeholder = nextPlaceholder
+        }
+      }
     } catch {
       // ignore
     }

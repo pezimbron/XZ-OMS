@@ -63,6 +63,9 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
   const api = useMemo(
     () => ({
       value: localValue,
+      setLocal: (next: T) => {
+        setLocalValue(next)
+      },
       setValue: (next: T) => {
         setLocalValue(next)
         scheduleSave(next)

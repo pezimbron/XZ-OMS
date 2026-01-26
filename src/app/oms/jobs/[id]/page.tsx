@@ -127,9 +127,8 @@ export default function JobDetailPage() {
     try {
       setJob((prev) => (prev ? { ...prev, jobId: newJobId } : prev))
       setEditedJob((prev: any) => (prev ? { ...prev, jobId: newJobId } : prev))
-      const updated = await patchJob(job.id, { jobId: newJobId })
-      setJob(updated)
-      setEditedJob(updated)
+      await patchJob(job.id, { jobId: newJobId })
+      await fetchJob(job.id)
     } catch (e) {
       console.error('Failed to generate Job ID:', e)
       alert('Failed to generate Job ID')
@@ -1188,7 +1187,7 @@ export default function JobDetailPage() {
                     <div className="space-y-1">
                       <AddressAutocomplete
                         value={captureAddressField.value || ''}
-                        onChange={(next) => captureAddressField.setValue(next)}
+                        onChange={(next) => (captureAddressField as any).setLocal?.(next)}
                         onSelect={async (parsed) => {
                           if (!job?.id) return
                           try {
@@ -1198,6 +1197,12 @@ export default function JobDetailPage() {
                               state: parsed.state || null,
                               zip: parsed.zip || null,
                             })
+
+                            ;(captureAddressField as any).setLocal?.(parsed.addressLine1 || '')
+                            ;(cityField as any).setLocal?.(parsed.city || '')
+                            ;(stateField as any).setLocal?.(parsed.state || '')
+                            ;(zipField as any).setLocal?.(parsed.zip || '')
+
                             await fetchJob(job.id)
                           } catch (e) {
                             console.error('Failed to save address:', e)
