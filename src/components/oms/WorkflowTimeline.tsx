@@ -14,7 +14,7 @@ import { CheckCircle, Circle, Clock, Edit2 } from 'lucide-react'
      return trimmed
    }
    if (typeof value === 'object' && value !== null && 'id' in value) {
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     // eslint-disable-next-line
      return normalizeRelationId((value as any).id)
    }
    return null

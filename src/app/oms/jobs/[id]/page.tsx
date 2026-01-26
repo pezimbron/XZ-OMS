@@ -6,6 +6,11 @@ import { useParams, useRouter } from 'next/navigation'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
 import QCPanel from '@/components/oms/QCPanel'
 import { WorkflowTimeline } from '@/components/oms/WorkflowTimeline'
+import { SaveIndicator } from '@/components/oms/SaveIndicator'
+import { AddressAutocomplete } from '@/components/oms/AddressAutocomplete'
+import { patchJob } from '@/lib/oms/patchJob'
+import { useAutosaveField } from '@/lib/oms/useAutosaveField'
+import { normalizeRelationId } from '@/lib/oms/normalizeRelationId'
 
 interface Job {
   id: string
@@ -67,22 +72,24 @@ export default function JobDetailPage() {
   const [products, setProducts] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
 
-  const normalizeRelationId = (value: unknown): number | string | null => {
-    if (value === null || value === undefined) return null
-    if (typeof value === 'number') return value
-    if (typeof value === 'string') {
-      const trimmed = value.trim()
-      if (trimmed === '') return null
-      const asNumber = Number(trimmed)
-      if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) return asNumber
-      return trimmed
+  const toISOWithTimezoneOffset = (datetimeLocalValue: string, timezone: string) => {
+    if (!datetimeLocalValue) return datetimeLocalValue
+    if (datetimeLocalValue.includes('Z') || datetimeLocalValue.includes('+')) return datetimeLocalValue
+
+    const dateStr = datetimeLocalValue.length === 16 ? datetimeLocalValue + ':00' : datetimeLocalValue
+    const timezoneOffsets: Record<string, string> = {
+      'America/Chicago': '-06:00',
+      'America/New_York': '-05:00',
+      'America/Denver': '-07:00',
+      'America/Los_Angeles': '-08:00',
+      'America/Phoenix': '-07:00',
     }
-    if (typeof value === 'object' && value !== null && 'id' in value) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return normalizeRelationId((value as any).id)
-    }
-    return null
+    const offset = timezoneOffsets[timezone] || '-06:00'
+    return dateStr + offset
   }
+
+  const isTech = user?.role === 'tech'
+  const isAdmin = user?.role === 'admin'
   
   // Generate random job ID for direct customers
   const generateJobId = () => {
@@ -102,6 +109,196 @@ export default function JobDetailPage() {
     const newJobId = `${prefix}-${year}${month}${day}-${randomPart}`
     setEditedJob({ ...editedJob, jobId: newJobId })
   }
+
+  const autosaveJobId = async () => {
+    if (!job?.id) return
+    const newJobId = (() => {
+      const prefix = 'XZOMS'
+      const now = new Date()
+      const year = now.getFullYear().toString().slice(-2)
+      const month = (now.getMonth() + 1).toString().padStart(2, '0')
+      const day = now.getDate().toString().padStart(2, '0')
+      const chars = '0123456789'
+      let randomPart = ''
+      for (let i = 0; i < 3; i++) randomPart += chars.charAt(Math.floor(Math.random() * chars.length))
+      return `${prefix}-${year}${month}${day}-${randomPart}`
+    })()
+
+    try {
+      setJob((prev) => (prev ? { ...prev, jobId: newJobId } : prev))
+      setEditedJob((prev: any) => (prev ? { ...prev, jobId: newJobId } : prev))
+      const updated = await patchJob(job.id, { jobId: newJobId })
+      setJob(updated)
+      setEditedJob(updated)
+    } catch (e) {
+      console.error('Failed to generate Job ID:', e)
+      alert('Failed to generate Job ID')
+    }
+  }
+
+  const targetDateField = useAutosaveField<string>({
+    value: job?.targetDate || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      const timezone = timezoneField.value || job.timezone || 'America/Chicago'
+      const nextISO = toISOWithTimezoneOffset(next, timezone)
+      await patchJob(job.id, { targetDate: nextISO })
+      await fetchJob(job.id)
+    },
+    debounceMs: 0,
+  })
+
+  const statusField = useAutosaveField<string>({
+    value: job?.status || 'request',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { status: next })
+      await fetchJob(job.id)
+    },
+    debounceMs: 0,
+  })
+
+  const schedulingNotesField = useAutosaveField<string>({
+    value: job?.schedulingNotes || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { schedulingNotes: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const techInstructionsField = useAutosaveField<string>({
+    value: job?.techInstructions || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { techInstructions: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const vendorPriceField = useAutosaveField<string>({
+    value: String(((job as any)?.vendorPrice ?? '') ?? ''),
+    onSave: async (next) => {
+      if (!job?.id) return
+      const asNumber = next === '' ? null : Number(next)
+      await patchJob(job.id, { vendorPrice: asNumber })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const travelPayoutField = useAutosaveField<string>({
+    value: String(((job as any)?.travelPayout ?? '') ?? ''),
+    onSave: async (next) => {
+      if (!job?.id) return
+      const asNumber = next === '' ? null : Number(next)
+      await patchJob(job.id, { travelPayout: asNumber })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const offHoursPayoutField = useAutosaveField<string>({
+    value: String(((job as any)?.offHoursPayout ?? '') ?? ''),
+    onSave: async (next) => {
+      if (!job?.id) return
+      const asNumber = next === '' ? null : Number(next)
+      await patchJob(job.id, { offHoursPayout: asNumber })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const deliverablesField = useAutosaveField<any>({
+    value: (job as any)?.deliverables ?? null,
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { deliverables: next || {} })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const captureAddressField = useAutosaveField<string>({
+    value: job?.captureAddress || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { captureAddress: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const cityField = useAutosaveField<string>({
+    value: job?.city || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { city: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const stateField = useAutosaveField<string>({
+    value: job?.state || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { state: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const zipField = useAutosaveField<string>({
+    value: (job as any)?.zip || job?.zipCode || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { zip: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
+  })
+
+  const timezoneField = useAutosaveField<string>({
+    value: job?.timezone || 'America/Chicago',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { timezone: next })
+      await fetchJob(job.id)
+    },
+    debounceMs: 0,
+  })
+
+  const regionField = useAutosaveField<string>({
+    value: job?.region || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { region: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 0,
+  })
+
+  const techField = useAutosaveField<string>({
+    value: (job?.tech && typeof job.tech === 'object' ? job.tech?.id : (job?.tech as any)) || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      const techId = normalizeRelationId(next)
+      const response = await fetch(`/api/jobs/${job.id}/assign-tech`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ techId: techId || null }),
+      })
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(text || 'Failed to assign tech')
+      }
+      await fetchJob(job.id)
+    },
+    debounceMs: 0,
+  })
   
   useEffect(() => {
     fetchClients()
@@ -743,27 +940,19 @@ export default function JobDetailPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Job ID</label>
-                  {editMode ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editedJob?.jobId || ''}
-                        onChange={(e) => setEditedJob({...editedJob, jobId: e.target.value})}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Enter Job ID"
-                      />
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-gray-900 dark:text-white">{job.jobId || 'N/A'}</p>
+                    {!isTech && !job.jobId && (
                       <button
                         type="button"
-                        onClick={generateJobId}
+                        onClick={autosaveJobId}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
                         title="Generate random Job ID"
                       >
                         🎲 Generate
                       </button>
-                    </div>
-                  ) : (
-                    <p className="text-gray-900 dark:text-white">{job.jobId || 'N/A'}</p>
-                  )}
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Model Name</label>
@@ -780,44 +969,34 @@ export default function JobDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Target Date</label>
-                  {editMode ? (
-                    <input
-                      type="datetime-local"
-                      value={editedJob?.targetDate ? (() => {
-                        // Convert UTC date to local time for display in datetime-local input
-                        const date = new Date(editedJob.targetDate)
-                        // Get local time components
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        const hours = String(date.getHours()).padStart(2, '0')
-                        const minutes = String(date.getMinutes()).padStart(2, '0')
-                        return `${year}-${month}-${day}T${hours}:${minutes}`
-                      })() : ''}
-                      onChange={(e) => setEditedJob({...editedJob, targetDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <p className="text-gray-900 dark:text-white">
                       {job.targetDate ? new Date(job.targetDate).toLocaleString() : 'N/A'}
                     </p>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="datetime-local"
+                        value={targetDateField.value ? (() => {
+                          const date = new Date(targetDateField.value)
+                          const year = date.getFullYear()
+                          const month = String(date.getMonth() + 1).padStart(2, '0')
+                          const day = String(date.getDate()).padStart(2, '0')
+                          const hours = String(date.getHours()).padStart(2, '0')
+                          const minutes = String(date.getMinutes()).padStart(2, '0')
+                          return `${year}-${month}-${day}T${hours}:${minutes}`
+                        })() : ''}
+                        onChange={(e) => targetDateField.setValue(e.target.value)}
+                        onBlur={() => targetDateField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={targetDateField.status} error={targetDateField.error} />
+                    </div>
                   )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Timezone</label>
-                  {editMode ? (
-                    <select
-                      value={editedJob?.timezone || 'America/Chicago'}
-                      onChange={(e) => setEditedJob({...editedJob, timezone: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="America/Chicago">Central Time (Austin/San Antonio)</option>
-                      <option value="America/New_York">Eastern Time</option>
-                      <option value="America/Denver">Mountain Time</option>
-                      <option value="America/Los_Angeles">Pacific Time</option>
-                      <option value="America/Phoenix">Arizona (No DST)</option>
-                    </select>
-                  ) : (
+                  {isTech ? (
                     <p className="text-gray-900 dark:text-white">
                       {job.timezone === 'America/Chicago' ? 'Central Time' :
                        job.timezone === 'America/New_York' ? 'Eastern Time' :
@@ -826,6 +1005,22 @@ export default function JobDetailPage() {
                        job.timezone === 'America/Phoenix' ? 'Arizona' :
                        'Central Time'}
                     </p>
+                  ) : (
+                    <div className="space-y-1">
+                      <select
+                        value={timezoneField.value || 'America/Chicago'}
+                        onChange={(e) => timezoneField.setValue(e.target.value)}
+                        onBlur={() => timezoneField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="America/Chicago">Central Time (Austin/San Antonio)</option>
+                        <option value="America/New_York">Eastern Time</option>
+                        <option value="America/Denver">Mountain Time</option>
+                        <option value="America/Los_Angeles">Pacific Time</option>
+                        <option value="America/Phoenix">Arizona (No DST)</option>
+                      </select>
+                      <SaveIndicator status={timezoneField.status} error={timezoneField.error} />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -844,25 +1039,51 @@ export default function JobDetailPage() {
                       <option value="archived">Archived</option>
                     </select>
                   ) : (
-                    <p className="text-gray-900 dark:text-white capitalize">{job.status || 'request'}</p>
+                    <div className="space-y-1">
+                      {isAdmin && !isTech ? (
+                        <>
+                          <select
+                            value={statusField.value || 'request'}
+                            onChange={(e) => statusField.setValue(e.target.value)}
+                            onBlur={() => statusField.onBlur()}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="request">Request</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="scanned">Scanned</option>
+                            <option value="qc">QC</option>
+                            <option value="done">Done</option>
+                            <option value="archived">Archived</option>
+                          </select>
+                          <SaveIndicator status={statusField.status} error={statusField.error} />
+                          <p className="text-xs text-gray-500">Admin Override</p>
+                        </>
+                      ) : (
+                        <p className="text-gray-900 dark:text-white capitalize">{job.status || 'request'}</p>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Region</label>
-                  {editMode ? (
-                    <select
-                      value={editedJob?.region || ''}
-                      onChange={(e) => setEditedJob({...editedJob, region: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="">Select Region</option>
-                      <option value="austin">Austin Area</option>
-                      <option value="san-antonio">San Antonio Area</option>
-                      <option value="outsourced">Outsourced</option>
-                      <option value="other">Other</option>
-                    </select>
-                  ) : (
+                  {isTech ? (
                     <p className="text-gray-900 dark:text-white capitalize">{job.region?.replace('-', ' ') || 'N/A'}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <select
+                        value={regionField.value || ''}
+                        onChange={(e) => regionField.setValue(e.target.value)}
+                        onBlur={() => regionField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Select Region</option>
+                        <option value="austin">Austin Area</option>
+                        <option value="san-antonio">San Antonio Area</option>
+                        <option value="outsourced">Outsourced</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <SaveIndicator status={regionField.status} error={regionField.error} />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -912,7 +1133,11 @@ export default function JobDetailPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Assigned Tech</label>
-                  {editMode ? (
+                  {isTech ? (
+                    <p className="text-gray-900 dark:text-white">
+                      {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                    </p>
+                  ) : editMode ? (
                     <select
                       value={typeof editedJob?.tech === 'object' ? editedJob.tech?.id : editedJob?.tech || ''}
                       onChange={(e) => setEditedJob({...editedJob, tech: e.target.value || null})}
@@ -924,9 +1149,20 @@ export default function JobDetailPage() {
                       ))}
                     </select>
                   ) : (
-                    <p className="text-gray-900 dark:text-white">
-                      {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
-                    </p>
+                    <div className="space-y-1">
+                      <select
+                        value={techField.value || ''}
+                        onChange={(e) => techField.setValue(e.target.value)}
+                        onBlur={() => techField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Unassigned</option>
+                        {techs.map((tech) => (
+                          <option key={tech.id} value={tech.id}>{tech.name}</option>
+                        ))}
+                      </select>
+                      <SaveIndicator status={techField.status} error={techField.error} />
+                    </div>
                   )}
                 </div>
               </div>
@@ -938,7 +1174,9 @@ export default function JobDetailPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</label>
-                  {editMode ? (
+                  {isTech ? (
+                    <p className="text-gray-900 dark:text-white">{job.captureAddress || 'N/A'}</p>
+                  ) : editMode ? (
                     <input
                       type="text"
                       value={editedJob?.captureAddress || ''}
@@ -947,13 +1185,36 @@ export default function JobDetailPage() {
                       placeholder="Enter address"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white">{job.captureAddress || 'N/A'}</p>
+                    <div className="space-y-1">
+                      <AddressAutocomplete
+                        value={captureAddressField.value || ''}
+                        onChange={(next) => captureAddressField.setValue(next)}
+                        onSelect={async (parsed) => {
+                          if (!job?.id) return
+                          try {
+                            await patchJob(job.id, {
+                              captureAddress: parsed.addressLine1 || null,
+                              city: parsed.city || null,
+                              state: parsed.state || null,
+                              zip: parsed.zip || null,
+                            })
+                            await fetchJob(job.id)
+                          } catch (e) {
+                            console.error('Failed to save address:', e)
+                          }
+                        }}
+                        placeholder="Start typing an address..."
+                      />
+                      <SaveIndicator status={captureAddressField.status} error={captureAddressField.error} />
+                    </div>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400">City</label>
-                    {editMode ? (
+                    {isTech ? (
+                      <p className="text-gray-900 dark:text-white">{job.city || 'N/A'}</p>
+                    ) : editMode ? (
                       <input
                         type="text"
                         value={editedJob?.city || ''}
@@ -962,12 +1223,24 @@ export default function JobDetailPage() {
                         placeholder="City"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white">{job.city || 'N/A'}</p>
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          value={cityField.value || ''}
+                          onChange={(e) => cityField.setValue(e.target.value)}
+                          onBlur={() => cityField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="City"
+                        />
+                        <SaveIndicator status={cityField.status} error={cityField.error} />
+                      </div>
                     )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400">State</label>
-                    {editMode ? (
+                    {isTech ? (
+                      <p className="text-gray-900 dark:text-white">{job.state || 'N/A'}</p>
+                    ) : editMode ? (
                       <input
                         type="text"
                         value={editedJob?.state || ''}
@@ -976,12 +1249,24 @@ export default function JobDetailPage() {
                         placeholder="State"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white">{job.state || 'N/A'}</p>
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          value={stateField.value || ''}
+                          onChange={(e) => stateField.setValue(e.target.value)}
+                          onBlur={() => stateField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="State"
+                        />
+                        <SaveIndicator status={stateField.status} error={stateField.error} />
+                      </div>
                     )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400">ZIP</label>
-                    {editMode ? (
+                    {isTech ? (
+                      <p className="text-gray-900 dark:text-white">{job.zipCode || 'N/A'}</p>
+                    ) : editMode ? (
                       <input
                         type="text"
                         value={editedJob?.zip || ''}
@@ -990,7 +1275,17 @@ export default function JobDetailPage() {
                         placeholder="ZIP"
                       />
                     ) : (
-                      <p className="text-gray-900 dark:text-white">{job.zipCode || 'N/A'}</p>
+                      <div className="space-y-1">
+                        <input
+                          type="text"
+                          value={zipField.value || ''}
+                          onChange={(e) => zipField.setValue(e.target.value)}
+                          onBlur={() => zipField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="ZIP"
+                        />
+                        <SaveIndicator status={zipField.status} error={zipField.error} />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1004,14 +1299,7 @@ export default function JobDetailPage() {
             {/* Scheduling Notes */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Scheduling Notes / Restrictions</h2>
-              {editMode ? (
-                <textarea
-                  value={editedJob?.schedulingNotes || ''}
-                  onChange={(e) => setEditedJob({...editedJob, schedulingNotes: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
-                  placeholder="Enter scheduling notes, restrictions, or special requirements..."
-                />
-              ) : (
+              {isTech ? (
                 <div className="prose dark:prose-invert max-w-none">
                   {job.schedulingNotes ? (
                     <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
@@ -1021,20 +1309,31 @@ export default function JobDetailPage() {
                     <p className="text-gray-400 italic">No scheduling notes</p>
                   )}
                 </div>
+              ) : editMode ? (
+                <textarea
+                  value={editedJob?.schedulingNotes || ''}
+                  onChange={(e) => setEditedJob({...editedJob, schedulingNotes: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+                  placeholder="Enter scheduling notes, restrictions, or special requirements..."
+                />
+              ) : (
+                <div className="space-y-1">
+                  <textarea
+                    value={schedulingNotesField.value || ''}
+                    onChange={(e) => schedulingNotesField.setValue(e.target.value)}
+                    onBlur={() => schedulingNotesField.onBlur()}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+                    placeholder="Enter scheduling notes, restrictions, or special requirements..."
+                  />
+                  <SaveIndicator status={schedulingNotesField.status} error={schedulingNotesField.error} />
+                </div>
               )}
             </div>
 
             {/* Tech Instructions */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">General Instructions for Tech</h2>
-              {editMode ? (
-                <textarea
-                  value={editedJob?.techInstructions || ''}
-                  onChange={(e) => setEditedJob({...editedJob, techInstructions: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
-                  placeholder="Enter general instructions for the tech..."
-                />
-              ) : (
+              {isTech ? (
                 <div className="prose dark:prose-invert max-w-none">
                   {job.techInstructions ? (
                     <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
@@ -1043,6 +1342,24 @@ export default function JobDetailPage() {
                   ) : (
                     <p className="text-gray-400 italic">No instructions provided</p>
                   )}
+                </div>
+              ) : editMode ? (
+                <textarea
+                  value={editedJob?.techInstructions || ''}
+                  onChange={(e) => setEditedJob({...editedJob, techInstructions: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
+                  placeholder="Enter general instructions for the tech..."
+                />
+              ) : (
+                <div className="space-y-1">
+                  <textarea
+                    value={techInstructionsField.value || ''}
+                    onChange={(e) => techInstructionsField.setValue(e.target.value)}
+                    onBlur={() => techInstructionsField.onBlur()}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
+                    placeholder="Enter general instructions for the tech..."
+                  />
+                  <SaveIndicator status={techInstructionsField.status} error={techInstructionsField.error} />
                 </div>
               )}
             </div>
@@ -1485,7 +1802,11 @@ export default function JobDetailPage() {
                 <div className="space-y-2 pl-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">Capture Payout:</span>
-                    {editMode ? (
+                    {isTech ? (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).vendorPrice?.toFixed(2) || '0.00')}
+                      </span>
+                    ) : editMode ? (
                       <input
                         type="number"
                         step="0.01"
@@ -1495,15 +1816,28 @@ export default function JobDetailPage() {
                         placeholder="0.00"
                       />
                     ) : (
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        ${((job as any).vendorPrice?.toFixed(2) || '0.00')}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={vendorPriceField.value}
+                          onChange={(e) => vendorPriceField.setValue(e.target.value)}
+                          onBlur={() => vendorPriceField.onBlur()}
+                          className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                          placeholder="0.00"
+                        />
+                        <SaveIndicator status={vendorPriceField.status} error={vendorPriceField.error} />
+                      </div>
                     )}
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">Travel Payout:</span>
-                    {editMode ? (
+                    {isTech ? (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).travelPayout?.toFixed(2) || '0.00')}
+                      </span>
+                    ) : editMode ? (
                       <input
                         type="number"
                         step="0.01"
@@ -1513,15 +1847,28 @@ export default function JobDetailPage() {
                         placeholder="0.00"
                       />
                     ) : (
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        ${((job as any).travelPayout?.toFixed(2) || '0.00')}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={travelPayoutField.value}
+                          onChange={(e) => travelPayoutField.setValue(e.target.value)}
+                          onBlur={() => travelPayoutField.onBlur()}
+                          className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                          placeholder="0.00"
+                        />
+                        <SaveIndicator status={travelPayoutField.status} error={travelPayoutField.error} />
+                      </div>
                     )}
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 dark:text-gray-400">Off-Hours Payout:</span>
-                    {editMode ? (
+                    {isTech ? (
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        ${((job as any).offHoursPayout?.toFixed(2) || '0.00')}
+                      </span>
+                    ) : editMode ? (
                       <input
                         type="number"
                         step="0.01"
@@ -1531,9 +1878,18 @@ export default function JobDetailPage() {
                         placeholder="0.00"
                       />
                     ) : (
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        ${((job as any).offHoursPayout?.toFixed(2) || '0.00')}
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={offHoursPayoutField.value}
+                          onChange={(e) => offHoursPayoutField.setValue(e.target.value)}
+                          onBlur={() => offHoursPayoutField.onBlur()}
+                          className="w-32 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                          placeholder="0.00"
+                        />
+                        <SaveIndicator status={offHoursPayoutField.status} error={offHoursPayoutField.error} />
+                      </div>
                     )}
                   </div>
                   
@@ -1766,18 +2122,7 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     🏢 3D Model Link
                   </label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={(editedJob as any)?.deliverables?.model3dLink || ''}
-                      onChange={(e) => setEditedJob({
-                        ...editedJob,
-                        deliverables: { ...(editedJob as any)?.deliverables, model3dLink: e.target.value }
-                      })}
-                      placeholder="https://my.matterport.com/show/?m=..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <div>
                       {(job as any)?.deliverables?.model3dLink ? (
                         <a
@@ -1792,6 +2137,29 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic">No link provided</p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.model3dLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, model3dLink: e.target.value }
+                      })}
+                      placeholder="https://my.matterport.com/show/?m=..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={deliverablesField.value?.model3dLink || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, model3dLink: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        placeholder="https://my.matterport.com/show/?m=..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
+                    </div>
                   )}
                 </div>
 
@@ -1800,18 +2168,7 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📐 Floor Plans Link
                   </label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={(editedJob as any)?.deliverables?.floorPlansLink || ''}
-                      onChange={(e) => setEditedJob({
-                        ...editedJob,
-                        deliverables: { ...(editedJob as any)?.deliverables, floorPlansLink: e.target.value }
-                      })}
-                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <div>
                       {(job as any)?.deliverables?.floorPlansLink ? (
                         <a
@@ -1826,6 +2183,29 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic">No link provided</p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.floorPlansLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, floorPlansLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={deliverablesField.value?.floorPlansLink || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, floorPlansLink: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
+                    </div>
                   )}
                 </div>
 
@@ -1834,18 +2214,7 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📸 Photos/Videos Link
                   </label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={(editedJob as any)?.deliverables?.photosVideosLink || ''}
-                      onChange={(e) => setEditedJob({
-                        ...editedJob,
-                        deliverables: { ...(editedJob as any)?.deliverables, photosVideosLink: e.target.value }
-                      })}
-                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <div>
                       {(job as any)?.deliverables?.photosVideosLink ? (
                         <a
@@ -1860,6 +2229,29 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic">No link provided</p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.photosVideosLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, photosVideosLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={deliverablesField.value?.photosVideosLink || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, photosVideosLink: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
+                    </div>
                   )}
                 </div>
 
@@ -1868,18 +2260,7 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📋 As-Built Files Link
                   </label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={(editedJob as any)?.deliverables?.asBuiltsLink || ''}
-                      onChange={(e) => setEditedJob({
-                        ...editedJob,
-                        deliverables: { ...(editedJob as any)?.deliverables, asBuiltsLink: e.target.value }
-                      })}
-                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <div>
                       {(job as any)?.deliverables?.asBuiltsLink ? (
                         <a
@@ -1894,6 +2275,29 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic">No link provided</p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.asBuiltsLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, asBuiltsLink: e.target.value }
+                      })}
+                      placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={deliverablesField.value?.asBuiltsLink || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, asBuiltsLink: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
+                    </div>
                   )}
                 </div>
 
@@ -1902,18 +2306,7 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📦 Other Assets Link
                   </label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={(editedJob as any)?.deliverables?.otherAssetsLink || ''}
-                      onChange={(e) => setEditedJob({
-                        ...editedJob,
-                        deliverables: { ...(editedJob as any)?.deliverables, otherAssetsLink: e.target.value }
-                      })}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <div>
                       {(job as any)?.deliverables?.otherAssetsLink ? (
                         <a
@@ -1928,6 +2321,29 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic">No link provided</p>
                       )}
                     </div>
+                  ) : editMode ? (
+                    <input
+                      type="text"
+                      value={(editedJob as any)?.deliverables?.otherAssetsLink || ''}
+                      onChange={(e) => setEditedJob({
+                        ...editedJob,
+                        deliverables: { ...(editedJob as any)?.deliverables, otherAssetsLink: e.target.value }
+                      })}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={deliverablesField.value?.otherAssetsLink || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, otherAssetsLink: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
+                    </div>
                   )}
                 </div>
 
@@ -1936,7 +2352,17 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📝 Delivery Notes
                   </label>
-                  {editMode ? (
+                  {isTech ? (
+                    <div>
+                      {(job as any)?.deliverables?.deliveryNotes ? (
+                        <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
+                          {(job as any).deliverables.deliveryNotes}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic">No notes</p>
+                      )}
+                    </div>
+                  ) : editMode ? (
                     <textarea
                       value={(editedJob as any)?.deliverables?.deliveryNotes || ''}
                       onChange={(e) => setEditedJob({
@@ -1948,14 +2374,16 @@ export default function JobDetailPage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   ) : (
-                    <div>
-                      {(job as any)?.deliverables?.deliveryNotes ? (
-                        <p className="text-gray-900 dark:text-white whitespace-pre-wrap">
-                          {(job as any).deliverables.deliveryNotes}
-                        </p>
-                      ) : (
-                        <p className="text-gray-400 italic">No notes</p>
-                      )}
+                    <div className="space-y-1">
+                      <textarea
+                        value={deliverablesField.value?.deliveryNotes || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, deliveryNotes: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        rows={3}
+                        placeholder="Internal notes about the deliverables..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
                 </div>
@@ -1965,7 +2393,17 @@ export default function JobDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     📅 Date Delivered
                   </label>
-                  {editMode ? (
+                  {isTech ? (
+                    <div>
+                      {(job as any)?.deliverables?.deliveredDate ? (
+                        <p className="text-gray-900 dark:text-white">
+                          {new Date((job as any).deliverables.deliveredDate).toLocaleDateString()}
+                        </p>
+                      ) : (
+                        <p className="text-gray-400 italic">Not delivered yet</p>
+                      )}
+                    </div>
+                  ) : editMode ? (
                     <input
                       type="date"
                       value={(editedJob as any)?.deliverables?.deliveredDate?.split('T')[0] || ''}
@@ -1976,14 +2414,15 @@ export default function JobDetailPage() {
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     />
                   ) : (
-                    <div>
-                      {(job as any)?.deliverables?.deliveredDate ? (
-                        <p className="text-gray-900 dark:text-white">
-                          {new Date((job as any).deliverables.deliveredDate).toLocaleDateString()}
-                        </p>
-                      ) : (
-                        <p className="text-gray-400 italic">Not delivered yet</p>
-                      )}
+                    <div className="space-y-1">
+                      <input
+                        type="date"
+                        value={deliverablesField.value?.deliveredDate?.split?.('T')?.[0] || ''}
+                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, deliveredDate: e.target.value })}
+                        onBlur={() => deliverablesField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
                 </div>
