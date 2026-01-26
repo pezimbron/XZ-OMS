@@ -8,6 +8,73 @@ interface ImportResult {
   errors: Array<{ row: number; error: string }>
 }
 
+type ClientCandidate = {
+  id: string | number
+  name: string
+}
+
+type ClarificationResponse = {
+  needsClarification: true
+  kind: 'client'
+  query: string
+  candidates: ClientCandidate[]
+  parsedJobs: any[]
+}
+
+function normalizeName(input: string): string {
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function scoreClientMatch(query: string, candidateName: string): number {
+  const q = normalizeName(query)
+  const c = normalizeName(candidateName)
+  if (!q || !c) return 0
+  if (q === c) return 100
+  if (c.startsWith(q)) return 85
+  if (c.includes(q)) return 70
+
+  const qTokens = new Set(q.split(' ').filter(Boolean))
+  const cTokens = new Set(c.split(' ').filter(Boolean))
+  let shared = 0
+  for (const t of qTokens) if (cTokens.has(t)) shared++
+  if (shared === 0) return 0
+  return Math.min(60, 20 + shared * 10)
+}
+
+function buildClientWhere(query: string): any {
+  const q = normalizeName(query)
+  const tokens = q.split(' ').filter(Boolean)
+  const noSpaces = q.replace(/\s+/g, '')
+
+  const or: any[] = []
+
+  if (query?.trim()) {
+    or.push({ name: { contains: query } })
+    or.push({ companyName: { contains: query } })
+  }
+
+  if (q) {
+    or.push({ name: { contains: q } })
+    or.push({ companyName: { contains: q } })
+  }
+
+  if (noSpaces && noSpaces !== q) {
+    or.push({ name: { contains: noSpaces } })
+    or.push({ companyName: { contains: noSpaces } })
+  }
+
+  for (const t of tokens) {
+    if (t.length < 2) continue
+    or.push({ name: { contains: t } })
+    or.push({ companyName: { contains: t } })
+  }
+
+  return or.length ? { or } : {}
+}
+
 // Simple AI-like parser for job creation from natural language
 function parseJobsFromPrompt(prompt: string): any[] {
   const jobs: any[] = []
@@ -20,9 +87,19 @@ function parseJobsFromPrompt(prompt: string): any[] {
   }
   const clientName = clientMatch ? clientMatch[1].trim() : null
 
-  // Look for addresses
-  const addressPattern = /(?:at\s+)?(\d+\s+[A-Za-z0-9\s,]+?)(?:\s+in\s+|\s*,\s*[A-Z]{2}|\s+scheduled)/gi
-  const addresses = [...prompt.matchAll(addressPattern)].map(m => m[1].trim())
+  const addressWithCityStatePattern = /(\d+\s+[^,\n]+),\s*([^,\n]+),\s*([A-Za-z]{2})/g
+  const addressWithCityState = [...prompt.matchAll(addressWithCityStatePattern)].map(m => ({
+    address: m[1].trim(),
+    city: m[2].trim(),
+    state: m[3].trim().toUpperCase(),
+  }))
+
+  // Look for addresses (fallback)
+  const addressPattern = /(?:at\s+|in\s+)?(\d+\s+[A-Za-z0-9\s]+\s+(?:St|Street|Ave|Avenue|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Ct|Court|Pl|Place))\b/gi
+  const addresses = [...prompt.matchAll(addressPattern)]
+    .map(m => m[1].trim())
+    .filter((x) => !/\b(?:sq\s*ft|sqft|square\s*feet)\b/i.test(x))
+    .filter(Boolean)
 
   // Look for dates - improved to catch dates like "2/1 and 2/2"
   const datePattern = /(?:scheduled\s+for\s+|on\s+|for\s+)(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|[A-Za-z]+\s+\d{1,2}(?:st|nd|rd|th)?(?:\s+at\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)?|next\s+\w+|tomorrow)/gi
@@ -58,10 +135,9 @@ function parseJobsFromPrompt(prompt: string): any[] {
     floorPlanCount = floorPlanMatch ? parseInt(floorPlanMatch[1]) : 0
   }
 
-  // Look for cities
-  const cityPattern = /in\s+([A-Za-z\s]+?)(?:\s*,|\s+scheduled|\s+next|\s+on|$)/i
-  const cityMatch = prompt.match(cityPattern)
-  const city = cityMatch ? cityMatch[1].trim() : 'Austin'
+  const inferredCity = addressWithCityState[0]?.city || null
+  const inferredState = addressWithCityState[0]?.state || null
+  const city = inferredCity || 'Austin'
 
   // Look for regions
   const region = city.toLowerCase().includes('austin') ? 'austin' : 
@@ -80,21 +156,21 @@ function parseJobsFromPrompt(prompt: string): any[] {
 
   // Create scan jobs
   for (let i = 0; i < scanCount; i++) {
-    const jobCity = cities[i % cities.length] || city
-    const jobRegion = jobCity.toLowerCase().includes('austin') ? 'austin' : 
+    const jobCity = addressWithCityState[jobIndex]?.city || cities[i % cities.length] || city
+    const jobRegion = jobCity.toLowerCase().includes('austin') ? 'austin' :
                       jobCity.toLowerCase().includes('san antonio') ? 'san-antonio' : 'other'
     
     jobs.push({
       clientName,
       modelName: '3D Scan',
-      captureAddress: addresses[jobIndex] || `Property ${jobIndex + 1}`,
+      captureAddress: addressWithCityState[jobIndex]?.address || addresses[jobIndex] || `Property ${jobIndex + 1}`,
       city: jobCity,
-      state: 'TX',
+      state: addressWithCityState[jobIndex]?.state || inferredState || 'TX',
       region: jobRegion,
       captureType: 'matterport',
       targetDate: dates[i] || dates[0] || null,
       status: 'scheduled',
-      squareFootage: squareFootage,
+      sqFt: squareFootage,
       products: [{ name: 'Matterport Scan', quantity: 1 }],
     })
     jobIndex++
@@ -102,21 +178,21 @@ function parseJobsFromPrompt(prompt: string): any[] {
 
   // Create floor plan jobs
   for (let i = 0; i < floorPlanCount; i++) {
-    const jobCity = cities[i % cities.length] || city
-    const jobRegion = jobCity.toLowerCase().includes('austin') ? 'austin' : 
+    const jobCity = addressWithCityState[jobIndex]?.city || cities[i % cities.length] || city
+    const jobRegion = jobCity.toLowerCase().includes('austin') ? 'austin' :
                       jobCity.toLowerCase().includes('san antonio') ? 'san-antonio' : 'other'
     
     jobs.push({
       clientName,
       modelName: 'Floor Plan',
-      captureAddress: addresses[jobIndex] || `Property ${jobIndex + 1}`,
+      captureAddress: addressWithCityState[jobIndex]?.address || addresses[jobIndex] || `Property ${jobIndex + 1}`,
       city: jobCity,
-      state: 'TX',
+      state: addressWithCityState[jobIndex]?.state || inferredState || 'TX',
       region: jobRegion,
       captureType: 'other',
       targetDate: dates[i] || dates[0] || null,
       status: 'scheduled',
-      squareFootage: squareFootage,
+      sqFt: squareFootage,
       products: [{ name: 'Floor Plan', quantity: 1 }],
     })
     jobIndex++
@@ -125,17 +201,20 @@ function parseJobsFromPrompt(prompt: string): any[] {
   // If no specific counts found, create one job per address
   if (jobs.length === 0 && addresses.length > 0) {
     addresses.forEach((address, i) => {
+      const jobCity = addressWithCityState[i]?.city || city
+      const jobRegion = jobCity.toLowerCase().includes('austin') ? 'austin' :
+                        jobCity.toLowerCase().includes('san antonio') ? 'san-antonio' : 'other'
       jobs.push({
         clientName,
         modelName: 'Property Scan',
-        captureAddress: address,
-        city,
-        state: 'TX',
-        region,
+        captureAddress: addressWithCityState[i]?.address || address,
+        city: jobCity,
+        state: addressWithCityState[i]?.state || inferredState || 'TX',
+        region: jobRegion,
         captureType: 'matterport',
         targetDate: dates[i] || dates[0] || null,
         status: 'scheduled',
-        squareFootage: squareFootage,
+        sqFt: squareFootage,
         products: [{ name: 'Matterport Scan', quantity: 1 }],
       })
     })
@@ -219,7 +298,7 @@ function parseDate(dateStr: string): Date | null {
 export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
-    const { prompt } = await request.json()
+    const { prompt, clientId } = await request.json()
 
     if (!prompt || !prompt.trim()) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
@@ -245,76 +324,67 @@ export async function POST(request: NextRequest) {
       const jobData = parsedJobs[i]
       
       try {
-        // Find client with improved matching
-        if (jobData.clientName) {
-          // First, try exact match (case-insensitive)
-          let clients = await payload.find({
+        if (clientId) {
+          jobData.client = clientId
+        } else if (jobData.clientName) {
+          const query = jobData.clientName
+          const clients = await payload.find({
             collection: 'clients',
-            where: {
-              name: {
-                equals: jobData.clientName,
-              },
-            },
-            limit: 1,
+            where: buildClientWhere(query),
+            limit: 50,
           })
 
-          // If no exact match, try contains search
-          if (clients.docs.length === 0) {
-            clients = await payload.find({
-              collection: 'clients',
-              where: {
-                name: {
-                  contains: jobData.clientName,
-                },
-              },
-              limit: 5,
-            })
-          }
+          const scored = (clients.docs || [])
+            .map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              score: scoreClientMatch(query, c.name),
+            }))
+            .filter((x: any) => x.score > 0)
+            .sort((a: any, b: any) => b.score - a.score)
 
-          // If still no match, try searching by company name
-          if (clients.docs.length === 0) {
-            clients = await payload.find({
-              collection: 'clients',
-              where: {
-                companyName: {
-                  contains: jobData.clientName,
-                },
-              },
-              limit: 5,
-            })
-          }
+          const best = scored[0]
+          const second = scored[1]
 
-          if (clients.docs.length > 0) {
-            // If multiple matches, use the first one
-            jobData.client = clients.docs[0].id
-            
-            // If we found multiple, log a warning
-            if (clients.docs.length > 1) {
-              console.log(`Multiple clients found for "${jobData.clientName}", using: ${clients.docs[0].name}`)
+          if (!best) {
+            const clarification: ClarificationResponse = {
+              needsClarification: true,
+              kind: 'client',
+              query,
+              candidates: [],
+              parsedJobs,
             }
-          } else {
-            // Get all clients to show in error message
-            const allClients = await payload.find({
-              collection: 'clients',
-              limit: 100,
-            })
-            
-            const clientNames = allClients.docs.map(c => c.name).join(', ')
-            
-            result.failed++
-            result.errors.push({
-              row: i + 1,
-              error: `Client "${jobData.clientName}" not found. Available clients: ${clientNames}`,
-            })
-            continue
+            return NextResponse.json(clarification, { status: 409 })
           }
+
+          const isExact = best.score >= 100
+          const isAmbiguous = !isExact && second && second.score >= best.score - 10
+          const isWeak = !isExact && best.score < 85
+
+          if (isAmbiguous || isWeak) {
+            const candidates: ClientCandidate[] = scored
+              .slice(0, 5)
+              .map((x: any) => ({ id: x.id, name: x.name }))
+            const clarification: ClarificationResponse = {
+              needsClarification: true,
+              kind: 'client',
+              query,
+              candidates,
+              parsedJobs,
+            }
+            return NextResponse.json(clarification, { status: 409 })
+          }
+
+          jobData.client = best.id
         } else {
-          result.failed++
-          result.errors.push({
-            row: i + 1,
-            error: 'No client specified',
-          })
-          continue
+          const clarification: ClarificationResponse = {
+            needsClarification: true,
+            kind: 'client',
+            query: '',
+            candidates: [],
+            parsedJobs,
+          }
+          return NextResponse.json(clarification, { status: 409 })
         }
 
         // Parse date

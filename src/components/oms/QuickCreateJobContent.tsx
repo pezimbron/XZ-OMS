@@ -10,6 +10,11 @@ interface ImportResult {
   errors: Array<{ row: number; error: string }>
 }
 
+type ClientClarification = {
+  query: string
+  candidates: Array<{ id: string | number; name: string }>
+}
+
 export function QuickCreateJobContent() {
   const [activeTab, setActiveTab] = useState<'email' | 'ai'>('email')
   const [emailContent, setEmailContent] = useState('')
@@ -17,6 +22,8 @@ export function QuickCreateJobContent() {
   const [isParsing, setIsParsing] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [clientClarification, setClientClarification] = useState<ClientClarification | null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
   const router = useRouter()
 
   const handleParse = async () => {
@@ -50,7 +57,7 @@ export function QuickCreateJobContent() {
     }
   }
 
-  const handleAiCreate = async () => {
+  const handleAiCreate = async (overrideClientId?: string) => {
     if (!aiPrompt.trim()) {
       setError('Please describe the jobs you want to create')
       return
@@ -59,15 +66,25 @@ export function QuickCreateJobContent() {
     setIsParsing(true)
     setError('')
     setResult(null)
+    setClientClarification(null)
 
     try {
       const response = await fetch('/api/jobs/ai-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: aiPrompt }),
+        body: JSON.stringify({ prompt: aiPrompt, clientId: overrideClientId || undefined }),
       })
 
       const data = await response.json()
+
+      if (response.status === 409 && data?.needsClarification && data?.kind === 'client') {
+        setClientClarification({
+          query: data.query || '',
+          candidates: Array.isArray(data.candidates) ? data.candidates : [],
+        })
+        setSelectedClientId('')
+        return
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create jobs')
@@ -297,6 +314,35 @@ The AI will automatically extract all fields!"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
 
+              {clientClarification && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200 font-medium">
+                    We couldn't confidently match the client{clientClarification.query ? ` "${clientClarification.query}"` : ''}. Please select the correct client to continue.
+                  </p>
+                  <div className="mt-3 grid gap-3">
+                    <select
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      className="w-full px-3 py-2 border border-yellow-300 dark:border-yellow-700 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Select a client...</option>
+                      {clientClarification.candidates.map((c) => (
+                        <option key={String(c.id)} value={String(c.id)}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => handleAiCreate(selectedClientId)}
+                      disabled={!selectedClientId || isParsing}
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    >
+                      Use Selected Client & Create
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4 shadow-md">
                   <div className="flex items-start">
@@ -346,7 +392,7 @@ The AI will automatically extract all fields!"
 
               <div className="flex gap-4">
                 <button
-                  onClick={handleAiCreate}
+                  onClick={() => handleAiCreate()}
                   disabled={isParsing || !aiPrompt.trim()}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 >
@@ -357,6 +403,8 @@ The AI will automatically extract all fields!"
                     setAiPrompt('')
                     setError('')
                     setResult(null)
+                    setClientClarification(null)
+                    setSelectedClientId('')
                   }}
                   className="px-6 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >
