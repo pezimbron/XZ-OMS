@@ -9,6 +9,7 @@ import { WorkflowTimeline } from '@/components/oms/WorkflowTimeline'
 import { SaveIndicator } from '@/components/oms/SaveIndicator'
 import { AddressAutocomplete } from '@/components/oms/AddressAutocomplete'
 import { JobMessaging } from '@/components/oms/JobMessaging'
+import SchedulingRequestPanel from '@/components/oms/SchedulingRequestPanel'
 import { patchJob } from '@/lib/oms/patchJob'
 import { useAutosaveField } from '@/lib/oms/useAutosaveField'
 import { normalizeRelationId } from '@/lib/oms/normalizeRelationId'
@@ -714,20 +715,41 @@ export default function JobDetailPage() {
                     clientName={job.client?.name}
                     clientEmail={job.client?.email}
                   />
-                  {(job as any).completionToken && (
+                  {(job as any).completionToken ? (
                     <button
                       onClick={() => {
                         const url = `${window.location.origin}/forms/job/${(job as any).completionToken}`
                         navigator.clipboard.writeText(url)
-                        alert('Completion form link copied to clipboard!')
+                        alert('Tech Portal link copied to clipboard!')
                       }}
                       className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-                      title="Copy completion form link for subcontractor"
+                      title="Copy tech portal link for subcontractor"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
-                      Copy Form Link
+                      Copy Tech Portal Link
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const token = Math.random().toString(36).substring(2) + Date.now().toString(36)
+                          await patchJob(job.id, { completionToken: token })
+                          await fetchJob(job.id)
+                          alert('Tech portal link generated! Click the button again to copy it.')
+                        } catch (e) {
+                          console.error('Failed to generate token:', e)
+                          alert('Failed to generate tech portal link')
+                        }
+                      }}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                      title="Generate tech portal link"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Generate Tech Portal Link
                     </button>
                   )}
 
@@ -1472,6 +1494,250 @@ export default function JobDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Scheduling Request */}
+            {!isTech && (
+              <SchedulingRequestPanel
+                jobId={job.id}
+                existingRequest={(job as any).schedulingRequest}
+                onSave={() => fetchJob(job.id)}
+              />
+            )}
+
+            {/* Tech Scheduling Response */}
+            {!isTech && (job as any).techResponse?.respondedAt && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tech Scheduling Response</h3>
+                
+                <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded">
+                  <p className="text-sm text-green-800 dark:text-green-300">
+                    <strong>Responded:</strong> {new Date((job as any).techResponse.respondedAt).toLocaleString()}
+                  </p>
+                </div>
+
+                {(job as any).techResponse.interested ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="font-semibold">Tech Accepted</span>
+                    </div>
+
+                    {(job as any).schedulingRequest?.requestType === 'time-windows' && (job as any).techResponse.selectedOption && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Selected Time Window:</p>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              Option {(job as any).techResponse.selectedOption}
+                              {(job as any).schedulingRequest.timeOptions?.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption) && (
+                                <span className="ml-2">
+                                  - {new Date((job as any).schedulingRequest.timeOptions.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption).date).toLocaleDateString()}
+                                </span>
+                              )}
+                            </p>
+                            {(job as any).techResponse.preferredStartTime && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                                Preferred start time: {(job as any).techResponse.preferredStartTime}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={async () => {
+                              const selectedOption = (job as any).schedulingRequest.timeOptions?.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption)
+                              if (!selectedOption) return
+                              const startTime = (job as any).techResponse.preferredStartTime || '09:00'
+                              if (!confirm(`Confirm this time slot: ${new Date(selectedOption.date).toLocaleDateString()} at ${startTime}?`)) return
+                              try {
+                                // Parse time and create proper ISO datetime with timezone
+                                const timezone = job.timezone || 'America/Chicago'
+                                const timezoneOffsets: Record<string, string> = {
+                                  'America/Chicago': '-06:00',
+                                  'America/New_York': '-05:00',
+                                  'America/Denver': '-07:00',
+                                  'America/Los_Angeles': '-08:00',
+                                  'America/Phoenix': '-07:00',
+                                }
+                                const offset = timezoneOffsets[timezone] || '-06:00'
+                                
+                                // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
+                                let hours = 9, minutes = 0
+                                const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
+                                const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
+                                
+                                if (time24Match) {
+                                  hours = parseInt(time24Match[1])
+                                  minutes = parseInt(time24Match[2])
+                                } else if (time12Match) {
+                                  hours = parseInt(time12Match[1])
+                                  minutes = parseInt(time12Match[2])
+                                  const period = time12Match[3].toLowerCase()
+                                  if (period === 'pm' && hours !== 12) hours += 12
+                                  if (period === 'am' && hours === 12) hours = 0
+                                }
+                                
+                                const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+                                const targetDateTime = `${selectedOption.date}T${timeStr}${offset}`
+                                
+                                await patchJob(job.id, { targetDate: targetDateTime })
+                                await fetchJob(job.id)
+                                alert('Target date set! Tech will be notified of confirmation.')
+                              } catch (e) {
+                                console.error('Failed to set target date:', e)
+                                alert('Failed to set target date')
+                              }
+                            }}
+                            className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                          >
+                            Accept This Time
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {(job as any).schedulingRequest?.requestType === 'specific-time' && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
+                        <p className="text-gray-900 dark:text-white">Tech accepted the proposed time</p>
+                        <button
+                          onClick={async () => {
+                            const proposedOption = (job as any).schedulingRequest.timeOptions?.[0]
+                            if (!proposedOption) return
+                            const startTime = proposedOption.specificTime || '09:00'
+                            if (!confirm(`Confirm this time slot: ${new Date(proposedOption.date).toLocaleDateString()} at ${startTime}?`)) return
+                            try {
+                              // Parse time and create proper ISO datetime with timezone
+                              const timezone = job.timezone || 'America/Chicago'
+                              const timezoneOffsets: Record<string, string> = {
+                                'America/Chicago': '-06:00',
+                                'America/New_York': '-05:00',
+                                'America/Denver': '-07:00',
+                                'America/Los_Angeles': '-08:00',
+                                'America/Phoenix': '-07:00',
+                              }
+                              const offset = timezoneOffsets[timezone] || '-06:00'
+                              
+                              // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
+                              let hours = 9, minutes = 0
+                              const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
+                              const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
+                              
+                              if (time24Match) {
+                                hours = parseInt(time24Match[1])
+                                minutes = parseInt(time24Match[2])
+                              } else if (time12Match) {
+                                hours = parseInt(time12Match[1])
+                                minutes = parseInt(time12Match[2])
+                                const period = time12Match[3].toLowerCase()
+                                if (period === 'pm' && hours !== 12) hours += 12
+                                if (period === 'am' && hours === 12) hours = 0
+                              }
+                              
+                              const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+                              const targetDateTime = `${proposedOption.date}T${timeStr}${offset}`
+                              
+                              await patchJob(job.id, { targetDate: targetDateTime })
+                              await fetchJob(job.id)
+                              alert('Target date set! Tech will be notified of confirmation.')
+                            } catch (e) {
+                              console.error('Failed to set target date:', e)
+                              alert('Failed to set target date')
+                            }
+                          }}
+                          className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        >
+                          Accept This Time
+                        </button>
+                      </div>
+                    )}
+
+                    {(job as any).schedulingRequest?.requestType === 'tech-proposes' && (job as any).techResponse.proposedOptions && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Tech's Proposed Time Options:</p>
+                        {(job as any).techResponse.proposedOptions.map((option: any, index: number) => (
+                          <div key={index} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                Option {index + 1}: {new Date(option.date).toLocaleDateString()} at {option.startTime}
+                              </p>
+                              {option.notes && <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{option.notes}</p>}
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Confirm this time slot: ${new Date(option.date).toLocaleDateString()} at ${option.startTime}?`)) return
+                                try {
+                                  // Parse time and create proper ISO datetime with timezone
+                                  const timezone = job.timezone || 'America/Chicago'
+                                  const timezoneOffsets: Record<string, string> = {
+                                    'America/Chicago': '-06:00',
+                                    'America/New_York': '-05:00',
+                                    'America/Denver': '-07:00',
+                                    'America/Los_Angeles': '-08:00',
+                                    'America/Phoenix': '-07:00',
+                                  }
+                                  const offset = timezoneOffsets[timezone] || '-06:00'
+                                  
+                                  // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
+                                  let hours = 9, minutes = 0
+                                  const time24Match = option.startTime.match(/^(\d{1,2}):(\d{2})$/)
+                                  const time12Match = option.startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
+                                  
+                                  if (time24Match) {
+                                    hours = parseInt(time24Match[1])
+                                    minutes = parseInt(time24Match[2])
+                                  } else if (time12Match) {
+                                    hours = parseInt(time12Match[1])
+                                    minutes = parseInt(time12Match[2])
+                                    const period = time12Match[3].toLowerCase()
+                                    if (period === 'pm' && hours !== 12) hours += 12
+                                    if (period === 'am' && hours === 12) hours = 0
+                                  }
+                                  
+                                  const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+                                  const targetDateTime = `${option.date}T${timeStr}${offset}`
+                                  
+                                  await patchJob(job.id, { targetDate: targetDateTime })
+                                  await fetchJob(job.id)
+                                  alert('Target date set! Tech will be notified of confirmation.')
+                                } catch (e) {
+                                  console.error('Failed to set target date:', e)
+                                  alert('Failed to set target date')
+                                }
+                              }}
+                              className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                            >
+                              Accept This Time
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(job as any).techResponse.notes && (
+                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Additional Notes:</p>
+                        <p className="text-gray-900 dark:text-white whitespace-pre-wrap">{(job as any).techResponse.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      <span className="font-semibold">Tech Declined</span>
+                    </div>
+                    {(job as any).techResponse.declineReason && (
+                      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                        <p className="text-sm text-red-700 dark:text-red-300 mb-1">Reason:</p>
+                        <p className="text-red-900 dark:text-red-200 whitespace-pre-wrap">{(job as any).techResponse.declineReason}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Line Items */}
             {job.lineItems && job.lineItems.length > 0 && (

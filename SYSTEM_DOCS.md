@@ -148,7 +148,7 @@
   - ✅ Color-coded message types (message, question, answer, issue, qc-feedback, update)
   - ✅ Email + in-app notifications
   - ✅ Real-time polling (10s refresh)
-  - ✅ Smart notification routing
+  - ✅ Smart notification routing (ops/admin receive tech messages)
   - ✅ Clickable notifications with direct navigation
   - ✅ **Subcontractor Support**:
     - Token-based message access for techs without user accounts
@@ -157,18 +157,46 @@
     - Read conversation history + reply form
     - No authentication required (token validates access)
     - Modern, branded UI with gradients and animations
+    - Compact design prioritizing communication
 
 - **Planned Features**:
+  - **Phase 1.5 (Unified Tech Portal)** - Next Priority:
+    - Consolidate `/forms/job/[token]` completion form with messaging
+    - Tab navigation: Job Info | Messages | Complete Job
+    - Single URL for all tech interactions
+    - Hybrid access: Token-based (all techs) + Optional login (regular subcontractors)
+    - Scheduling workflow integration
+    - Workflow-based action buttons
   - **Phase 2 (Enhanced)**:
     - SMS integration via Twilio
     - File/photo attachments
     - Real-time updates (WebSocket/SSE)
     - Read receipts
+    - Subcontractor dashboard (for regular partners)
   - **Phase 3 (Advanced)**:
     - Voice messages
     - Auto-suggestions based on job context
     - Integration with workflow triggers
     - Mobile app push notifications
+
+### Unified Tech Portal Architecture (Planned)
+- **Goal**: Single portal for all tech interactions
+- **URL**: `/forms/job/[token]` (uses existing `completionToken`)
+- **Access Models**:
+  - **Token-based** (all techs): Email link → Direct access to single job
+  - **Optional login** (regular subcontractors): Dashboard → View all jobs
+- **Tab Structure**:
+  1. **Job Info**: Job details, address, instructions, services, scheduling notes
+  2. **Messages**: Conversation with ops team (existing messaging feature)
+  3. **Complete Job**: Completion form, status, feedback, issues
+- **Workflow Actions**: Dynamic buttons based on job status
+  - `scheduled` → "Mark as Scanned"
+  - `scanned` → "Submit Completion Report"
+  - `done` → Read-only view
+- **Components Ready**:
+  - ✅ `JobPortalTabs.tsx` - Tab navigation component
+  - ✅ API endpoints: `/api/forms/job/[token]/messages` and `/send`
+  - ⏳ Main portal page transformation (pending clean implementation)
 
 ### Workflow-Based Calendar
 - **Feature**: Products can be excluded from calendar via `excludeFromCalendar` flag

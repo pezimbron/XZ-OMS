@@ -44,6 +44,9 @@ export async function GET(
       techInstructions: job.techInstructions,
       lineItems: job.lineItems,
       completionFormSubmitted: job.completionFormSubmitted,
+      schedulingRequest: (job as any).schedulingRequest,
+      techResponse: (job as any).techResponse,
+      tech: (job as any).tech,
     })
   } catch (error: any) {
     console.error('Error fetching job by token:', error)

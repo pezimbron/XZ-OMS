@@ -852,5 +852,226 @@ export const Jobs: CollectionConfig = {
         ],
       },
     },
+    {
+      name: 'schedulingRequest',
+      type: 'group',
+      label: 'Scheduling Request',
+      admin: {
+        description: 'Scheduling request sent to technician',
+      },
+      fields: [
+        {
+          name: 'requestType',
+          type: 'select',
+          label: 'Request Type',
+          options: [
+            { label: 'Time Windows (You provide options)', value: 'time-windows' },
+            { label: 'Specific Time (You propose exact time)', value: 'specific-time' },
+            { label: 'Tech Proposes (Tech provides options)', value: 'tech-proposes' },
+          ],
+        },
+        {
+          name: 'sentAt',
+          type: 'date',
+          label: 'Request Sent At',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+        },
+        {
+          name: 'deadline',
+          type: 'date',
+          label: 'Response Deadline',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+            description: 'When the tech must respond by (typically 24 hours)',
+          },
+        },
+        {
+          name: 'reminderSent',
+          type: 'checkbox',
+          label: 'Reminder Email Sent',
+          defaultValue: false,
+        },
+        {
+          name: 'reminderSentAt',
+          type: 'date',
+          label: 'Reminder Sent At',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+        },
+        {
+          name: 'timeOptions',
+          type: 'array',
+          label: 'Time Options',
+          admin: {
+            description: 'For time-windows and specific-time request types',
+            condition: (data, siblingData) => {
+              return siblingData?.requestType === 'time-windows' || siblingData?.requestType === 'specific-time'
+            },
+          },
+          fields: [
+            {
+              name: 'optionNumber',
+              type: 'number',
+              label: 'Option #',
+              required: true,
+            },
+            {
+              name: 'date',
+              type: 'date',
+              label: 'Date',
+              required: true,
+              admin: {
+                date: {
+                  pickerAppearance: 'dayOnly',
+                },
+              },
+            },
+            {
+              name: 'timeWindow',
+              type: 'select',
+              label: 'Time Window',
+              options: [
+                { label: 'Morning', value: 'morning' },
+                { label: 'Afternoon', value: 'afternoon' },
+                { label: 'Evening', value: 'evening' },
+                { label: 'Custom', value: 'custom' },
+              ],
+            },
+            {
+              name: 'startTime',
+              type: 'text',
+              label: 'Start Time',
+              admin: {
+                description: 'e.g., 9:00am',
+              },
+            },
+            {
+              name: 'endTime',
+              type: 'text',
+              label: 'End Time',
+              admin: {
+                description: 'e.g., 12:00pm',
+              },
+            },
+            {
+              name: 'specificTime',
+              type: 'text',
+              label: 'Specific Time',
+              admin: {
+                description: 'For specific-time requests (e.g., 2:00pm)',
+              },
+            },
+          ],
+        },
+        {
+          name: 'requestMessage',
+          type: 'textarea',
+          label: 'Request Message',
+          admin: {
+            description: 'For tech-proposes request type',
+            condition: (data, siblingData) => {
+              return siblingData?.requestType === 'tech-proposes'
+            },
+          },
+        },
+        {
+          name: 'specialInstructions',
+          type: 'textarea',
+          label: 'Special Instructions',
+        },
+      ],
+    },
+    {
+      name: 'techResponse',
+      type: 'group',
+      label: 'Tech Response',
+      admin: {
+        description: 'Technician response to scheduling request',
+      },
+      fields: [
+        {
+          name: 'respondedAt',
+          type: 'date',
+          label: 'Responded At',
+          admin: {
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+        },
+        {
+          name: 'interested',
+          type: 'checkbox',
+          label: 'Interested in Job',
+        },
+        {
+          name: 'selectedOption',
+          type: 'number',
+          label: 'Selected Time Option',
+          admin: {
+            description: 'Which option number the tech selected',
+          },
+        },
+        {
+          name: 'preferredStartTime',
+          type: 'text',
+          label: 'Preferred Start Time',
+          admin: {
+            description: 'Tech\'s preferred start time within the selected window',
+          },
+        },
+        {
+          name: 'proposedOptions',
+          type: 'array',
+          label: 'Tech Proposed Options',
+          admin: {
+            description: 'For tech-proposes request type',
+          },
+          fields: [
+            {
+              name: 'date',
+              type: 'date',
+              label: 'Date',
+              required: true,
+              admin: {
+                date: {
+                  pickerAppearance: 'dayOnly',
+                },
+              },
+            },
+            {
+              name: 'startTime',
+              type: 'text',
+              label: 'Start Time',
+              required: true,
+            },
+            {
+              name: 'notes',
+              type: 'text',
+              label: 'Notes',
+            },
+          ],
+        },
+        {
+          name: 'declineReason',
+          type: 'textarea',
+          label: 'Decline Reason',
+        },
+        {
+          name: 'notes',
+          type: 'textarea',
+          label: 'Additional Notes',
+        },
+      ],
+    },
   ],
 }

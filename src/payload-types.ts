@@ -927,6 +927,42 @@ export interface Job {
     deliveredDate?: string | null;
   };
   messageToken?: string | null;
+  schedulingRequest?: {
+    requestType?: ('time-windows' | 'specific-time' | 'tech-proposes') | null;
+    sentAt?: string | null;
+    deadline?: string | null;
+    reminderSent?: boolean | null;
+    reminderSentAt?: string | null;
+    timeOptions?:
+      | {
+          optionNumber: number;
+          date: string;
+          timeWindow?: ('morning' | 'afternoon' | 'evening' | 'custom') | null;
+          startTime?: string | null;
+          endTime?: string | null;
+          specificTime?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    requestMessage?: string | null;
+    specialInstructions?: string | null;
+  };
+  techResponse?: {
+    respondedAt?: string | null;
+    interested?: boolean | null;
+    selectedOption?: number | null;
+    preferredStartTime?: string | null;
+    proposedOptions?:
+      | {
+          date: string;
+          startTime: string;
+          notes?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    declineReason?: string | null;
+    notes?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -1778,6 +1814,46 @@ export interface JobsSelect<T extends boolean = true> {
         deliveredDate?: T;
       };
   messageToken?: T;
+  schedulingRequest?:
+    | T
+    | {
+        requestType?: T;
+        sentAt?: T;
+        deadline?: T;
+        reminderSent?: T;
+        reminderSentAt?: T;
+        timeOptions?:
+          | T
+          | {
+              optionNumber?: T;
+              date?: T;
+              timeWindow?: T;
+              startTime?: T;
+              endTime?: T;
+              specificTime?: T;
+              id?: T;
+            };
+        requestMessage?: T;
+        specialInstructions?: T;
+      };
+  techResponse?:
+    | T
+    | {
+        respondedAt?: T;
+        interested?: T;
+        selectedOption?: T;
+        preferredStartTime?: T;
+        proposedOptions?:
+          | T
+          | {
+              date?: T;
+              startTime?: T;
+              notes?: T;
+              id?: T;
+            };
+        declineReason?: T;
+        notes?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
