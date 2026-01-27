@@ -83,22 +83,22 @@ export const Clients: CollectionConfig = {
       },
     },
     {
-      name: 'defaultWorkflow',
-      type: 'select',
-      label: 'Default Workflow Type',
+      name: 'accountManager',
+      type: 'relationship',
+      relationTo: 'users',
+      label: 'Account Manager',
       admin: {
-        description: 'Default workflow that will be assigned to new jobs for this client. Can be overridden per job.',
+        description: 'User responsible for managing this client relationship',
       },
-      options: [
-        { label: 'Outsourced: Scan & Upload to Client', value: 'outsourced-scan-upload-client' },
-        { label: 'Outsourced: Scan & Transfer', value: 'outsourced-scan-transfer' },
-        { label: 'Outsourced: Scan, Survey & Images', value: 'outsourced-scan-survey-images' },
-        { label: 'Direct: Scan Hosted by Us', value: 'direct-scan-hosted' },
-        { label: 'Direct: Scan & Transfer', value: 'direct-scan-transfer' },
-        { label: 'Direct: Scan + Floor Plan', value: 'direct-scan-floorplan' },
-        { label: 'Direct: Scan + Floor Plan + Photos', value: 'direct-scan-floorplan-photos' },
-        { label: 'Direct: Scan + As-Builts', value: 'direct-scan-asbuilts' },
-      ],
+    },
+    {
+      name: 'defaultWorkflow',
+      type: 'relationship',
+      relationTo: 'workflow-templates',
+      label: 'Default Workflow Template',
+      admin: {
+        description: 'Default workflow template that will be assigned to new jobs for this client. Can be overridden per job.',
+      },
     },
     {
       name: 'invoicingPreferences',

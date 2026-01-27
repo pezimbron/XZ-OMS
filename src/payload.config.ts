@@ -73,6 +73,7 @@ export default buildConfig({
     pool: {
       connectionString: process.env.DATABASE_URI || '',
     },
+    push: process.env.NODE_ENV !== 'production',
   }),
   email: resendAdapter({
     defaultFromAddress: process.env.RESEND_DEFAULT_EMAIL || 'noreply@xzoms.com',

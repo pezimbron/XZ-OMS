@@ -665,18 +665,8 @@ export interface Client {
   billingAddress?: string | null;
   notes?: string | null;
   instructionTemplate?: string | null;
-  defaultWorkflow?:
-    | (
-        | 'outsourced-scan-upload-client'
-        | 'outsourced-scan-transfer'
-        | 'outsourced-scan-survey-images'
-        | 'direct-scan-hosted'
-        | 'direct-scan-transfer'
-        | 'direct-scan-floorplan'
-        | 'direct-scan-floorplan-photos'
-        | 'direct-scan-asbuilts'
-      )
-    | null;
+  accountManager?: (number | null) | User;
+  defaultWorkflow?: (number | null) | WorkflowTemplate;
   invoicingPreferences?: {
     terms?: ('due-on-receipt' | 'net-15' | 'net-30' | 'net-45' | 'net-60') | null;
     batchDay?: number | null;
@@ -716,6 +706,40 @@ export interface Client {
     notifyOnAsbuiltsCompleted?: boolean | null;
     customMessage?: string | null;
   };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "workflow-templates".
+ */
+export interface WorkflowTemplate {
+  id: number;
+  name: string;
+  jobType: 'outsourced-scan-only' | 'direct-scan-hosted' | 'direct-scan-floorplan' | 'custom';
+  isActive?: boolean | null;
+  description?: string | null;
+  steps: {
+    name: string;
+    description?: string | null;
+    order: number;
+    statusMapping: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+    requiredRole?: ('tech' | 'post-producer' | 'qc' | 'ops-manager' | 'sales-admin' | 'admin') | null;
+    actionLabel?: string | null;
+    requiresDeliverables?: boolean | null;
+    triggers?: {
+      sendNotification?: boolean | null;
+      notificationRecipients?: ('tech' | 'post-production' | 'qc' | 'ops-manager' | 'sales')[] | null;
+      notificationMessage?: string | null;
+      sendClientEmail?: boolean | null;
+      emailTemplate?: ('job-complete' | 'qc-approved' | 'custom') | null;
+      createInvoice?: boolean | null;
+      createRecurringInvoice?: boolean | null;
+      recurringInvoiceDelay?: number | null;
+      recurringInvoiceAmount?: number | null;
+    };
+    id?: string | null;
+  }[];
   updatedAt: string;
   createdAt: string;
 }
@@ -939,40 +963,6 @@ export interface Invoice {
   approvedBy?: (number | null) | User;
   approvedAt?: string | null;
   createdBy?: (number | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "workflow-templates".
- */
-export interface WorkflowTemplate {
-  id: number;
-  name: string;
-  jobType: 'outsourced-scan-only' | 'direct-scan-hosted' | 'direct-scan-floorplan' | 'custom';
-  isActive?: boolean | null;
-  description?: string | null;
-  steps: {
-    name: string;
-    description?: string | null;
-    order: number;
-    statusMapping: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
-    requiredRole?: ('tech' | 'post-producer' | 'qc' | 'ops-manager' | 'sales-admin' | 'admin') | null;
-    actionLabel?: string | null;
-    requiresDeliverables?: boolean | null;
-    triggers?: {
-      sendNotification?: boolean | null;
-      notificationRecipients?: ('tech' | 'post-production' | 'qc' | 'ops-manager' | 'sales')[] | null;
-      notificationMessage?: string | null;
-      sendClientEmail?: boolean | null;
-      emailTemplate?: ('job-complete' | 'qc-approved' | 'custom') | null;
-      createInvoice?: boolean | null;
-      createRecurringInvoice?: boolean | null;
-      recurringInvoiceDelay?: number | null;
-      recurringInvoiceAmount?: number | null;
-    };
-    id?: string | null;
-  }[];
   updatedAt: string;
   createdAt: string;
 }
@@ -1510,6 +1500,7 @@ export interface ClientsSelect<T extends boolean = true> {
   billingAddress?: T;
   notes?: T;
   instructionTemplate?: T;
+  accountManager?: T;
   defaultWorkflow?: T;
   invoicingPreferences?:
     | T
