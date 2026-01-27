@@ -1561,6 +1561,9 @@ export default function JobDetailPage() {
                                 }
                                 const offset = timezoneOffsets[timezone] || '-06:00'
                                 
+                                // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
+                                const dateOnly = selectedOption.date.split('T')[0]
+                                
                                 // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
                                 let hours = 9, minutes = 0
                                 const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
@@ -1578,7 +1581,7 @@ export default function JobDetailPage() {
                                 }
                                 
                                 const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
-                                const targetDateTime = `${selectedOption.date}T${timeStr}${offset}`
+                                const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                                 
                                 await patchJob(job.id, { targetDate: targetDateTime })
                                 await fetchJob(job.id)
@@ -1617,6 +1620,9 @@ export default function JobDetailPage() {
                               }
                               const offset = timezoneOffsets[timezone] || '-06:00'
                               
+                              // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
+                              const dateOnly = proposedOption.date.split('T')[0]
+                              
                               // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
                               let hours = 9, minutes = 0
                               const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
@@ -1634,7 +1640,7 @@ export default function JobDetailPage() {
                               }
                               
                               const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
-                              const targetDateTime = `${proposedOption.date}T${timeStr}${offset}`
+                              const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                               
                               await patchJob(job.id, { targetDate: targetDateTime })
                               await fetchJob(job.id)
@@ -1677,6 +1683,9 @@ export default function JobDetailPage() {
                                   }
                                   const offset = timezoneOffsets[timezone] || '-06:00'
                                   
+                                  // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
+                                  const dateOnly = option.date.split('T')[0]
+                                  
                                   // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
                                   let hours = 9, minutes = 0
                                   const time24Match = option.startTime.match(/^(\d{1,2}):(\d{2})$/)
@@ -1694,7 +1703,7 @@ export default function JobDetailPage() {
                                   }
                                   
                                   const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
-                                  const targetDateTime = `${option.date}T${timeStr}${offset}`
+                                  const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                                   
                                   await patchJob(job.id, { targetDate: targetDateTime })
                                   await fetchJob(job.id)
