@@ -311,6 +311,18 @@ export const JobMessages: CollectionConfig = {
               // Send email to each recipient
               for (const recipient of recipients) {
                 try {
+                  // Determine the appropriate link based on whether recipient has a user account
+                  const baseUrl = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+                  let replyLink = `${baseUrl}/oms/jobs/${job.id}?tab=messages`
+                  let linkText = 'View Job & Reply'
+                  
+                  // If recipient is a tech without a user account, use the message token link
+                  const messageToken = (job as any).messageToken
+                  if (!recipient.userId && messageToken) {
+                    replyLink = `${baseUrl}/forms/job-message/${messageToken}`
+                    linkText = 'View Conversation & Reply'
+                  }
+
                   await req.payload.sendEmail({
                     to: recipient.email,
                     subject: `New ${doc.messageType === 'message' ? 'Message' : doc.messageType.charAt(0).toUpperCase() + doc.messageType.slice(1)} on Job ${job.jobId}`,
@@ -328,17 +340,16 @@ export const JobMessages: CollectionConfig = {
                         </div>
 
                         <p style="color: #6b7280;">
-                          <a href="${process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'}/oms/jobs/${job.id}" 
+                          <a href="${replyLink}" 
                              style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                            View Job & Reply
+                            ${linkText}
                           </a>
                         </p>
 
                         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
                         
                         <p style="color: #9ca3af; font-size: 12px;">
-                          You're receiving this because you're involved in this job. 
-                          To manage your notification preferences, visit your account settings.
+                          You're receiving this because you're involved in this job.${recipient.userId ? ' To manage your notification preferences, visit your account settings.' : ''}
                         </p>
                       </div>
                     `,

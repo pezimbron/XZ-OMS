@@ -833,5 +833,24 @@ export const Jobs: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'messageToken',
+      type: 'text',
+      admin: {
+        hidden: true,
+        description: 'Secure token for subcontractor message access',
+      },
+      hooks: {
+        beforeChange: [
+          ({ value, operation }) => {
+            // Auto-generate token on job creation if not provided
+            if (operation === 'create' && !value) {
+              return Math.random().toString(36).substring(2) + Date.now().toString(36)
+            }
+            return value
+          },
+        ],
+      },
+    },
   ],
 }
