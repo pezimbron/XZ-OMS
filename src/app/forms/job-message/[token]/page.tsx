@@ -146,30 +146,30 @@ export default function SubcontractorMessagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <div className="flex items-center mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl mr-4">
+        <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-t-4 border-blue-600">
+          <div className="flex items-center mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mr-4 shadow-lg">
               XZ
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Job Conversation</h1>
-              <p className="text-gray-600">XZ Reality Capture</p>
+              <h1 className="text-3xl font-bold text-gray-900">Job Conversation</h1>
+              <p className="text-gray-600 text-lg">XZ Reality Capture</p>
             </div>
           </div>
           
           {job && (
-            <div className="border-t pt-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Job ID</p>
-                  <p className="font-semibold text-gray-900">{job.jobId}</p>
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-1">Job ID</p>
+                  <p className="text-xl font-bold text-gray-900">{job.jobId}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Property</p>
-                  <p className="font-semibold text-gray-900">{job.modelName}</p>
+                <div className="bg-indigo-50 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide mb-1">Property</p>
+                  <p className="text-xl font-bold text-gray-900">{job.modelName}</p>
                 </div>
               </div>
             </div>
@@ -177,29 +177,42 @@ export default function SubcontractorMessagePage() {
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Conversation</h2>
+        <div className="bg-white rounded-xl shadow-xl p-8 mb-6">
+          <div className="flex items-center mb-6">
+            <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h2 className="text-2xl font-bold text-gray-900">Conversation</h2>
+          </div>
           
           {messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No messages yet. Start the conversation below!</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p className="text-gray-500 text-lg">No messages yet. Start the conversation below!</p>
             </div>
           ) : (
-            <div className="space-y-4 max-h-96 overflow-y-auto">
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
               {messages.map((message) => (
-                <div key={message.id} className="border-l-4 border-blue-600 pl-4 py-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900">{getAuthorName(message)}</span>
-                      <span className={`px-2 py-1 text-xs rounded ${getMessageTypeColor(message.messageType)}`}>
-                        {message.messageType}
-                      </span>
+                <div key={message.id} className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-l-4 border-blue-600 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        {getAuthorName(message).charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="font-bold text-gray-900 block">{getAuthorName(message)}</span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(message.createdAt).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(message.createdAt).toLocaleString()}
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getMessageTypeColor(message.messageType)}`}>
+                      {message.messageType}
                     </span>
                   </div>
-                  <p className="text-gray-700 whitespace-pre-wrap">{message.message}</p>
+                  <p className="text-gray-800 whitespace-pre-wrap leading-relaxed ml-13">{message.message}</p>
                 </div>
               ))}
             </div>
@@ -207,49 +220,86 @@ export default function SubcontractorMessagePage() {
         </div>
 
         {/* Reply Form */}
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Send a Message</h2>
+        <div className="bg-white rounded-xl shadow-xl p-8">
+          <div className="flex items-center mb-6">
+            <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <h2 className="text-2xl font-bold text-gray-900">Send a Message</h2>
+          </div>
           
           {success && (
-            <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg">
-              ✓ Message sent successfully!
+            <div className="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg flex items-center">
+              <svg className="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-green-800 font-semibold">Message sent successfully!</span>
             </div>
           )}
           
           {error && job && (
-            <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-lg">
-              {error}
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg flex items-center">
+              <svg className="w-6 h-6 text-red-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-red-800 font-semibold">{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message here..."
-              rows={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
-              disabled={sending}
-            />
+            <div className="relative">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message here..."
+                rows={6}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 resize-none text-gray-900 placeholder-gray-400 transition-all"
+                disabled={sending}
+              />
+              <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                {newMessage.length} characters
+              </div>
+            </div>
             
-            <div className="mt-4 flex justify-between items-center">
-              <p className="text-sm text-gray-600">
-                Your message will be sent to the XZ Reality Capture team.
-              </p>
+            <div className="mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm text-gray-600">
+                  Your message will be sent to the XZ Reality Capture team.
+                </p>
+              </div>
               <button
                 type="submit"
                 disabled={sending || !newMessage.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
               >
-                {sending ? 'Sending...' : 'Send Message'}
+                {sending ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Send Message
+                  </>
+                )}
               </button>
             </div>
           </form>
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>© 2026 XZ Reality Capture. Questions? Contact us at support@xzrealitycapture.com</p>
+        <div className="text-center mt-8 py-6 text-sm text-gray-500">
+          <p className="mb-2">© 2026 XZ Reality Capture</p>
+          <p>Questions? Contact us at <a href="mailto:support@xzrealitycapture.com" className="text-blue-600 hover:text-blue-700 font-semibold">support@xzrealitycapture.com</a></p>
         </div>
       </div>
     </div>

@@ -926,6 +926,7 @@ export interface Job {
     deliveryNotes?: string | null;
     deliveredDate?: string | null;
   };
+  messageToken?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1776,6 +1777,7 @@ export interface JobsSelect<T extends boolean = true> {
         deliveryNotes?: T;
         deliveredDate?: T;
       };
+  messageToken?: T;
   updatedAt?: T;
   createdAt?: T;
 }

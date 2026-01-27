@@ -50,6 +50,8 @@ export async function POST(
     }
 
     // Create message as the technician
+    console.log(`[Subcontractor Form] Creating message for job ${job.jobId} from tech ${techId}`)
+    
     const newMessage = await payload.create({
       collection: 'job-messages',
       data: {
@@ -62,6 +64,8 @@ export async function POST(
         messageType: 'message',
       },
     })
+
+    console.log(`[Subcontractor Form] Message created successfully: ${newMessage.id}`)
 
     return NextResponse.json({
       success: true,
