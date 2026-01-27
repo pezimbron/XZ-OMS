@@ -1584,6 +1584,22 @@ export default function JobDetailPage() {
                                 const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                                 
                                 await patchJob(job.id, { targetDate: targetDateTime })
+                                
+                                // Send confirmation email to tech
+                                try {
+                                  const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ jobId: job.id }),
+                                  })
+                                  
+                                  if (emailResponse.ok) {
+                                    console.log('Confirmation email sent to tech')
+                                  }
+                                } catch (emailError) {
+                                  console.error('Error sending confirmation email:', emailError)
+                                }
+                                
                                 await fetchJob(job.id)
                                 alert('Target date set! Tech will be notified of confirmation.')
                               } catch (e) {
@@ -1643,6 +1659,22 @@ export default function JobDetailPage() {
                               const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                               
                               await patchJob(job.id, { targetDate: targetDateTime })
+                              
+                              // Send confirmation email to tech
+                              try {
+                                const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ jobId: job.id }),
+                                })
+                                
+                                if (emailResponse.ok) {
+                                  console.log('Confirmation email sent to tech')
+                                }
+                              } catch (emailError) {
+                                console.error('Error sending confirmation email:', emailError)
+                              }
+                              
                               await fetchJob(job.id)
                               alert('Target date set! Tech will be notified of confirmation.')
                             } catch (e) {
@@ -1706,6 +1738,22 @@ export default function JobDetailPage() {
                                   const targetDateTime = `${dateOnly}T${timeStr}${offset}`
                                   
                                   await patchJob(job.id, { targetDate: targetDateTime })
+                                  
+                                  // Send confirmation email to tech
+                                  try {
+                                    const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ jobId: job.id }),
+                                    })
+                                    
+                                    if (emailResponse.ok) {
+                                      console.log('Confirmation email sent to tech')
+                                    }
+                                  } catch (emailError) {
+                                    console.error('Error sending confirmation email:', emailError)
+                                  }
+                                  
                                   await fetchJob(job.id)
                                   alert('Target date set! Tech will be notified of confirmation.')
                                 } catch (e) {

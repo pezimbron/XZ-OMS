@@ -221,8 +221,8 @@ async function processCalendarInviteAsync(doc: any, req: any, startTime: number)
     // Format calendar event description
     const description = formatCalendarDescription(doc, client, products)
 
-    // Format event title
-    const eventTitle = `${doc.modelName || 'Job'} - ${client?.name || 'Client'}`
+    // Format event title (no client name for privacy)
+    const eventTitle = `${doc.modelName || 'Job'} - ${doc.jobId || 'Scan'}`
 
     // Get event date/time
     const eventDate = doc.targetDate ? new Date(doc.targetDate) : null
@@ -330,15 +330,9 @@ function formatCalendarDescription(
     }
   }
 
-  // 2. CLIENT NAME AND PURPOSE OF SCAN
+  // 2. PURPOSE OF SCAN (Client name removed for privacy)
   sections.push('══════════')
-  sections.push('👤 CLIENT & PURPOSE')
-  if (job.isOutsourced) {
-    sections.push(`Outsourcing Partner: ${client?.name || 'N/A'}`)
-    // Don't share end client name for privacy
-  } else {
-    sections.push(`Client: ${client?.name || 'N/A'}`)
-  }
+  sections.push('� PURPOSE')
   if (job.purposeOfScan) {
     sections.push(`Purpose: ${job.purposeOfScan}`)
   }

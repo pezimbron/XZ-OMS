@@ -159,44 +159,107 @@
     - Modern, branded UI with gradients and animations
     - Compact design prioritizing communication
 
+- **Phase 1.5 (Unified Tech Portal)** - ✅ COMPLETED:
+  - ✅ Consolidated `/forms/job/[token]` completion form with messaging
+  - ✅ Tab navigation: Job Info | Schedule | Messages | Complete Job
+  - ✅ Single URL for all tech interactions
+  - ✅ Token-based access (all techs): Email link → Direct access to single job
+  - ✅ Scheduling workflow integration (full system)
+  - ✅ Smart tab visibility (Schedule tab hides when date confirmed)
+  - ✅ Client privacy protection (client name hidden from techs)
+
 - **Planned Features**:
-  - **Phase 1.5 (Unified Tech Portal)** - Next Priority:
-    - Consolidate `/forms/job/[token]` completion form with messaging
-    - Tab navigation: Job Info | Messages | Complete Job
-    - Single URL for all tech interactions
-    - Hybrid access: Token-based (all techs) + Optional login (regular subcontractors)
-    - Scheduling workflow integration
-    - Workflow-based action buttons
-  - **Phase 2 (Enhanced)**:
+  - **Phase 2 (Email Notifications)** - Next Priority:
+    - Email notification when scheduling request created
+    - Confirmation email when ops accepts time
+    - 6-hour reminder if no tech response
+    - Notify ops when tech responds
+  - **Phase 3 (Enhanced)**:
     - SMS integration via Twilio
     - File/photo attachments
     - Real-time updates (WebSocket/SSE)
     - Read receipts
     - Subcontractor dashboard (for regular partners)
-  - **Phase 3 (Advanced)**:
+  - **Phase 4 (Advanced)**:
     - Voice messages
     - Auto-suggestions based on job context
     - Integration with workflow triggers
     - Mobile app push notifications
 
-### Unified Tech Portal Architecture (Planned)
+### Unified Tech Portal Architecture ✅ IMPLEMENTED
 - **Goal**: Single portal for all tech interactions
 - **URL**: `/forms/job/[token]` (uses existing `completionToken`)
-- **Access Models**:
-  - **Token-based** (all techs): Email link → Direct access to single job
-  - **Optional login** (regular subcontractors): Dashboard → View all jobs
+- **Access Model**: Token-based (all techs) - Email link → Direct access to single job
 - **Tab Structure**:
-  1. **Job Info**: Job details, address, instructions, services, scheduling notes
-  2. **Messages**: Conversation with ops team (existing messaging feature)
-  3. **Complete Job**: Completion form, status, feedback, issues
-- **Workflow Actions**: Dynamic buttons based on job status
-  - `scheduled` → "Mark as Scanned"
-  - `scanned` → "Submit Completion Report"
-  - `done` → Read-only view
-- **Components Ready**:
+  1. **Job Info**: Job details, address, instructions, services, scheduled date
+  2. **Schedule**: Scheduling request/response (conditionally shown)
+  3. **Messages**: Conversation with ops team (10s polling)
+  4. **Complete Job**: Completion form, status, feedback, issues
+- **Smart UI**:
+  - Schedule tab only shows when `schedulingRequest` exists AND `targetDate` is empty
+  - Scheduled date shows "To be determined" when scheduling pending
+  - Client information hidden for privacy
+- **Components**:
+  - ✅ `UnifiedPortal.tsx` - Main portal with tab navigation
   - ✅ `JobPortalTabs.tsx` - Tab navigation component
-  - ✅ API endpoints: `/api/forms/job/[token]/messages` and `/send`
-  - ⏳ Main portal page transformation (pending clean implementation)
+  - ✅ `ScheduleTab.tsx` - Scheduling request/response UI
+  - ✅ API endpoints: `/api/forms/job/[token]` (GET/POST), `/messages`, `/send`
+
+### Scheduling System ✅ IMPLEMENTED
+- **Collections**: Jobs collection with `schedulingRequest` and `techResponse` fields
+- **Request Types**:
+  1. **Time Windows**: Ops provides 2-5 date/time ranges, tech selects preferred + start time
+  2. **Specific Time**: Ops proposes exact date/time, tech accepts/declines
+  3. **Tech Proposes**: Ops requests availability, tech provides 3 date/time options
+- **Ops-Side Features**:
+  - ✅ `SchedulingRequestPanel.tsx` - Create scheduling requests in job detail page
+  - ✅ View tech responses in Instructions tab
+  - ✅ One-click "Accept This Time" buttons on each proposed option
+  - ✅ Auto-set target date with proper timezone handling
+  - ✅ Target date auto-clears when scheduling request sent
+  - ✅ Clear buttons for date inputs
+- **Tech-Side Features**:
+  - ✅ View scheduling requests in portal Schedule tab
+  - ✅ Submit responses (accept/decline with time preferences)
+  - ✅ See confirmation of submitted response
+  - ✅ Response persists and displays on return visits
+- **Data Model**:
+  ```typescript
+  schedulingRequest: {
+    requestType: 'time-windows' | 'specific-time' | 'tech-proposes'
+    sentAt: Date
+    deadline: Date
+    reminderSent: boolean
+    reminderSentAt?: Date
+    timeOptions?: Array<{optionNumber, date, timeWindow, startTime, endTime, specificTime}>
+    requestMessage?: string
+  }
+  techResponse: {
+    respondedAt: Date
+    interested: boolean
+    selectedOption?: number
+    preferredStartTime?: string
+    proposedOptions?: Array<{date, startTime, notes}>
+    declineReason?: string
+    notes?: string
+  }
+  ```
+- **Workflow**:
+  1. Ops creates scheduling request → Target date clears
+  2. Tech views request in portal → Schedule tab visible
+  3. Tech responds with availability
+  4. Ops reviews response → Clicks "Accept This Time"
+  5. Target date set automatically → Schedule tab hides
+  6. Both sides see confirmed schedule
+- **Email Notifications** ✅ IMPLEMENTED:
+  - ✅ Scheduling request created → Tech receives email with request details
+  - ✅ Tech responds → Ops team receives email with response (accepted/declined)
+  - ✅ Schedule confirmed → Tech receives confirmation email with final date/time
+  - ✅ 6-hour reminder → Automated reminder if no tech response (Vercel Cron)
+  - Beautiful HTML emails with gradient styling
+  - Smart routing (tech email vs ops team)
+  - Resend email service integration
+  - API endpoints: `/api/scheduling/notify-request`, `/notify-response`, `/notify-confirmation`, `/send-reminders`
 
 ### Workflow-Based Calendar
 - **Feature**: Products can be excluded from calendar via `excludeFromCalendar` flag

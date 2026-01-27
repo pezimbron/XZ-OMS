@@ -210,6 +210,26 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
         throw new Error('Failed to submit scheduling response')
       }
 
+      // Send email notification to ops team
+      if (job) {
+        try {
+          const emailResponse = await fetch('/api/scheduling/notify-response', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId: job.id }),
+          })
+          
+          if (emailResponse.ok) {
+            console.log('Tech response email sent to ops team')
+          } else {
+            console.warn('Failed to send tech response email')
+          }
+        } catch (emailError) {
+          console.error('Error sending tech response email:', emailError)
+          // Don't fail the whole operation if email fails
+        }
+      }
+
       alert('Thank you! Your scheduling response has been submitted.')
       await fetchJob()
     } catch (error: any) {
@@ -267,6 +287,9 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
     )
   }
 
+  // Only show Schedule tab if there's a scheduling request and no confirmed target date
+  const showScheduleTab = job.schedulingRequest && !job.targetDate
+
   const tabs = [
     {
       id: 'info',
@@ -277,7 +300,7 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
         </svg>
       ),
     },
-    {
+    ...(showScheduleTab ? [{
       id: 'schedule',
       label: 'Schedule',
       icon: (
@@ -285,7 +308,7 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
-    },
+    }] : []),
     {
       id: 'messages',
       label: 'Messages',

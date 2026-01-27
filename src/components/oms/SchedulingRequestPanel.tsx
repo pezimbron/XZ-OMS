@@ -78,6 +78,24 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
         throw new Error('Failed to save scheduling request')
       }
 
+      // Send email notification to tech
+      try {
+        const emailResponse = await fetch('/api/scheduling/notify-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId }),
+        })
+        
+        if (emailResponse.ok) {
+          console.log('Scheduling request email sent successfully')
+        } else {
+          console.warn('Failed to send scheduling request email')
+        }
+      } catch (emailError) {
+        console.error('Error sending scheduling request email:', emailError)
+        // Don't fail the whole operation if email fails
+      }
+
       alert('Scheduling request saved successfully!')
       setIsOpen(false)
       onSave()
