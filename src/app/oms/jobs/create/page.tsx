@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AddressAutocomplete } from '@/components/oms/AddressAutocomplete'
 
 type Client = {
   id: string | number
@@ -219,10 +220,19 @@ export default function OmsCreateJobPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Capture Address</label>
-            <input
+            <AddressAutocomplete
               value={form.captureAddress}
-              onChange={(e) => setForm((p) => ({ ...p, captureAddress: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              onChange={(next) => setForm((p) => ({ ...p, captureAddress: next }))}
+              onSelect={(parsed) => {
+                setForm((p) => ({
+                  ...p,
+                  captureAddress: parsed.addressLine1 || p.captureAddress,
+                  city: parsed.city || p.city,
+                  state: parsed.state || p.state,
+                  zip: parsed.zip || p.zip,
+                }))
+              }}
+              placeholder="Start typing an address..."
             />
           </div>
 
