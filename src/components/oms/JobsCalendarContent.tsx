@@ -444,30 +444,53 @@ export function JobsCalendarContent() {
       {/* Calendar Card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="p-6" style={{ height: '750px' }}>
-          <DragAndDropCalendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: '100%' }}
-            eventPropGetter={eventStyleGetter}
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={user?.role === 'tech' ? undefined : handleSlotSelect}
-            onEventDrop={handleEventDrop}
-            onEventResize={handleEventResize}
-            resizable
-            selectable={user?.role !== 'tech'}
-            view={view}
-            onView={setView}
-            date={date}
-            onNavigate={setDate}
-            views={['month', 'week', 'day', 'agenda']}
-            popup
-            tooltipAccessor={(event: CalendarEvent) => {
-              const job = event.resource
-              return `${job.modelName}\n${job.city || ''}\n${job.tech ? `Tech: ${job.tech.name}` : 'Unassigned'}\nStatus: ${job.status}`
-            }}
-          />
+          {user?.role === 'tech' ? (
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: '100%' }}
+              eventPropGetter={eventStyleGetter}
+              onSelectEvent={handleSelectEvent}
+              selectable={false}
+              view={view}
+              onView={setView}
+              date={date}
+              onNavigate={setDate}
+              views={['month', 'week', 'day', 'agenda']}
+              popup
+              tooltipAccessor={(event: CalendarEvent) => {
+                const job = event.resource
+                return `${job.modelName}\n${job.city || ''}\n${job.tech ? `Tech: ${job.tech.name}` : 'Unassigned'}\nStatus: ${job.status}`
+              }}
+            />
+          ) : (
+            <DragAndDropCalendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: '100%' }}
+              eventPropGetter={eventStyleGetter}
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSlotSelect}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              resizable
+              selectable
+              view={view}
+              onView={setView}
+              date={date}
+              onNavigate={setDate}
+              views={['month', 'week', 'day', 'agenda']}
+              popup
+              tooltipAccessor={(event: CalendarEvent) => {
+                const job = event.resource
+                return `${job.modelName}\n${job.city || ''}\n${job.tech ? `Tech: ${job.tech.name}` : 'Unassigned'}\nStatus: ${job.status}`
+              }}
+            />
+          )}
         </div>
       </div>
 
