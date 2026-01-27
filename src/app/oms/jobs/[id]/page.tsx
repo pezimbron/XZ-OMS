@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
 import QCPanel from '@/components/oms/QCPanel'
 import { WorkflowTimeline } from '@/components/oms/WorkflowTimeline'
 import { SaveIndicator } from '@/components/oms/SaveIndicator'
 import { AddressAutocomplete } from '@/components/oms/AddressAutocomplete'
+import { JobMessaging } from '@/components/oms/JobMessaging'
 import { patchJob } from '@/lib/oms/patchJob'
 import { useAutosaveField } from '@/lib/oms/useAutosaveField'
 import { normalizeRelationId } from '@/lib/oms/normalizeRelationId'
@@ -59,9 +60,13 @@ interface Job {
 export default function JobDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'details' | 'instructions' | 'tech-feedback' | 'qc' | 'financials' | 'workflow' | 'deliverables'>('details')
+  
+  // Initialize activeTab from URL query parameter or default to 'details'
+  const initialTab = searchParams.get('tab') as 'details' | 'instructions' | 'tech-feedback' | 'qc' | 'financials' | 'workflow' | 'deliverables' | 'messages' | null
+  const [activeTab, setActiveTab] = useState<'details' | 'instructions' | 'tech-feedback' | 'qc' | 'financials' | 'workflow' | 'deliverables' | 'messages'>(initialTab || 'details')
   const [editingStatus, setEditingStatus] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [saving, setSaving] = useState(false)
@@ -1000,6 +1005,16 @@ export default function JobDetailPage() {
                 Deliverables
               </button>
             )}
+            <button
+              onClick={() => setActiveTab('messages')}
+              className={`pb-3 px-1 font-medium transition-colors ${
+                activeTab === 'messages'
+                  ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              💬 Messages
+            </button>
           </div>
         </div>
       </div>
@@ -3029,6 +3044,12 @@ export default function JobDetailPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'messages' && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <JobMessaging jobId={job.id} currentUser={user} />
           </div>
         )}
       </div>

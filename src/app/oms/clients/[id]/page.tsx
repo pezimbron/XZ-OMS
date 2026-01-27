@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
 interface Client {
   id: string
@@ -63,12 +63,17 @@ interface Client {
 
 export default function ClientDetailPage() {
   const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [client, setClient] = useState<Client | null>(null)
   const [editedClient, setEditedClient] = useState<Client | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'details' | 'billing' | 'notifications' | 'integrations' | 'notes'>('details')
+  
+  // Initialize activeTab from URL query parameter or default to 'details'
+  const initialTab = searchParams.get('tab') as 'details' | 'billing' | 'notifications' | 'integrations' | 'notes' | null
+  const [activeTab, setActiveTab] = useState<'details' | 'billing' | 'notifications' | 'integrations' | 'notes'>(initialTab || 'details')
   const [users, setUsers] = useState<any[]>([])
   const [workflowTemplates, setWorkflowTemplates] = useState<any[]>([])
 

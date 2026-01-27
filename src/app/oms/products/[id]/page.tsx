@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAutosaveField } from '@/lib/oms/useAutosaveField'
 import { SaveIndicator } from '@/components/oms/SaveIndicator'
 
@@ -27,9 +27,13 @@ interface Product {
 
 export default function ProductDetailPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'details' | 'pricing' | 'instructions' | 'flags'>('details')
+  
+  // Initialize activeTab from URL query parameter or default to 'details'
+  const initialTab = searchParams.get('tab') as 'details' | 'pricing' | 'instructions' | 'flags' | null
+  const [activeTab, setActiveTab] = useState<'details' | 'pricing' | 'instructions' | 'flags'>(initialTab || 'details')
 
   useEffect(() => {
     if (params.id) {

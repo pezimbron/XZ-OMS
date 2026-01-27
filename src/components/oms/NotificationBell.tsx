@@ -10,6 +10,7 @@ interface Notification {
   type: 'info' | 'success' | 'warning' | 'error'
   read: boolean
   actionUrl?: string
+  relatedJob?: string | { id: string; jobId: string }
   createdAt: string
 }
 
@@ -27,7 +28,7 @@ export function NotificationBell() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/notifications?limit=10&sort=-createdAt&where[read][equals]=false')
+      const response = await fetch('/api/notifications?limit=10&sort=-createdAt&where[read][equals]=false&depth=1')
       const data = await response.json()
       setNotifications(data.docs || [])
     } catch (error) {
@@ -35,6 +36,17 @@ export function NotificationBell() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getNotificationUrl = (notification: Notification): string | null => {
+    if (notification.actionUrl) {
+      return notification.actionUrl
+    }
+    if (notification.relatedJob) {
+      const jobId = typeof notification.relatedJob === 'object' ? notification.relatedJob.id : notification.relatedJob
+      return `/oms/jobs/${jobId}?tab=messages`
+    }
+    return null
   }
 
   const markAsRead = async (id: string) => {
@@ -137,50 +149,68 @@ export function NotificationBell() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded ${getTypeColor(notification.type)}`}>
-                          {notification.type}
-                        </span>
-                        <button
-                          onClick={() => markAsRead(notification.id)}
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                          title="Mark as read"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-                        {notification.title}
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {notification.message}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500 dark:text-gray-500">
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </span>
-                        {notification.actionUrl && (
-                          <Link
-                            href={notification.actionUrl}
-                            onClick={() => {
+                  {notifications.map((notification) => {
+                    const notificationUrl = getNotificationUrl(notification)
+                    const content = (
+                      <>
+                        <div className="flex items-start justify-between mb-2">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded ${getTypeColor(notification.type)}`}>
+                            {notification.type}
+                          </span>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
                               markAsRead(notification.id)
-                              setShowDropdown(false)
                             }}
-                            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="Mark as read"
                           >
-                            View →
-                          </Link>
-                        )}
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                          {notification.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500 dark:text-gray-500">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </span>
+                          {notificationUrl && (
+                            <span className="text-sm text-blue-600 dark:text-blue-400">
+                              View →
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )
+                    
+                    return notificationUrl ? (
+                      <Link
+                        key={notification.id}
+                        href={notificationUrl}
+                        onClick={() => {
+                          markAsRead(notification.id)
+                          setShowDropdown(false)
+                        }}
+                        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors block cursor-pointer"
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      <div
+                        key={notification.id}
+                        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        {content}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>

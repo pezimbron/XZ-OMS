@@ -26,6 +26,7 @@ export interface Config {
     notifications: Notification;
     'notification-templates': NotificationTemplate;
     'workflow-templates': WorkflowTemplate;
+    'job-messages': JobMessage;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -51,6 +52,7 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
     'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
+    'job-messages': JobMessagesSelect<false> | JobMessagesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1012,6 +1014,38 @@ export interface NotificationTemplate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-messages".
+ */
+export interface JobMessage {
+  id: number;
+  job: number | Job;
+  author:
+    | {
+        relationTo: 'users';
+        value: number | User;
+      }
+    | {
+        relationTo: 'technicians';
+        value: number | Technician;
+      };
+  message: string;
+  messageType: 'message' | 'question' | 'answer' | 'update' | 'issue' | 'qc-feedback';
+  attachments?:
+    | {
+        file: number | Media;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  isRead?: boolean | null;
+  sentVia?: ('app' | 'email' | 'sms') | null;
+  emailSent?: boolean | null;
+  smsSent?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1144,6 +1178,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'workflow-templates';
         value: number | WorkflowTemplate;
+      } | null)
+    | ({
+        relationTo: 'job-messages';
+        value: number | JobMessage;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -1849,6 +1887,29 @@ export interface WorkflowTemplatesSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-messages_select".
+ */
+export interface JobMessagesSelect<T extends boolean = true> {
+  job?: T;
+  author?: T;
+  message?: T;
+  messageType?: T;
+  attachments?:
+    | T
+    | {
+        file?: T;
+        description?: T;
+        id?: T;
+      };
+  isRead?: T;
+  sentVia?: T;
+  emailSent?: T;
+  smsSent?: T;
   updatedAt?: T;
   createdAt?: T;
 }
