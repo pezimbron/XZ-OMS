@@ -176,24 +176,30 @@ export const JobMessages: CollectionConfig = {
           const recipients: any[] = []
 
           // Add tech if different from author
-          if (job.tech && job.tech !== authorId) {
+          if (job.tech) {
             const techId = typeof job.tech === 'object' ? job.tech.id : job.tech
-            const tech = await req.payload.findByID({
-              collection: 'technicians',
-              id: techId,
-              depth: 1, // Populate the user relationship
-            })
-            if (tech?.email) {
-              // Get the user ID from the tech's user account relationship
-              const techUserId = tech.user ? (typeof tech.user === 'object' ? tech.user.id : tech.user) : null
-              
-              // Only add if the tech's user account is different from the author's user account
-              const techUserIdStr = techUserId ? String(techUserId) : null
-              if (!authorUserId || techUserIdStr !== authorUserId) {
-                recipients.push({ email: tech.email, name: tech.name, userId: techUserId })
-                req.payload.logger.info(`[Job Messages] Added tech to recipients: ${tech.email}, userId: ${techUserId}`)
-              } else {
-                req.payload.logger.info(`[Job Messages] Skipped tech (same user as author): ${tech.email}`)
+            
+            // Skip if author is the same technician
+            if (authorCollection === 'technicians' && String(techId) === String(authorId)) {
+              req.payload.logger.info(`[Job Messages] Skipped tech (author is the tech): tech ID ${techId}`)
+            } else {
+              const tech = await req.payload.findByID({
+                collection: 'technicians',
+                id: techId,
+                depth: 1, // Populate the user relationship
+              })
+              if (tech?.email) {
+                // Get the user ID from the tech's user account relationship
+                const techUserId = tech.user ? (typeof tech.user === 'object' ? tech.user.id : tech.user) : null
+                
+                // Only add if the tech's user account is different from the author's user account
+                const techUserIdStr = techUserId ? String(techUserId) : null
+                if (!authorUserId || techUserIdStr !== authorUserId) {
+                  recipients.push({ email: tech.email, name: tech.name, userId: techUserId })
+                  req.payload.logger.info(`[Job Messages] Added tech to recipients: ${tech.email}, userId: ${techUserId}`)
+                } else {
+                  req.payload.logger.info(`[Job Messages] Skipped tech (same user as author): ${tech.email}`)
+                }
               }
             }
           }

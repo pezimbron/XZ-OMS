@@ -146,43 +146,43 @@ export default function SubcontractorMessagePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-4 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-t-4 border-blue-600">
-          <div className="flex items-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-2xl mr-4 shadow-lg">
-              XZ
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Job Conversation</h1>
-              <p className="text-gray-600 text-lg">XZ Reality Capture</p>
-            </div>
-          </div>
-          
-          {job && (
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-1">Job ID</p>
-                  <p className="text-xl font-bold text-gray-900">{job.jobId}</p>
-                </div>
-                <div className="bg-indigo-50 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-indigo-600 uppercase tracking-wide mb-1">Property</p>
-                  <p className="text-xl font-bold text-gray-900">{job.modelName}</p>
-                </div>
+        <div className="bg-white rounded-xl shadow-xl p-4 mb-4 border-t-4 border-blue-600">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl mr-3 shadow-lg">
+                XZ
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Job Conversation</h1>
+                <p className="text-gray-600 text-sm">XZ Reality Capture</p>
               </div>
             </div>
-          )}
+            
+            {job && (
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Job ID</p>
+                  <p className="text-sm font-bold text-gray-900">{job.jobId}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Property</p>
+                  <p className="text-sm font-bold text-gray-900">{job.modelName}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-xl shadow-xl p-8 mb-6">
-          <div className="flex items-center mb-6">
-            <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-xl shadow-xl p-4 mb-4">
+          <div className="flex items-center mb-4">
+            <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <h2 className="text-2xl font-bold text-gray-900">Conversation</h2>
+            <h2 className="text-xl font-bold text-gray-900">Conversation</h2>
           </div>
           
           {messages.length === 0 ? (
@@ -220,12 +220,12 @@ export default function SubcontractorMessagePage() {
         </div>
 
         {/* Reply Form */}
-        <div className="bg-white rounded-xl shadow-xl p-8">
-          <div className="flex items-center mb-6">
-            <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-xl shadow-xl p-4">
+          <div className="flex items-center mb-4">
+            <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            <h2 className="text-2xl font-bold text-gray-900">Send a Message</h2>
+            <h2 className="text-xl font-bold text-gray-900">Send a Message</h2>
           </div>
           
           {success && (

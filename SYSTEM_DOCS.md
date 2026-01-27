@@ -140,22 +140,35 @@
 ## 🚀 Recent Features (Jan 2026)
 
 ### Job Messaging System
-- **Status**: ✅ Production-ready
+- **Status**: ✅ Phase 1 (MVP) Complete
 - **Components**: `JobMessaging.tsx`, `forms/job-message/[token]/page.tsx`
 - **Collection**: `job-messages`
-- **Features**:
-  - Per-job conversation threads
-  - Color-coded message types (message, question, answer, issue, qc-feedback, update)
-  - Email + in-app notifications
-  - Real-time polling (10s)
-  - Smart notification routing
-  - Clickable notifications with direct navigation
-  - **Subcontractor Support** (NEW):
+- **Current Features (Phase 1 - MVP)**:
+  - ✅ Per-job conversation threads
+  - ✅ Color-coded message types (message, question, answer, issue, qc-feedback, update)
+  - ✅ Email + in-app notifications
+  - ✅ Real-time polling (10s refresh)
+  - ✅ Smart notification routing
+  - ✅ Clickable notifications with direct navigation
+  - ✅ **Subcontractor Support**:
     - Token-based message access for techs without user accounts
     - Secure links: `/forms/job-message/[token]`
     - Email notifications include appropriate link (OMS for users, form for subcontractors)
     - Read conversation history + reply form
     - No authentication required (token validates access)
+    - Modern, branded UI with gradients and animations
+
+- **Planned Features**:
+  - **Phase 2 (Enhanced)**:
+    - SMS integration via Twilio
+    - File/photo attachments
+    - Real-time updates (WebSocket/SSE)
+    - Read receipts
+  - **Phase 3 (Advanced)**:
+    - Voice messages
+    - Auto-suggestions based on job context
+    - Integration with workflow triggers
+    - Mobile app push notifications
 
 ### Workflow-Based Calendar
 - **Feature**: Products can be excluded from calendar via `excludeFromCalendar` flag
