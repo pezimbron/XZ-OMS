@@ -120,26 +120,26 @@ export function WorkflowTimeline({
     // Tech users can't assign workflows
     if (user?.role === 'tech') {
       return (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold text-gray-900">Workflow</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Workflow</h3>
           </div>
-          <p className="text-sm text-gray-600">No workflow assigned to this job yet.</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">No workflow assigned to this job yet.</p>
         </div>
       )
     }
 
     return (
-      <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold text-gray-900">Workflow</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Workflow</h3>
         </div>
         <div className="space-y-3">
-          <p className="text-sm text-gray-600">Select a workflow template to enable automation:</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Select a workflow template to enable automation:</p>
           <select
             value={selectedTemplateId}
             onChange={(e) => setSelectedTemplateId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Choose a workflow template...</option>
             {availableTemplates.map((template) => (
@@ -197,36 +197,36 @@ export function WorkflowTimeline({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Workflow: {workflowTemplate.name}
           </h3>
           {user?.role !== 'tech' && (
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
               title="Change workflow template"
             >
               <Edit2 className="w-4 h-4" />
             </button>
           )}
         </div>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           Step {currentStepIndex} of {templateSteps.length}
         </span>
       </div>
 
       {/* Template Editor */}
       {isEditing && (
-        <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg">
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">Change Workflow Template:</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Change Workflow Template:</label>
             <select
               value={selectedTemplateId}
               onChange={(e) => setSelectedTemplateId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Choose a different template...</option>
               {availableTemplates.map((template) => (
@@ -245,7 +245,7 @@ export function WorkflowTimeline({
               </button>
               <button
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
               >
                 Cancel
               </button>

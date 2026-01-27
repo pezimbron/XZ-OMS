@@ -26,7 +26,7 @@ interface Job {
   captureAddress?: string
   city?: string
   state?: string
-  zipCode?: string
+  zip?: string
   lineItems?: any[]
   techInstructions?: string
   schedulingNotes?: string
@@ -251,7 +251,7 @@ export default function JobDetailPage() {
   })
 
   const zipField = useAutosaveField<string>({
-    value: (job as any)?.zip || job?.zipCode || '',
+    value: (job as any)?.zip || job?.zip || '',
     onSave: async (next) => {
       if (!job?.id) return
       await patchJob(job.id, { zip: next || null })
@@ -278,6 +278,33 @@ export default function JobDetailPage() {
       await fetchJob(job.id)
     },
     debounceMs: 0,
+  })
+
+  const sqFtField = useAutosaveField<string>({
+    value: typeof (job as any)?.sqFt === 'number' ? String((job as any).sqFt) : '',
+    onSave: async (next) => {
+      const jobIdRaw = (job as any)?.id ?? (params as any)?.id
+      const jobId = Array.isArray(jobIdRaw) ? jobIdRaw[0] : jobIdRaw
+      if (!jobId) {
+        throw new Error('Job ID not loaded')
+      }
+
+      const trimmed = String(next ?? '').trim()
+      if (trimmed === '') {
+        await patchJob(String(jobId), { sqFt: null })
+        await fetchJob(String(jobId))
+        return
+      }
+
+      const parsed = Number(trimmed)
+      if (!Number.isFinite(parsed)) {
+        throw new Error('Invalid square feet value')
+      }
+
+      await patchJob(String(jobId), { sqFt: parsed })
+      await fetchJob(String(jobId))
+    },
+    debounceMs: 700,
   })
 
   const techField = useAutosaveField<string>({
@@ -1105,203 +1132,220 @@ export default function JobDetailPage() {
                       placeholder="Enter square feet"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white">{(job as any).sqFt?.toLocaleString() || 'N/A'} sq ft</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Client Info */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Client Information</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</label>
-                  {editMode ? (
-                    <select
-                      value={typeof editedJob?.client === 'object' ? editedJob.client?.id : editedJob?.client || ''}
-                      onChange={(e) => setEditedJob({...editedJob, client: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="">Select Client</option>
-                      {clients.map(client => (
-                        <option key={client.id} value={client.id}>{client.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-gray-900 dark:text-white">{job.client?.name || 'N/A'}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Tech Assignment */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Assignment</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Assigned Tech</label>
-                  {isTech ? (
-                    <p className="text-gray-900 dark:text-white">
-                      {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
-                    </p>
-                  ) : (
                     <div className="space-y-1">
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white">{(job as any).sqFt?.toLocaleString() || 'N/A'} sq ft</p>
+                      ) : (
+                        <input
+                          type="number"
+                          value={sqFtField.value || ''}
+                          onChange={(e) => sqFtField.setValue(e.target.value)}
+                          onBlur={() => sqFtField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Enter square feet"
+                        />
+                      )}
+                      {!isTech && <SaveIndicator status={sqFtField.status} error={sqFtField.error} />}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* Client Info */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Client Information</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</label>
+                    {editMode ? (
                       <select
-                        value={techField.value || ''}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          const commit = (techField as any).commit
-                          if (typeof commit === 'function') {
-                            commit(next)
-                            return
-                          }
-                          techField.setValue(next)
-                        }}
-                        onBlur={() => techField.onBlur()}
+                        value={typeof editedJob?.client === 'object' ? editedJob.client?.id : editedJob?.client || ''}
+                        onChange={(e) => setEditedJob({...editedJob, client: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
-                        <option value="">Unassigned</option>
-                        {techs.map((tech) => (
-                          <option key={tech.id} value={String(tech.id)}>{tech.name}</option>
+                        <option value="">Select Client</option>
+                        {clients.map(client => (
+                          <option key={client.id} value={client.id}>{client.name}</option>
                         ))}
                       </select>
-                      <SaveIndicator status={techField.status} error={techField.error} />
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-gray-900 dark:text-white">{job.client?.name || 'N/A'}</p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Location */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Location</h2>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</label>
-                  {isTech ? (
-                    <p className="text-gray-900 dark:text-white">{job.captureAddress || 'N/A'}</p>
-                  ) : editMode ? (
-                    <input
-                      type="text"
-                      value={editedJob?.captureAddress || ''}
-                      onChange={(e) => setEditedJob({...editedJob, captureAddress: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Enter address"
-                    />
-                  ) : (
-                    <div className="space-y-1">
-                      <AddressAutocomplete
-                        value={captureAddressField.value || ''}
-                        onChange={(next) => (captureAddressField as any).setLocal?.(next)}
-                        onSelect={async (parsed) => {
-                          if (!job?.id) return
-                          try {
-                            await patchJob(job.id, {
-                              captureAddress: parsed.addressLine1 || null,
-                              city: parsed.city || null,
-                              state: parsed.state || null,
-                              zip: parsed.zip || null,
-                            })
-
-                            ;(captureAddressField as any).setLocal?.(parsed.addressLine1 || '')
-                            ;(cityField as any).setLocal?.(parsed.city || '')
-                            ;(stateField as any).setLocal?.(parsed.state || '')
-                            ;(zipField as any).setLocal?.(parsed.zip || '')
-
-                            await fetchJob(job.id)
-                          } catch (e) {
-                            console.error('Failed to save address:', e)
-                          }
-                        }}
-                        placeholder="Start typing an address..."
-                      />
-                      <SaveIndicator status={captureAddressField.status} error={captureAddressField.error} />
-                    </div>
-                  )}
-                </div>
-                <div className="grid grid-cols-3 gap-3">
+              {/* Location */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h2>
+                <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">City</label>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</label>
                     {isTech ? (
-                      <p className="text-gray-900 dark:text-white">{job.city || 'N/A'}</p>
+                      <p className="text-gray-900 dark:text-white">{job.captureAddress || 'N/A'}</p>
                     ) : editMode ? (
                       <input
                         type="text"
-                        value={editedJob?.city || ''}
-                        onChange={(e) => setEditedJob({...editedJob, city: e.target.value})}
+                        value={editedJob?.captureAddress || ''}
+                        onChange={(e) => setEditedJob({...editedJob, captureAddress: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="City"
+                        placeholder="Enter address"
                       />
                     ) : (
                       <div className="space-y-1">
+                        <AddressAutocomplete
+                          value={captureAddressField.value || ''}
+                          onChange={(next) => (captureAddressField as any).setLocal?.(next)}
+                          onSelect={async (parsed) => {
+                            if (!job?.id) return
+                            try {
+                              await patchJob(job.id, {
+                                captureAddress: parsed.addressLine1 || null,
+                                city: parsed.city || null,
+                                state: parsed.state || null,
+                                zip: parsed.zip || null,
+                              })
+
+                              ;(captureAddressField as any).setLocal?.(parsed.addressLine1 || '')
+                              ;(cityField as any).setLocal?.(parsed.city || '')
+                              ;(stateField as any).setLocal?.(parsed.state || '')
+                              ;(zipField as any).setLocal?.(parsed.zip || '')
+
+                              await fetchJob(job.id)
+                            } catch (e) {
+                              console.error('Failed to save address:', e)
+                            }
+                          }}
+                          placeholder="Start typing an address..."
+                        />
+                        <SaveIndicator status={captureAddressField.status} error={captureAddressField.error} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">City</label>
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white">{job.city || 'N/A'}</p>
+                      ) : editMode ? (
                         <input
                           type="text"
-                          value={cityField.value || ''}
-                          onChange={(e) => cityField.setValue(e.target.value)}
-                          onBlur={() => cityField.onBlur()}
+                          value={editedJob?.city || ''}
+                          onChange={(e) => setEditedJob({...editedJob, city: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="City"
                         />
-                        <SaveIndicator status={cityField.status} error={cityField.error} />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">State</label>
-                    {isTech ? (
-                      <p className="text-gray-900 dark:text-white">{job.state || 'N/A'}</p>
-                    ) : editMode ? (
-                      <input
-                        type="text"
-                        value={editedJob?.state || ''}
-                        onChange={(e) => setEditedJob({...editedJob, state: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="State"
-                      />
-                    ) : (
-                      <div className="space-y-1">
+                      ) : (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={cityField.value || ''}
+                            onChange={(e) => cityField.setValue(e.target.value)}
+                            onBlur={() => cityField.onBlur()}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="City"
+                          />
+                          <SaveIndicator status={cityField.status} error={cityField.error} />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">State</label>
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white">{job.state || 'N/A'}</p>
+                      ) : editMode ? (
                         <input
                           type="text"
-                          value={stateField.value || ''}
-                          onChange={(e) => stateField.setValue(e.target.value)}
-                          onBlur={() => stateField.onBlur()}
+                          value={editedJob?.state || ''}
+                          onChange={(e) => setEditedJob({...editedJob, state: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="State"
                         />
-                        <SaveIndicator status={stateField.status} error={stateField.error} />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">ZIP</label>
-                    {isTech ? (
-                      <p className="text-gray-900 dark:text-white">{job.zipCode || 'N/A'}</p>
-                    ) : editMode ? (
-                      <input
-                        type="text"
-                        value={editedJob?.zip || ''}
-                        onChange={(e) => setEditedJob({...editedJob, zip: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="ZIP"
-                      />
-                    ) : (
-                      <div className="space-y-1">
+                      ) : (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={stateField.value || ''}
+                            onChange={(e) => stateField.setValue(e.target.value)}
+                            onBlur={() => stateField.onBlur()}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="State"
+                          />
+                          <SaveIndicator status={stateField.status} error={stateField.error} />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">ZIP</label>
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white">{job.zip || 'N/A'}</p>
+                      ) : editMode ? (
                         <input
                           type="text"
-                          value={zipField.value || ''}
-                          onChange={(e) => zipField.setValue(e.target.value)}
-                          onBlur={() => zipField.onBlur()}
+                          value={editedJob?.zip || ''}
+                          onChange={(e) => setEditedJob({...editedJob, zip: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="ZIP"
                         />
-                        <SaveIndicator status={zipField.status} error={zipField.error} />
+                      ) : (
+                        <div className="space-y-1">
+                          <input
+                            type="text"
+                            value={zipField.value || ''}
+                            onChange={(e) => zipField.setValue(e.target.value)}
+                            onBlur={() => zipField.onBlur()}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="ZIP"
+                          />
+                          <SaveIndicator status={zipField.status} error={zipField.error} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tech Assignment */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Assignment</h2>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Assigned Tech</label>
+                    {isTech ? (
+                      <p className="text-gray-900 dark:text-white">
+                        {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
+                      </p>
+                    ) : (
+                      <div className="space-y-1">
+                        <select
+                          value={techField.value || ''}
+                          onChange={(e) => {
+                            const next = e.target.value
+                            const commit = (techField as any).commit
+                            if (typeof commit === 'function') {
+                              commit(next)
+                              return
+                            }
+                            techField.setValue(next)
+                          }}
+                          onBlur={() => techField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">Unassigned</option>
+                          {techs.map((tech) => (
+                            <option key={tech.id} value={String(tech.id)}>{tech.name}</option>
+                          ))}
+                        </select>
+                        <SaveIndicator status={techField.status} error={techField.error} />
                       </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
+
           </div>
         )}
 

@@ -40,7 +40,7 @@ export default function CalendarPage() {
                   Quick Create
                 </Link>
                 <Link
-                  href="/admin/collections/jobs/create"
+                  href="/oms/jobs/create"
                   className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
                 >
                   <span className="text-xl">+</span>

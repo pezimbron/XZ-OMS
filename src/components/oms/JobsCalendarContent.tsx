@@ -155,6 +155,7 @@ export function JobsCalendarContent() {
   }
 
   const handleSlotSelect = (slotInfo: { start: Date; end: Date }) => {
+    if (user?.role === 'tech') return
     setNewJobDate(slotInfo.start)
     setSelectedDate(slotInfo.start)
     setShowCreateModal(true)
@@ -451,11 +452,11 @@ export function JobsCalendarContent() {
             style={{ height: '100%' }}
             eventPropGetter={eventStyleGetter}
             onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleSlotSelect}
+            onSelectSlot={user?.role === 'tech' ? undefined : handleSlotSelect}
             onEventDrop={handleEventDrop}
             onEventResize={handleEventResize}
             resizable
-            selectable
+            selectable={user?.role !== 'tech'}
             view={view}
             onView={setView}
             date={date}
