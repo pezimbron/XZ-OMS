@@ -1653,7 +1653,7 @@ export default function JobDetailPage() {
 
                     {(job as any).schedulingRequest?.requestType === 'tech-proposes' && (job as any).techResponse.proposedOptions && (
                       <div className="space-y-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Tech's Proposed Time Options:</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Tech&apos;s Proposed Time Options:</p>
                         {(job as any).techResponse.proposedOptions.map((option: any, index: number) => (
                           <div key={index} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
                             <div className="flex-1">
