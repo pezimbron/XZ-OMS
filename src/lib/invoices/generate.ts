@@ -170,7 +170,7 @@ export async function generateInvoiceFromJobs({
     const invoice = await payload.create({
       collection: 'invoices',
       data: {
-        status: 'draft',
+        status: 'approved',
         client: clientId,
         jobs: jobIds.map(id => parseInt(id)),
         lineItems,
@@ -183,6 +183,8 @@ export async function generateInvoiceFromJobs({
         terms,
         notes: client.invoicingPreferences?.invoiceNotes || '',
         createdBy: parseInt(userId),
+        approvedBy: parseInt(userId),
+        approvedAt: new Date().toISOString(),
         quickbooks: {
           syncStatus: 'not-synced',
         },

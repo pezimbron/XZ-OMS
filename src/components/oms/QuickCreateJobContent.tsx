@@ -106,17 +106,19 @@ export function QuickCreateJobContent() {
       {/* Tabs */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="border-b border-gray-200 dark:border-gray-700">
-          <div className="flex">
+          <div className="flex" role="tablist" aria-label="Quick Create Tabs">
             <button
               onClick={() => {
                 setActiveTab('email')
                 setError('')
                 setResult(null)
               }}
+              role="tab"
+              aria-selected={activeTab === 'email'}
               className={`px-6 py-4 font-medium transition-colors ${
                 activeTab === 'email'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'flex-1 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'flex-1 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               📧 Email Parser
@@ -127,10 +129,12 @@ export function QuickCreateJobContent() {
                 setError('')
                 setResult(null)
               }}
+              role="tab"
+              aria-selected={activeTab === 'ai'}
               className={`px-6 py-4 font-medium transition-colors ${
                 activeTab === 'ai'
-                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'flex-1 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'flex-1 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               🤖 AI Chat

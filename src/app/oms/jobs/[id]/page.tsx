@@ -65,6 +65,9 @@ export default function JobDetailPage() {
   const [editingStatus, setEditingStatus] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [productsEditOpen, setProductsEditOpen] = useState(false)
+  const [expensesEditOpen, setExpensesEditOpen] = useState(false)
+  const [discountEditOpen, setDiscountEditOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [editedJob, setEditedJob] = useState<any>(null)
   const [clients, setClients] = useState<any[]>([])
@@ -218,6 +221,45 @@ export default function JobDetailPage() {
       await fetchJob(job.id)
     },
     debounceMs: 900,
+  })
+
+  const lineItemsField = useAutosaveField<any[]>({
+    value: (job as any)?.lineItems ?? [],
+    onSave: async (next) => {
+      if (!job?.id) return
+      const normalized = Array.isArray(next)
+        ? next.map((item: any) => ({
+            product: normalizeRelationId(item?.product) || item?.product || null,
+            quantity: item?.quantity ?? 1,
+            instructions: item?.instructions ?? '',
+          }))
+        : []
+      await patchJob(job.id, { lineItems: normalized })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const externalExpensesField = useAutosaveField<any[]>({
+    value: (job as any)?.externalExpenses ?? [],
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { externalExpenses: Array.isArray(next) ? next : [] })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const discountField = useAutosaveField<any>({
+    value: (job as any)?.discount ?? { type: 'none', value: 0 },
+    onSave: async (next) => {
+      if (!job?.id) return
+      const type = next?.type || 'none'
+      const value = Number(next?.value || 0)
+      await patchJob(job.id, { discount: { type, value } })
+      await fetchJob(job.id)
+    },
+    debounceMs: 700,
   })
 
   const captureAddressField = useAutosaveField<string>({
@@ -683,6 +725,8 @@ export default function JobDetailPage() {
                       Copy Form Link
                     </button>
                   )}
+
+ 
                   {editMode ? (
                     <>
                       <button
@@ -700,12 +744,7 @@ export default function JobDetailPage() {
                       </button>
                     </>
                   ) : (
-                    <button
-                      onClick={handleEditToggle}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Edit Job
-                    </button>
+                    <></>
                   )}
                 </>
               )}
@@ -1610,6 +1649,43 @@ export default function JobDetailPage() {
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Products / Services</h2>
+                {!isTech && !editMode && (
+                  <div className="flex gap-2">
+                    {productsEditOpen ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            ;(lineItemsField as any).commit?.(lineItemsField.value)
+                            setProductsEditOpen(false)
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Done
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            lineItemsField.setValue((job as any)?.lineItems ?? [])
+                            setProductsEditOpen(false)
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setProductsEditOpen(true)}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {editMode && (
                   <button
                     onClick={() => {
@@ -1677,6 +1753,91 @@ export default function JobDetailPage() {
                     <p className="text-gray-400 italic text-center py-4">No products added yet. Click &quot;Add Product&quot; to get started.</p>
                   )}
                 </div>
+              ) : productsEditOpen && !isTech ? (
+                <div className="space-y-3">
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = [...(lineItemsField.value || []), { product: '', quantity: 1, instructions: '' }]
+                        lineItemsField.setValue(next)
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      + Add Product
+                    </button>
+                  </div>
+                  {(lineItemsField.value || []).map((item: any, index: number) => (
+                    <div key={index} className="flex gap-3 items-start p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Product</label>
+                        <select
+                          value={typeof item.product === 'object' ? item.product?.id : item.product}
+                          onChange={(e) => {
+                            const next = [...(lineItemsField.value || [])]
+                            next[index] = { ...next[index], product: e.target.value }
+                            lineItemsField.setValue(next)
+                          }}
+                          onBlur={() => lineItemsField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">Select Product...</option>
+                          {products.map((product) => (
+                            <option key={product.id} value={product.id}>
+                              {product.name} - ${product.basePrice}
+                            </option>
+                          ))}
+                        </select>
+
+                        <label className="mt-3 text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Instructions</label>
+                        <textarea
+                          value={item.instructions || ''}
+                          onChange={(e) => {
+                            const next = [...(lineItemsField.value || [])]
+                            next[index] = { ...next[index], instructions: e.target.value }
+                            lineItemsField.setValue(next)
+                          }}
+                          onBlur={() => lineItemsField.onBlur()}
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Optional instructions for this service..."
+                        />
+                      </div>
+                      <div className="w-24">
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Qty</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity || 1}
+                          onChange={(e) => {
+                            const next = [...(lineItemsField.value || [])]
+                            next[index] = { ...next[index], quantity: parseInt(e.target.value) }
+                            lineItemsField.setValue(next)
+                          }}
+                          onBlur={() => lineItemsField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = (lineItemsField.value || []).filter((_: any, i: number) => i !== index)
+                          lineItemsField.setValue(next)
+                          lineItemsField.onBlur()
+                        }}
+                        className="mt-7 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                  {(!lineItemsField.value || lineItemsField.value.length === 0) && (
+                    <p className="text-gray-400 italic text-center py-4">No products added yet. Click &quot;Add Product&quot; to get started.</p>
+                  )}
+                  <SaveIndicator status={lineItemsField.status} error={lineItemsField.error} />
+                </div>
               ) : (
                 <div className="space-y-2">
                   {job.lineItems && job.lineItems.length > 0 ? (
@@ -1718,7 +1879,14 @@ export default function JobDetailPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Invoice Breakdown</h2>
               
               {(() => {
-                const currentJob = editMode ? editedJob : job
+                const currentJob = editMode
+                  ? editedJob
+                  : ({
+                      ...job,
+                      lineItems: (productsEditOpen ? lineItemsField.value : (job as any).lineItems) ?? (job as any).lineItems,
+                      discount: (discountEditOpen ? discountField.value : (job as any).discount) ?? (job as any).discount,
+                      externalExpenses: (expensesEditOpen ? externalExpensesField.value : (job as any).externalExpenses) ?? (job as any).externalExpenses,
+                    } as any)
                 const jobSqFt = parseInt(currentJob?.sqFt) || 0
                 
                 // Calculate subtotal
@@ -1820,6 +1988,88 @@ export default function JobDetailPage() {
                         <span className="text-lg font-semibold text-red-600 dark:text-red-400">
                           -${discountAmount.toFixed(2)}
                         </span>
+                      </div>
+                    )}
+
+                    {!editMode && !isTech && (
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 dark:text-gray-400">Discount:</span>
+                          {discountEditOpen ? (
+                            <>
+                              <select
+                                value={discountField.value?.type || 'none'}
+                                onChange={(e) =>
+                                  discountField.setValue({
+                                    ...(discountField.value || {}),
+                                    type: e.target.value,
+                                    value: e.target.value === 'none' ? 0 : discountField.value?.value || 0,
+                                  })
+                                }
+                                onBlur={() => discountField.onBlur()}
+                                className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              >
+                                <option value="none">None</option>
+                                <option value="fixed">Fixed $</option>
+                                <option value="percentage">Percentage %</option>
+                              </select>
+                              {(discountField.value?.type || 'none') !== 'none' && (
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={discountField.value?.value || 0}
+                                  onChange={(e) =>
+                                    discountField.setValue({
+                                      ...(discountField.value || {}),
+                                      value: parseFloat(e.target.value) || 0,
+                                    })
+                                  }
+                                  onBlur={() => discountField.onBlur()}
+                                  className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                  placeholder="0"
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  ;(discountField as any).commit?.(discountField.value)
+                                  setDiscountEditOpen(false)
+                                }}
+                                className="ml-2 px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                              >
+                                Done
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  discountField.setValue((job as any)?.discount ?? { type: 'none', value: 0 })
+                                  setDiscountEditOpen(false)
+                                }}
+                                className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDiscountEditOpen(true)}
+                              className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`text-lg font-semibold ${
+                              discountAmount > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+                            }`}
+                          >
+                            {discountAmount > 0 ? `-$${discountAmount.toFixed(2)}` : '$0.00'}
+                          </span>
+                          {discountEditOpen && <SaveIndicator status={discountField.status} error={discountField.error} />}
+                        </div>
                       </div>
                     )}
                     
@@ -1967,6 +2217,42 @@ export default function JobDetailPage() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">External Supplier Expenses</h3>
+                  {!isTech && !editMode && (
+                    <div className="flex gap-2">
+                      {expensesEditOpen ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              ;(externalExpensesField as any).commit?.(externalExpensesField.value)
+                              setExpensesEditOpen(false)
+                            }}
+                            className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Done
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              externalExpensesField.setValue((job as any)?.externalExpenses ?? [])
+                              setExpensesEditOpen(false)
+                            }}
+                            className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpensesEditOpen(true)}
+                          className="px-3 py-1 text-sm bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {editMode && (
                     <button
                       onClick={() => {
@@ -2045,6 +2331,88 @@ export default function JobDetailPage() {
                         <p className="text-gray-400 italic text-center py-2 text-sm">No external expenses. Click &quot;Add Expense&quot; to add one.</p>
                       )}
                     </>
+                  ) : expensesEditOpen && !isTech ? (
+                    <>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = [...(externalExpensesField.value || []), {
+                              description: '',
+                              supplier: '',
+                              contactInfo: '',
+                              amount: 0,
+                              paymentStatus: 'unpaid',
+                              notes: '',
+                            }]
+                            externalExpensesField.setValue(next)
+                          }}
+                          className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          + Add Expense
+                        </button>
+                      </div>
+                      {(externalExpensesField.value || []).map((expense: any, index: number) => (
+                        <div key={index} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={expense.description || ''}
+                              onChange={(e) => {
+                                const next = [...(externalExpensesField.value || [])]
+                                next[index] = { ...next[index], description: e.target.value }
+                                externalExpensesField.setValue(next)
+                              }}
+                              onBlur={() => externalExpensesField.onBlur()}
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Description (e.g., Floor Plans)"
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={expense.amount || ''}
+                              onChange={(e) => {
+                                const next = [...(externalExpensesField.value || [])]
+                                next[index] = { ...next[index], amount: parseFloat(e.target.value) || 0 }
+                                externalExpensesField.setValue(next)
+                              }}
+                              onBlur={() => externalExpensesField.onBlur()}
+                              className="w-28 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
+                              placeholder="0.00"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = (externalExpensesField.value || []).filter((_: any, i: number) => i !== index)
+                                externalExpensesField.setValue(next)
+                                externalExpensesField.onBlur()
+                              }}
+                              className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={expense.supplier || ''}
+                            onChange={(e) => {
+                              const next = [...(externalExpensesField.value || [])]
+                              next[index] = { ...next[index], supplier: e.target.value }
+                              externalExpensesField.setValue(next)
+                            }}
+                            onBlur={() => externalExpensesField.onBlur()}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            placeholder="Supplier name (optional)"
+                          />
+                        </div>
+                      ))}
+                      {(!externalExpensesField.value || externalExpensesField.value.length === 0) && (
+                        <p className="text-gray-400 italic text-center py-2 text-sm">No external expenses. Click &quot;Add Expense&quot; to add one.</p>
+                      )}
+                      <SaveIndicator status={externalExpensesField.status} error={externalExpensesField.error} />
+                    </>
                   ) : (
                     <>
                       {(job.externalExpenses && job.externalExpenses.length > 0) ? (
@@ -2070,7 +2438,14 @@ export default function JobDetailPage() {
                       <span className="text-gray-900 dark:text-white">Subtotal Expenses:</span>
                       <span className="text-gray-900 dark:text-white">
                         ${(() => {
-                          const currentJob = editMode ? editedJob : job
+                          const currentJob = editMode
+                            ? editedJob
+                            : ({
+                                ...job,
+                                externalExpenses:
+                                  (expensesEditOpen ? externalExpensesField.value : (job as any).externalExpenses) ??
+                                  (job as any).externalExpenses,
+                              } as any)
                           return (currentJob?.externalExpenses || []).reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0).toFixed(2)
                         })()}
                       </span>
@@ -2081,7 +2456,15 @@ export default function JobDetailPage() {
               
               {/* Total Costs & Profit */}
               {(() => {
-                const currentJob = editMode ? editedJob : job
+                const currentJob = editMode
+                  ? editedJob
+                  : ({
+                      ...job,
+                      lineItems: (productsEditOpen ? lineItemsField.value : (job as any).lineItems) ?? (job as any).lineItems,
+                      discount: (discountEditOpen ? discountField.value : (job as any).discount) ?? (job as any).discount,
+                      externalExpenses:
+                        (expensesEditOpen ? externalExpensesField.value : (job as any).externalExpenses) ?? (job as any).externalExpenses,
+                    } as any)
                 const jobSqFt = parseInt(currentJob?.sqFt) || 0
                 
                 // Calculate revenue
@@ -2205,14 +2588,37 @@ export default function JobDetailPage() {
                     />
                   ) : (
                     <div className="space-y-1">
-                      <input
-                        type="text"
-                        value={deliverablesField.value?.model3dLink || ''}
-                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, model3dLink: e.target.value })}
-                        onBlur={() => deliverablesField.onBlur()}
-                        placeholder="https://my.matterport.com/show/?m=..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={deliverablesField.value?.model3dLink || ''}
+                          onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, model3dLink: e.target.value })}
+                          onBlur={() => deliverablesField.onBlur()}
+                          placeholder="https://my.matterport.com/show/?m=..."
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.model3dLink}
+                          onClick={() => window.open(deliverablesField.value?.model3dLink, '_blank', 'noopener,noreferrer')}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Open link"
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.model3dLink}
+                          onClick={() => {
+                            const v = deliverablesField.value?.model3dLink || ''
+                            navigator.clipboard.writeText(v)
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Copy link"
+                        >
+                          Copy
+                        </button>
+                      </div>
                       <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
@@ -2251,14 +2657,37 @@ export default function JobDetailPage() {
                     />
                   ) : (
                     <div className="space-y-1">
-                      <input
-                        type="text"
-                        value={deliverablesField.value?.floorPlansLink || ''}
-                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, floorPlansLink: e.target.value })}
-                        onBlur={() => deliverablesField.onBlur()}
-                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={deliverablesField.value?.floorPlansLink || ''}
+                          onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, floorPlansLink: e.target.value })}
+                          onBlur={() => deliverablesField.onBlur()}
+                          placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.floorPlansLink}
+                          onClick={() => window.open(deliverablesField.value?.floorPlansLink, '_blank', 'noopener,noreferrer')}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Open link"
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.floorPlansLink}
+                          onClick={() => {
+                            const v = deliverablesField.value?.floorPlansLink || ''
+                            navigator.clipboard.writeText(v)
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Copy link"
+                        >
+                          Copy
+                        </button>
+                      </div>
                       <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
@@ -2297,14 +2726,37 @@ export default function JobDetailPage() {
                     />
                   ) : (
                     <div className="space-y-1">
-                      <input
-                        type="text"
-                        value={deliverablesField.value?.photosVideosLink || ''}
-                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, photosVideosLink: e.target.value })}
-                        onBlur={() => deliverablesField.onBlur()}
-                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={deliverablesField.value?.photosVideosLink || ''}
+                          onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, photosVideosLink: e.target.value })}
+                          onBlur={() => deliverablesField.onBlur()}
+                          placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.photosVideosLink}
+                          onClick={() => window.open(deliverablesField.value?.photosVideosLink, '_blank', 'noopener,noreferrer')}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Open link"
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.photosVideosLink}
+                          onClick={() => {
+                            const v = deliverablesField.value?.photosVideosLink || ''
+                            navigator.clipboard.writeText(v)
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Copy link"
+                        >
+                          Copy
+                        </button>
+                      </div>
                       <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
@@ -2343,14 +2795,37 @@ export default function JobDetailPage() {
                     />
                   ) : (
                     <div className="space-y-1">
-                      <input
-                        type="text"
-                        value={deliverablesField.value?.asBuiltsLink || ''}
-                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, asBuiltsLink: e.target.value })}
-                        onBlur={() => deliverablesField.onBlur()}
-                        placeholder="https://drive.google.com/... or https://dropbox.com/..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={deliverablesField.value?.asBuiltsLink || ''}
+                          onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, asBuiltsLink: e.target.value })}
+                          onBlur={() => deliverablesField.onBlur()}
+                          placeholder="https://drive.google.com/... or https://dropbox.com/..."
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.asBuiltsLink}
+                          onClick={() => window.open(deliverablesField.value?.asBuiltsLink, '_blank', 'noopener,noreferrer')}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Open link"
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.asBuiltsLink}
+                          onClick={() => {
+                            const v = deliverablesField.value?.asBuiltsLink || ''
+                            navigator.clipboard.writeText(v)
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Copy link"
+                        >
+                          Copy
+                        </button>
+                      </div>
                       <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}
@@ -2389,14 +2864,37 @@ export default function JobDetailPage() {
                     />
                   ) : (
                     <div className="space-y-1">
-                      <input
-                        type="text"
-                        value={deliverablesField.value?.otherAssetsLink || ''}
-                        onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, otherAssetsLink: e.target.value })}
-                        onBlur={() => deliverablesField.onBlur()}
-                        placeholder="https://..."
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={deliverablesField.value?.otherAssetsLink || ''}
+                          onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, otherAssetsLink: e.target.value })}
+                          onBlur={() => deliverablesField.onBlur()}
+                          placeholder="https://..."
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        />
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.otherAssetsLink}
+                          onClick={() => window.open(deliverablesField.value?.otherAssetsLink, '_blank', 'noopener,noreferrer')}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Open link"
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!deliverablesField.value?.otherAssetsLink}
+                          onClick={() => {
+                            const v = deliverablesField.value?.otherAssetsLink || ''
+                            navigator.clipboard.writeText(v)
+                          }}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Copy link"
+                        >
+                          Copy
+                        </button>
+                      </div>
                       <SaveIndicator status={deliverablesField.status} error={deliverablesField.error} />
                     </div>
                   )}

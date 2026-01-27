@@ -15,10 +15,30 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
 
   const lastSaved = useRef<T>(value)
   const lastInput = useRef<T>(value)
+  const lastExternalKey = useRef<string>('')
   const inflight = useRef<Promise<void> | null>(null)
+
+  const makeExternalKey = (v: unknown): string => {
+    if (v === null) return 'null'
+    const t = typeof v
+    if (t === 'undefined') return 'undefined'
+    if (t === 'string' || t === 'number' || t === 'boolean' || t === 'bigint') return `${t}:${String(v)}`
+    if (t === 'symbol') return 'symbol'
+    if (t === 'function') return 'function'
+    try {
+      return `json:${JSON.stringify(v)}`
+    } catch {
+      return `ref:${Object.prototype.toString.call(v)}`
+    }
+  }
 
   useEffect(() => {
     if (Object.is(value, lastInput.current)) return
+
+    const nextKey = makeExternalKey(value)
+    if (nextKey === lastExternalKey.current) return
+
+    lastExternalKey.current = nextKey
     lastInput.current = value
     setLocalValue(value)
   }, [value])

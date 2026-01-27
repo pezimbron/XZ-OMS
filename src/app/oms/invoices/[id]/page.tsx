@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Send, XCircle, FileText, Download } from 'lucide-react'
+import { ArrowLeft, Send, XCircle, FileText, Download } from 'lucide-react'
 
 interface Invoice {
   id: string
@@ -77,35 +77,6 @@ export default function InvoiceDetailPage() {
       console.error('Error fetching invoice:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleApprove = async () => {
-    if (!invoice) return
-    
-    setActionLoading(true)
-    try {
-      const userResponse = await fetch('/api/users/me')
-      const userData = await userResponse.json()
-      const userId = userData.user?.id
-
-      const response = await fetch(`/api/invoices/${invoice.id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      })
-
-      if (response.ok) {
-        alert('Invoice approved successfully!')
-        fetchInvoice(invoice.id)
-      } else {
-        const error = await response.json()
-        alert(`Failed to approve invoice: ${error.error}`)
-      }
-    } catch (error: any) {
-      alert('Error approving invoice: ' + error.message)
-    } finally {
-      setActionLoading(false)
     }
   }
 
@@ -236,18 +207,7 @@ export default function InvoiceDetailPage() {
         {/* Action Buttons */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex gap-3 flex-wrap">
-            {invoice.status === 'draft' && (
-              <button
-                onClick={handleApprove}
-                disabled={actionLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Approve Invoice
-              </button>
-            )}
-            
-            {invoice.status === 'approved' && (
+            {invoice.status !== 'void' && (
               <button
                 onClick={handleSyncToQuickBooks}
                 disabled={actionLoading}
