@@ -21,7 +21,6 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
     if (Object.is(value, lastInput.current)) return
     lastInput.current = value
     setLocalValue(value)
-    lastSaved.current = value
   }, [value])
 
   const save = async (next: T) => {
@@ -48,6 +47,10 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
   const debouncedTimer = useRef<any>(null)
 
   const scheduleSave = (next: T) => {
+    if (debounceMs <= 0) {
+      void save(next)
+      return
+    }
     if (debouncedTimer.current) clearTimeout(debouncedTimer.current)
     debouncedTimer.current = setTimeout(() => {
       void save(next)
@@ -65,6 +68,10 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
       value: localValue,
       setLocal: (next: T) => {
         setLocalValue(next)
+      },
+      commit: (next: T) => {
+        setLocalValue(next)
+        void save(next)
       },
       setValue: (next: T) => {
         setLocalValue(next)

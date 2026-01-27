@@ -281,11 +281,20 @@ export default function JobDetailPage() {
   })
 
   const techField = useAutosaveField<string>({
-    value: (job?.tech && typeof job.tech === 'object' ? job.tech?.id : (job?.tech as any)) || '',
+    value: (() => {
+      const raw = job?.tech && typeof job.tech === 'object' ? (job.tech as any)?.id : (job?.tech as any)
+      if (raw === null || typeof raw === 'undefined') return ''
+      const s = String(raw).trim()
+      return s === '' ? '' : s
+    })(),
     onSave: async (next) => {
-      if (!job?.id) return
+      const jobIdRaw = (job as any)?.id ?? (params as any)?.id
+      const jobId = Array.isArray(jobIdRaw) ? jobIdRaw[0] : jobIdRaw
+      if (!jobId) {
+        throw new Error('Job ID not loaded')
+      }
       const techId = normalizeRelationId(next)
-      const response = await fetch(`/api/jobs/${job.id}/assign-tech`, {
+      const response = await fetch(`/api/jobs/${jobId}/assign-tech`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ techId: techId || null }),
@@ -294,7 +303,7 @@ export default function JobDetailPage() {
         const text = await response.text()
         throw new Error(text || 'Failed to assign tech')
       }
-      await fetchJob(job.id)
+      await fetchJob(String(jobId))
     },
     debounceMs: 0,
   })
@@ -1136,28 +1145,25 @@ export default function JobDetailPage() {
                     <p className="text-gray-900 dark:text-white">
                       {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
                     </p>
-                  ) : editMode ? (
-                    <select
-                      value={typeof editedJob?.tech === 'object' ? editedJob.tech?.id : editedJob?.tech || ''}
-                      onChange={(e) => setEditedJob({...editedJob, tech: e.target.value || null})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="">Unassigned</option>
-                      {techs.map(tech => (
-                        <option key={tech.id} value={tech.id}>{tech.name}</option>
-                      ))}
-                    </select>
                   ) : (
                     <div className="space-y-1">
                       <select
                         value={techField.value || ''}
-                        onChange={(e) => techField.setValue(e.target.value)}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          const commit = (techField as any).commit
+                          if (typeof commit === 'function') {
+                            commit(next)
+                            return
+                          }
+                          techField.setValue(next)
+                        }}
                         onBlur={() => techField.onBlur()}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="">Unassigned</option>
                         {techs.map((tech) => (
-                          <option key={tech.id} value={tech.id}>{tech.name}</option>
+                          <option key={tech.id} value={String(tech.id)}>{tech.name}</option>
                         ))}
                       </select>
                       <SaveIndicator status={techField.status} error={techField.error} />

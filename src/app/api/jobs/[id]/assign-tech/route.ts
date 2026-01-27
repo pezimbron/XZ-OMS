@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+function coerceId(id: unknown): string | number {
+  if (id === null || typeof id === 'undefined') return ''
+  if (typeof id === 'number') return id
+  return String(id)
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -14,12 +20,15 @@ export async function PATCH(
 
     console.log(`[Tech Assignment] Updating job ${id} with tech: ${techId}`)
 
-    // Update just the tech field - use number for ID
+    const jobId = coerceId(id)
+    const technicianId = techId ? coerceId(techId) : null
+
+    // Update just the tech field
     const updatedJob = await payload.update({
       collection: 'jobs',
-      id: parseInt(id),
+      id: jobId as any,
       data: {
-        tech: techId ? parseInt(techId) : null,
+        tech: technicianId as any,
       },
     })
 
