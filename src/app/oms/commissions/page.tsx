@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+import { SaveIndicator } from '@/components/oms/SaveIndicator'
+import { useAutosaveField } from '@/lib/oms/useAutosaveField'
+
 interface Job {
   id: string
   jobId: string
@@ -11,6 +14,10 @@ interface Job {
   status: string
   completionStatus?: string
   scannedDate?: string
+  commissionPayoutDate?: string
+  commissionPaymentStatus?: 'pending' | 'paid'
+  commissionPaidAt?: string
+  region?: string
   client?: {
     name: string
   }
@@ -26,11 +33,102 @@ interface Job {
   offHoursPayout?: number
 }
 
+const isoToDateInput = (iso?: string): string => {
+  if (!iso) return ''
+  return iso.slice(0, 10)
+}
+
+const dateInputToIso = (dateStr: string): string | null => {
+  if (!dateStr) return null
+  return new Date(`${dateStr}T00:00:00.000Z`).toISOString()
+}
+
+const getJobDateIso = (job: Job): string | undefined => {
+  return job.scannedDate || job.targetDate || undefined
+}
+
+const startOfWeekMonday = (d: Date): Date => {
+  const copy = new Date(d)
+  copy.setHours(0, 0, 0, 0)
+  const day = copy.getDay() // 0=Sun
+  const diff = (day + 6) % 7
+  copy.setDate(copy.getDate() - diff)
+  return copy
+}
+
+const PayoutDateCell: React.FC<{ jobId: string; initialValue?: string; canEdit: boolean }> = ({
+  jobId,
+  initialValue,
+  canEdit,
+}) => {
+  const payoutDateField = useAutosaveField<string>({
+    value: isoToDateInput(initialValue),
+    debounceMs: 500,
+    onSave: async (next) => {
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commissionPayoutDate: dateInputToIso(next),
+        }),
+      })
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to save payout date')
+      }
+    },
+  })
+
+  return (
+    <div className="flex items-center justify-end gap-2">
+      {canEdit ? (
+        <input
+          type="date"
+          value={payoutDateField.value || ''}
+          onChange={(e) => payoutDateField.setValue(e.target.value)}
+          onBlur={payoutDateField.onBlur}
+          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+        />
+      ) : (
+        <span className="text-sm text-gray-900 dark:text-white">
+          {payoutDateField.value ? new Date(`${payoutDateField.value}T00:00:00.000Z`).toLocaleDateString() : '—'}
+        </span>
+      )}
+
+      <SaveIndicator status={payoutDateField.status} error={payoutDateField.error} />
+    </div>
+  )
+}
+
 export default function CommissionsPage() {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [filter, setFilter] = useState<'all' | 'pending' | 'paid'>('all')
+
+  const [search, setSearch] = useState('')
+  const [techFilter, setTechFilter] = useState('')
+  const [payoutDateFrom, setPayoutDateFrom] = useState('')
+  const [payoutDateTo, setPayoutDateTo] = useState('')
+  const [payRunDate, setPayRunDate] = useState('')
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false)
+
+  const [selectedJobIds, setSelectedJobIds] = useState<Record<string, boolean>>({})
+  const [bulkStatus, setBulkStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [bulkError, setBulkError] = useState<string | null>(null)
+
+  const isTech = user?.role === 'tech'
+  const isAdminView = !!user && !isTech
+  const emptyColSpan = isAdminView ? 9 : 7
+
+  useEffect(() => {
+    if (!isAdminView) return
+    if (payRunDate) return
+    setPayRunDate(isoToDateInput(new Date().toISOString()))
+  }, [isAdminView, payRunDate])
 
   useEffect(() => {
     fetchUser()
@@ -73,6 +171,7 @@ export default function CommissionsPage() {
       }
       
       setJobs(fetchedJobs)
+      setSelectedJobIds({})
     } catch (error) {
       console.error('Error fetching jobs:', error)
     } finally {
@@ -80,8 +179,12 @@ export default function CommissionsPage() {
     }
   }
 
-  // All jobs are already filtered in fetchJobs
-  const myJobs = jobs
+  const myJobs = isTech
+    ? jobs.filter((j) => {
+        const isScannedStage = !!j.scannedDate || ['scanned', 'qc', 'done'].includes(j.status)
+        return isScannedStage && j.completionStatus !== 'incomplete'
+      })
+    : jobs.filter((j: any) => j.status === 'done' && j.completionStatus !== 'incomplete')
 
   // Calculate totals
   const calculatePayout = (job: Job) => {
@@ -91,15 +194,110 @@ export default function CommissionsPage() {
     return capture + travel + offHours
   }
 
-  const pendingJobs = myJobs.filter(j => j.status === 'done' && j.completionStatus === 'completed')
+  const isPaid = (job: Job) => job.commissionPaymentStatus === 'paid'
+  const pendingJobs = myJobs.filter((j) => !isPaid(j))
   const totalPending = pendingJobs.reduce((sum, job) => sum + calculatePayout(job), 0)
 
-  const paidJobs = myJobs.filter((j: any) => j.payoutStatus === 'paid')
+  const paidJobs = myJobs.filter((j) => isPaid(j))
   const totalPaid = paidJobs.reduce((sum, job) => sum + calculatePayout(job), 0)
 
-  const filteredJobs = filter === 'pending' ? pendingJobs : 
-                       filter === 'paid' ? paidJobs : 
-                       myJobs
+  const techOptions: Array<{ id: string; name: string }> = isAdminView
+    ? (() => {
+        const map = new Map<string, string>()
+        for (const job of myJobs as any[]) {
+          const id = job?.tech?.id
+          if (!id) continue
+          map.set(String(id), String(job?.tech?.name || id))
+        }
+        return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+      })()
+    : []
+
+  const baseList = filter === 'pending' ? pendingJobs : filter === 'paid' ? paidJobs : myJobs
+
+  const filteredJobs = baseList.filter((job: any) => {
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      const hay = `${job.jobId || ''} ${job.modelName || ''} ${job.client?.name || ''} ${(job.tech?.name || '')}`.toLowerCase()
+      if (!hay.includes(q)) return false
+    }
+
+    if (isAdminView && techFilter) {
+      const techId = job.tech?.id
+      if (!techId || techId !== techFilter) return false
+    }
+
+    if (payoutDateFrom) {
+      const jobPayout = isoToDateInput(job.commissionPayoutDate)
+      if (!jobPayout || jobPayout < payoutDateFrom) return false
+    }
+
+    if (payoutDateTo) {
+      const jobPayout = isoToDateInput(job.commissionPayoutDate)
+      if (!jobPayout || jobPayout > payoutDateTo) return false
+    }
+
+    if (payRunDate) {
+      const weekStart = startOfWeekMonday(new Date(`${payRunDate}T00:00:00`))
+      const periodStart = new Date(weekStart)
+      periodStart.setDate(periodStart.getDate() - 14)
+
+      const jobDateIso = getJobDateIso(job)
+      if (!jobDateIso) return false
+      const jobDate = new Date(jobDateIso)
+      if (jobDate < periodStart || jobDate >= weekStart) return false
+    }
+
+    return true
+  })
+
+  const selectedIds = Object.keys(selectedJobIds).filter((id) => selectedJobIds[id])
+
+  const allVisibleSelected = isAdminView && filteredJobs.length > 0 && filteredJobs.every((j: any) => !!selectedJobIds[j.id])
+
+  const patchJob = async (jobId: string, update: any) => {
+    const response = await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(update),
+    })
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      throw new Error(text || 'Failed to update job')
+    }
+  }
+
+  const bulkUpdate = async (updater: (job: Job) => any) => {
+    if (!isAdminView) return
+    if (selectedIds.length === 0) return
+
+    setBulkStatus('saving')
+    setBulkError(null)
+    try {
+      for (const id of selectedIds) {
+        const job = myJobs.find((j) => j.id === id)
+        if (!job) continue
+        const update = updater(job)
+        await patchJob(id, update)
+      }
+
+      setJobs((prev) =>
+        prev.map((j) => {
+          if (!selectedJobIds[j.id]) return j
+          const update = updater(j)
+          return { ...j, ...update }
+        }),
+      )
+
+      setBulkStatus('saved')
+      setTimeout(() => setBulkStatus('idle'), 1200)
+    } catch (e: any) {
+      setBulkStatus('error')
+      setBulkError(e?.message || 'Bulk update failed')
+      setTimeout(() => setBulkStatus('idle'), 2500)
+    }
+  }
 
   if (loading) {
     return (
@@ -120,9 +318,9 @@ export default function CommissionsPage() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Commissions</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{isAdminView ? 'Commissions' : 'My Commissions'}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Track your earnings and completed jobs
+            {isAdminView ? 'Manage payouts and commission periods' : 'Track your earnings and scanned jobs'}
           </p>
         </div>
       </div>
@@ -188,6 +386,141 @@ export default function CommissionsPage() {
           </div>
         </div>
 
+        {isAdminView ? (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="flex-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pay Run Date</div>
+                <input
+                  type="date"
+                  value={payRunDate}
+                  onChange={(e) => setPayRunDate(e.target.value)}
+                  className="w-full md:w-56 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+                {payRunDate ? (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Window: {(() => {
+                      const weekStart = startOfWeekMonday(new Date(`${payRunDate}T00:00:00`))
+                      const periodStart = new Date(weekStart)
+                      periodStart.setDate(periodStart.getDate() - 14)
+                      const end = new Date(weekStart)
+                      end.setDate(end.getDate() - 1)
+                      return `${periodStart.toLocaleDateString()} - ${end.toLocaleDateString()}`
+                    })()}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-sm text-gray-700 dark:text-gray-300">Selected: {selectedIds.length}</div>
+
+                <button
+                  onClick={() => {
+                    const next: Record<string, boolean> = {}
+                    for (const j of filteredJobs) next[j.id] = true
+                    setSelectedJobIds(next)
+                  }}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white"
+                >
+                  Select Visible
+                </button>
+
+                <button
+                  onClick={() => setSelectedJobIds({})}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white"
+                >
+                  Clear
+                </button>
+
+                <button
+                  onClick={() =>
+                    bulkUpdate(() => ({
+                      commissionPayoutDate: dateInputToIso(payRunDate),
+                    }))
+                  }
+                  className="px-3 py-2 text-sm bg-blue-600 text-white rounded disabled:opacity-50"
+                  disabled={!payRunDate || selectedIds.length === 0}
+                >
+                  Set Payout Date
+                </button>
+
+                <button
+                  onClick={() =>
+                    bulkUpdate(() => ({
+                      commissionPaymentStatus: 'paid',
+                      commissionPaidAt: dateInputToIso(payRunDate) || new Date().toISOString(),
+                    }))
+                  }
+                  className="px-3 py-2 text-sm bg-green-600 text-white rounded disabled:opacity-50"
+                  disabled={!payRunDate || selectedIds.length === 0}
+                >
+                  Mark Paid
+                </button>
+
+                <button
+                  onClick={() => setMoreFiltersOpen((v) => !v)}
+                  className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white"
+                >
+                  {moreFiltersOpen ? 'Hide Filters' : 'More Filters'}
+                </button>
+
+                <SaveIndicator status={bulkStatus as any} error={bulkError} />
+              </div>
+            </div>
+
+            {moreFiltersOpen ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-4">
+                <div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Search</div>
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Job / client / tech"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  />
+                </div>
+
+                <div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tech</div>
+                  <select
+                    value={techFilter}
+                    onChange={(e) => setTechFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value="">All Techs</option>
+                    {techOptions.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="w-full">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Payout Date From</div>
+                    <input
+                      type="date"
+                      value={payoutDateFrom}
+                      onChange={(e) => setPayoutDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">To</div>
+                    <input
+                      type="date"
+                      value={payoutDateTo}
+                      onChange={(e) => setPayoutDateTo(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {/* Filter Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="flex border-b border-gray-200 dark:border-gray-700">
@@ -230,14 +563,38 @@ export default function CommissionsPage() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
+                  {isAdminView ? (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={!!allVisibleSelected}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          const next: Record<string, boolean> = { ...selectedJobIds }
+                          for (const j of filteredJobs) {
+                            next[j.id] = checked
+                          }
+                          setSelectedJobIds(next)
+                        }}
+                      />
+                    </th>
+                  ) : null}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Job ID
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Client
                   </th>
+                  {isAdminView ? (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Tech
+                    </th>
+                  ) : null}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Date
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    Payout Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Status
@@ -253,7 +610,7 @@ export default function CommissionsPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredJobs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={emptyColSpan} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No jobs found
                     </td>
                   </tr>
@@ -263,6 +620,18 @@ export default function CommissionsPage() {
                       key={job.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
+                      {isAdminView ? (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={!!selectedJobIds[job.id]}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setSelectedJobIds((prev) => ({ ...prev, [job.id]: checked }))
+                            }}
+                          />
+                        </td>
+                      ) : null}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {job.jobId || 'N/A'}
@@ -276,20 +645,35 @@ export default function CommissionsPage() {
                           {job.client?.name || 'N/A'}
                         </div>
                       </td>
+                      {isAdminView ? (
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white">
+                            {(job as any).tech?.name || '—'}
+                          </div>
+                        </td>
+                      ) : null}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
                           {job.scannedDate ? new Date(job.scannedDate).toLocaleDateString() : 
                            job.targetDate ? new Date(job.targetDate).toLocaleDateString() : 'N/A'}
                         </div>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <PayoutDateCell
+                          jobId={job.id}
+                          initialValue={job.commissionPayoutDate}
+                          canEdit={user?.role !== 'tech'}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          job.status === 'done' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                          job.status === 'qc' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' :
-                          job.status === 'scanned' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300' :
-                          'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        }`}>
-                          {job.status}
+                        <span
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            job.commissionPaymentStatus === 'paid'
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                          }`}
+                        >
+                          {job.commissionPaymentStatus === 'paid' ? 'paid' : 'pending'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

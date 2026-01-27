@@ -353,6 +353,29 @@ export const Jobs: CollectionConfig = {
       label: 'Off-Hours Payout',
     },
     {
+      name: 'commissionPayoutDate',
+      type: 'date',
+      label: 'Commission Payout Date',
+      index: true,
+    },
+    {
+      name: 'commissionPaymentStatus',
+      type: 'select',
+      label: 'Commission Payment Status',
+      defaultValue: 'pending',
+      index: true,
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Paid', value: 'paid' },
+      ],
+    },
+    {
+      name: 'commissionPaidAt',
+      type: 'date',
+      label: 'Commission Paid At',
+      index: true,
+    },
+    {
       name: 'workflowTemplate',
       type: 'relationship',
       relationTo: 'workflow-templates' as any,

@@ -824,6 +824,9 @@ export interface Job {
   vendorPrice?: number | null;
   travelPayout?: number | null;
   offHoursPayout?: number | null;
+  commissionPayoutDate?: string | null;
+  commissionPaymentStatus?: ('pending' | 'paid') | null;
+  commissionPaidAt?: string | null;
   workflowTemplate?: (number | null) | WorkflowTemplate;
   workflowSteps?:
     | {
@@ -1659,6 +1662,9 @@ export interface JobsSelect<T extends boolean = true> {
   vendorPrice?: T;
   travelPayout?: T;
   offHoursPayout?: T;
+  commissionPayoutDate?: T;
+  commissionPaymentStatus?: T;
+  commissionPaidAt?: T;
   workflowTemplate?: T;
   workflowSteps?:
     | T

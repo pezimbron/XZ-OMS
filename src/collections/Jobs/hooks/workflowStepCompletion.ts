@@ -148,9 +148,39 @@ async function createNotifications(
 
 // Helper function to get users by roles
 async function getUsersByRoles(payload: any, roles: string[], job: any) {
-  const users: any[] = []
+  const usersById = new Map<any, any>()
 
-  for (const role of roles) {
+  const addUser = (user: any) => {
+    if (!user?.id) return
+    usersById.set(user.id, user)
+  }
+
+  const validRoles = new Set([
+    'super-admin',
+    'sales-admin',
+    'ops-manager',
+    'tech',
+    'client-partner',
+    'post-producer',
+  ])
+
+  const normalizeRole = (rawRole: unknown): string | null => {
+    if (typeof rawRole !== 'string') return null
+    const role = rawRole.trim().toLowerCase()
+
+    const roleMap: Record<string, string> = {
+      'post-production': 'post-producer',
+      'post producer': 'post-producer',
+      'postproducer': 'post-producer',
+    }
+
+    return roleMap[role] ?? role
+  }
+
+  for (const rawRole of roles) {
+    const role = normalizeRole(rawRole)
+    if (!role) continue
+
     if (role === 'tech' && job.tech) {
       // Get the assigned tech
       const techId = typeof job.tech === 'object' ? job.tech.id : job.tech
@@ -161,9 +191,13 @@ async function getUsersByRoles(payload: any, roles: string[], job: any) {
       })
       if (tech && tech.user) {
         const userId = typeof tech.user === 'object' ? tech.user.id : tech.user
-        users.push({ id: userId })
+        addUser({ id: userId })
       }
     } else {
+      if (!validRoles.has(role)) {
+        continue
+      }
+
       // Get users by role
       const roleUsers = await payload.find({
         collection: 'users',
@@ -175,11 +209,13 @@ async function getUsersByRoles(payload: any, roles: string[], job: any) {
         limit: 100,
         overrideAccess: true,
       })
-      users.push(...roleUsers.docs)
+      for (const user of roleUsers.docs ?? []) {
+        addUser(user)
+      }
     }
   }
 
-  return users
+  return Array.from(usersById.values())
 }
 
 // Helper function to send client email
