@@ -6,8 +6,8 @@ export const autoGenerateExpenses: CollectionBeforeChangeHook = async ({
   operation,
   originalDoc,
 }) => {
-  // Only run on update operations
-  if (operation !== 'update') {
+  // Only run on update and create operations
+  if (operation !== 'update' && operation !== 'create') {
     return data
   }
 
@@ -48,6 +48,27 @@ export const autoGenerateExpenses: CollectionBeforeChangeHook = async ({
       },
       limit: 100,
       overrideAccess: true,
+    })
+
+    // Create a map of product ID to product data for easy lookup
+    const productMap = new Map(
+      productsData.docs.map((product: any) => [product.id, product])
+    )
+
+    // Auto-populate excludeFromCalendar from product defaults for new line items
+    data.lineItems = currentLineItems.map((item: any) => {
+      const productId = typeof item.product === 'object' ? item.product?.id : item.product
+      const product = productMap.get(productId)
+      
+      // If this is a new product and excludeFromCalendar is not explicitly set, use product default
+      if (product && newProductIds.includes(productId) && item.excludeFromCalendar === undefined) {
+        return {
+          ...item,
+          excludeFromCalendar: product.excludeFromCalendar || false,
+        }
+      }
+      
+      return item
     })
 
     // Filter products that have auto-expense enabled

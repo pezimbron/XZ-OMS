@@ -657,6 +657,7 @@ export interface Comment {
 export interface Client {
   id: number;
   name: string;
+  primaryContact?: string | null;
   clientType: 'retail' | 'outsourcing-partner';
   billingPreference: 'immediate' | 'weekly-batch' | 'monthly-batch' | 'payment-first';
   email?: string | null;
@@ -777,6 +778,7 @@ export interface Product {
   hasDefaultExpense?: boolean | null;
   defaultExpenseCost?: number | null;
   expenseDescription?: string | null;
+  excludeFromCalendar?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -832,6 +834,7 @@ export interface Job {
         product: number | Product;
         quantity: number;
         instructions?: string | null;
+        excludeFromCalendar?: boolean | null;
         id?: string | null;
       }[]
     | null;
@@ -1492,6 +1495,7 @@ export interface CommentsSelect<T extends boolean = true> {
  */
 export interface ClientsSelect<T extends boolean = true> {
   name?: T;
+  primaryContact?: T;
   clientType?: T;
   billingPreference?: T;
   email?: T;
@@ -1586,6 +1590,7 @@ export interface ProductsSelect<T extends boolean = true> {
   hasDefaultExpense?: T;
   defaultExpenseCost?: T;
   expenseDescription?: T;
+  excludeFromCalendar?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1640,6 +1645,7 @@ export interface JobsSelect<T extends boolean = true> {
         product?: T;
         quantity?: T;
         instructions?: T;
+        excludeFromCalendar?: T;
         id?: T;
       };
   targetDate?: T;

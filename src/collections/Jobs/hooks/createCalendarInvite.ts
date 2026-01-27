@@ -296,16 +296,38 @@ function formatCalendarDescription(
 ): string {
   const sections: string[] = []
 
-  // 1. TO-DO LIST
+  // 1. TO-DO LIST - From Workflow Steps (Tech Tasks Only)
+  if (job.workflowSteps && job.workflowSteps.length > 0) {
+    const techSteps = job.workflowSteps.filter((step: any) => 
+      step.requiredRole === 'tech' && !step.completed
+    )
+    
+    if (techSteps.length > 0) {
+      sections.push('📋 TO-DO LIST (Field Tasks)')
+      techSteps.forEach((step: any, index: number) => {
+        sections.push(`${index + 1}. ${step.stepName}`)
+        if (step.description) {
+          sections.push(`   ${step.description}`)
+        }
+      })
+      sections.push('')
+    }
+  }
+
+  // Optional: Include line items that are NOT excluded from calendar
   if (job.lineItems && job.lineItems.length > 0) {
-    sections.push('📋 TO-DO LIST')
-    job.lineItems.forEach((item: any, index: number) => {
-      const product = products[index]
-      const productName = product?.name || 'Service'
-      const quantity = item.quantity || 1
-      sections.push(`${index + 1}. ${productName} (Qty: ${quantity})`)
-    })
-    sections.push('')
+    const calendarItems = job.lineItems.filter((item: any) => !item.excludeFromCalendar)
+    
+    if (calendarItems.length > 0) {
+      sections.push('📦 ADDITIONAL ITEMS')
+      calendarItems.forEach((item: any, index: number) => {
+        const product = products[job.lineItems.indexOf(item)]
+        const productName = product?.name || 'Service'
+        const quantity = item.quantity || 1
+        sections.push(`${index + 1}. ${productName} (Qty: ${quantity})`)
+      })
+      sections.push('')
+    }
   }
 
   // 2. CLIENT NAME AND PURPOSE OF SCAN
@@ -367,16 +389,19 @@ function formatCalendarDescription(
 
   // 5. SPECIFIC INSTRUCTIONS FOR EACH TO-DO ITEM
   if (job.lineItems && job.lineItems.length > 0) {
-    const hasInstructions = job.lineItems.some((item: any) => item.instructions)
+    const calendarItems = job.lineItems.filter((item: any) => !item.excludeFromCalendar)
+    const hasInstructions = calendarItems.some((item: any) => item.instructions)
+    
     if (hasInstructions) {
       sections.push('══════════')
       sections.push('📝 SPECIFIC INSTRUCTIONS PER ITEM')
-      job.lineItems.forEach((item: any, index: number) => {
+      calendarItems.forEach((item: any) => {
         if (item.instructions) {
-          const product = products[index]
+          const itemIndex = job.lineItems.indexOf(item)
+          const product = products[itemIndex]
           const productName = product?.name || 'Service'
-          sections.push(`${index + 1}. ${productName}:`)
-          sections.push(`   ${item.instructions}`)
+          sections.push(`• ${productName}:`)
+          sections.push(`  ${item.instructions}`)
           sections.push('')
         }
       })

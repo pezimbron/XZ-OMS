@@ -33,6 +33,14 @@ export const Clients: CollectionConfig = {
       required: true,
     },
     {
+      name: 'primaryContact',
+      type: 'text',
+      label: 'Primary Contact Person',
+      admin: {
+        description: 'Name of the person who receives communications at this company',
+      },
+    },
+    {
       name: 'clientType',
       type: 'select',
       required: true,

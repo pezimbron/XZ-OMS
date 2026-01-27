@@ -1702,51 +1702,82 @@ export default function JobDetailPage() {
               {editMode ? (
                 <div className="space-y-3">
                   {(editedJob?.lineItems || []).map((item: any, index: number) => (
-                    <div key={index} className="flex gap-3 items-start p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Product</label>
-                        <select
-                          value={typeof item.product === 'object' ? item.product?.id : item.product}
-                          onChange={(e) => {
-                            const newLineItems = [...editedJob.lineItems]
-                            newLineItems[index] = {...newLineItems[index], product: e.target.value}
+                    <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <div className="flex gap-3 items-start">
+                        <div className="flex-1">
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Product</label>
+                          <select
+                            value={typeof item.product === 'object' ? item.product?.id : item.product}
+                            onChange={(e) => {
+                              const newLineItems = [...editedJob.lineItems]
+                              newLineItems[index] = {...newLineItems[index], product: e.target.value}
+                              setEditedJob({...editedJob, lineItems: newLineItems})
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="">Select Product...</option>
+                            {products.map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.name} - ${product.basePrice}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="w-24">
+                          <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Qty</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity || 1}
+                            onChange={(e) => {
+                              const newLineItems = [...editedJob.lineItems]
+                              newLineItems[index] = {...newLineItems[index], quantity: parseInt(e.target.value)}
+                              setEditedJob({...editedJob, lineItems: newLineItems})
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const newLineItems = editedJob.lineItems.filter((_: any, i: number) => i !== index)
                             setEditedJob({...editedJob, lineItems: newLineItems})
                           }}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="mt-7 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
-                          <option value="">Select Product...</option>
-                          {products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {product.name} - ${product.basePrice}
-                            </option>
-                          ))}
-                        </select>
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
-                      <div className="w-24">
-                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Qty</label>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity || 1}
+                      <div className="mt-3">
+                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Instructions</label>
+                        <textarea
+                          value={item.instructions || ''}
                           onChange={(e) => {
                             const newLineItems = [...editedJob.lineItems]
-                            newLineItems[index] = {...newLineItems[index], quantity: parseInt(e.target.value)}
+                            newLineItems[index] = {...newLineItems[index], instructions: e.target.value}
                             setEditedJob({...editedJob, lineItems: newLineItems})
                           }}
+                          rows={2}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Optional instructions for this service..."
                         />
                       </div>
-                      <button
-                        onClick={() => {
-                          const newLineItems = editedJob.lineItems.filter((_: any, i: number) => i !== index)
-                          setEditedJob({...editedJob, lineItems: newLineItems})
-                        }}
-                        className="mt-7 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <div className="mt-3">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                          <input
+                            type="checkbox"
+                            checked={item.excludeFromCalendar || false}
+                            onChange={(e) => {
+                              const newLineItems = [...editedJob.lineItems]
+                              newLineItems[index] = {...newLineItems[index], excludeFromCalendar: e.target.checked}
+                              setEditedJob({...editedJob, lineItems: newLineItems})
+                            }}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                          />
+                          Exclude from tech calendar (post-production only)
+                        </label>
+                      </div>
                     </div>
                   ))}
                   {(!editedJob?.lineItems || editedJob.lineItems.length === 0) && (
@@ -1802,6 +1833,23 @@ export default function JobDetailPage() {
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="Optional instructions for this service..."
                         />
+
+                        <div className="mt-3">
+                          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input
+                              type="checkbox"
+                              checked={item.excludeFromCalendar || false}
+                              onChange={(e) => {
+                                const next = [...(lineItemsField.value || [])]
+                                next[index] = { ...next[index], excludeFromCalendar: e.target.checked }
+                                lineItemsField.setValue(next)
+                              }}
+                              onBlur={() => lineItemsField.onBlur()}
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                            />
+                            Exclude from tech calendar (post-production only)
+                          </label>
+                        </div>
                       </div>
                       <div className="w-24">
                         <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Qty</label>

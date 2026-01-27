@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 interface Client {
   id: string
   name: string
+  primaryContact?: string
   clientType?: string
   billingPreference?: string
   email?: string
@@ -377,6 +378,23 @@ export default function ClientDetailPage() {
                       />
                     ) : (
                       <p className="text-gray-900 dark:text-white py-2">{displayClient?.name}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Primary Contact Person
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editedClient?.primaryContact || ''}
+                        onChange={(e) => updateField('primaryContact', e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Name of person who receives communications"
+                      />
+                    ) : (
+                      <p className="text-gray-900 dark:text-white py-2">{displayClient?.primaryContact || '-'}</p>
                     )}
                   </div>
 

@@ -20,6 +20,7 @@ interface Product {
   defaultExpenseCost?: number
   expenseDescription?: string
   defaultInstructions?: string
+  excludeFromCalendar?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -49,15 +50,20 @@ export default function ProductDetailPage() {
   }
 
   const patchProduct = async (id: string, update: any) => {
+    console.log('[patchProduct] Updating product:', id, 'with:', update)
     const response = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(update),
     })
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[patchProduct] Failed:', response.status, errorText)
       throw new Error('Failed to update product')
     }
-    const updated = await response.json()
+    const data = await response.json()
+    console.log('[patchProduct] Response:', data)
+    const updated = data.doc || data
     setProduct(updated)
   }
 
@@ -162,6 +168,15 @@ export default function ProductDetailPage() {
       await patchProduct(product.id, { expenseDescription: val })
     },
     debounceMs: 800,
+  })
+
+  const excludeFromCalendarField = useAutosaveField({
+    value: product?.excludeFromCalendar ?? false,
+    onSave: async (val) => {
+      if (!product?.id) return
+      console.log('[excludeFromCalendar] Saving value:', val)
+      await patchProduct(product.id, { excludeFromCalendar: val })
+    },
   })
 
   if (loading) {
@@ -523,6 +538,22 @@ export default function ProductDetailPage() {
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                     />
                     <SaveIndicator status={taxableField.status} error={taxableField.error} />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">Exclude from Tech Calendar</label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Hide from calendar by default (e.g., post-production tasks)</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={excludeFromCalendarField.value}
+                      onChange={(e) => excludeFromCalendarField.setValue(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                    />
+                    <SaveIndicator status={excludeFromCalendarField.status} error={excludeFromCalendarField.error} />
                   </div>
                 </div>
               </div>

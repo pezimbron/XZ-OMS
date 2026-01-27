@@ -5,6 +5,21 @@ import { authenticated } from '../access/authenticated'
 
 export const Products: CollectionConfig = {
   slug: 'products',
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        if (!data) return data
+        // Sanitize numeric fields to prevent NaN errors
+        if (data.basePrice === null || data.basePrice === undefined || isNaN(data.basePrice)) {
+          data.basePrice = 0
+        }
+        if (data.defaultExpenseCost === null || data.defaultExpenseCost === undefined || isNaN(data.defaultExpenseCost)) {
+          data.defaultExpenseCost = 0
+        }
+        return data
+      },
+    ],
+  },
   access: {
     create: isAdmin,
     read: authenticated, // All authenticated users can see products
@@ -48,6 +63,13 @@ export const Products: CollectionConfig = {
       name: 'basePrice',
       type: 'number',
       required: true,
+      defaultValue: 0,
+      validate: (val) => {
+        if (val === null || val === undefined || isNaN(val)) {
+          return 'Base price must be a valid number'
+        }
+        return true
+      },
     },
     {
       name: 'isRecurring',
@@ -92,6 +114,7 @@ export const Products: CollectionConfig = {
       name: 'defaultExpenseCost',
       type: 'number',
       label: 'Default Expense Cost',
+      defaultValue: 0,
       admin: {
         step: 0.01,
         description: 'Default cost for the auto-generated expense (can be edited per job)',
@@ -106,6 +129,15 @@ export const Products: CollectionConfig = {
         placeholder: 'e.g., Floor Plan Drafting',
         description: 'Description for the auto-generated expense',
         condition: (data) => data.hasDefaultExpense === true,
+      },
+    },
+    {
+      name: 'excludeFromCalendar',
+      type: 'checkbox',
+      label: 'Exclude from Tech Calendar by Default',
+      defaultValue: false,
+      admin: {
+        description: 'Hide this product from technician calendar invites by default (e.g., for post-production tasks like floor plans, QC, hosting). Can be overridden per-job.',
       },
     },
   ],

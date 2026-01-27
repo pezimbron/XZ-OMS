@@ -274,6 +274,15 @@ export const Jobs: CollectionConfig = {
             description: 'Detailed instructions for completing this specific item',
           },
         },
+        {
+          name: 'excludeFromCalendar',
+          type: 'checkbox',
+          label: 'Exclude from Tech Calendar',
+          defaultValue: false,
+          admin: {
+            description: 'Hide this item from the technician\'s calendar invite to-do list (e.g., for post-production only tasks)',
+          },
+        },
       ],
     },
     {
