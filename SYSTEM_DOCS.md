@@ -25,6 +25,7 @@
 - **Google OAuth**: Configured
 - **Client ID**: `115056776638-bg0i7n99o63cn5lm6dbfh63oholoh2pi.apps.googleusercontent.com`
 
+
 ---
 
 ## 📊 Collections & Data Model
