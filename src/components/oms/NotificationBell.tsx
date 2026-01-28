@@ -125,14 +125,23 @@ export function NotificationBell() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Notifications
               </h3>
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  >
+                    Mark all as read
+                  </button>
+                )}
+                <Link
+                  href="/oms/notifications"
+                  onClick={() => setShowDropdown(false)}
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
                 >
-                  Mark all as read
-                </button>
-              )}
+                  View All
+                </Link>
+              </div>
             </div>
 
             <div className="overflow-y-auto flex-1">

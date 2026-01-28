@@ -422,6 +422,18 @@ function formatCalendarDescription(
     sections.push('')
   }
 
+  // Tech Portal Access Link
+  if (job.completionToken) {
+    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const portalUrl = `${serverUrl}/forms/job/${job.completionToken}`
+    
+    sections.push('══════════')
+    sections.push('🔗 TECH PORTAL ACCESS')
+    sections.push('View job details, send messages, and complete workflow steps:')
+    sections.push(portalUrl)
+    sections.push('')
+  }
+
   // Additional job info
   sections.push('══════════')
   sections.push('ℹ️  JOB INFO')

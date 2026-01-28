@@ -10,11 +10,12 @@ import { workflowStepCompletion } from './Jobs/hooks/workflowStepCompletion'
 import { populateWorkflowSteps } from './Jobs/hooks/populateWorkflowSteps'
 import { updateInvoiceStatus } from './Jobs/hooks/updateInvoiceStatus'
 import { applyClientDefaultWorkflow } from './Jobs/hooks/applyClientDefaultWorkflow'
+import { validateTechAssignment } from './Jobs/hooks/validateTechAssignment'
 
 export const Jobs: CollectionConfig = {
   slug: 'jobs',
   hooks: {
-    beforeChange: [applyClientDefaultWorkflow, populateWorkflowSteps, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus],
+    beforeChange: [applyClientDefaultWorkflow, populateWorkflowSteps, validateTechAssignment, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus],
     afterChange: [createCalendarInvite, afterWorkflowStepUpdate],
   },
   access: {

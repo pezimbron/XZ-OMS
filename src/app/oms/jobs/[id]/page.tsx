@@ -360,13 +360,8 @@ export default function JobDetailPage() {
     value: job?.timezone || 'America/Chicago',
     onSave: async (next) => {
       const jobId = params.id as string
-      if (!jobId) {
-        console.error('[Timezone] No job ID available')
-        return
-      }
-      console.log('[Timezone] Saving timezone:', next, 'for job:', jobId)
+      if (!jobId) return
       await patchJob(jobId, { timezone: next })
-      console.log('[Timezone] Save successful, refetching job')
       await fetchJob(jobId)
     },
     debounceMs: 0,
