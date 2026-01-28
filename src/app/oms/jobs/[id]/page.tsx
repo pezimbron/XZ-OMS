@@ -166,6 +166,28 @@ export default function JobDetailPage() {
     debounceMs: 0,
   })
 
+  const modelNameField = useAutosaveField<string>({
+    value: job?.modelName || '',
+    onSave: async (next) => {
+      const jobId = params.id as string
+      if (!jobId) return
+      await patchJob(jobId, { modelName: next })
+      await fetchJob(jobId)
+    },
+    debounceMs: 800,
+  })
+
+  const clientField = useAutosaveField<string>({
+    value: typeof job?.client === 'object' ? job.client?.id : job?.client || '',
+    onSave: async (next) => {
+      const jobId = params.id as string
+      if (!jobId) return
+      await patchJob(jobId, { client: next })
+      await fetchJob(jobId)
+    },
+    debounceMs: 0,
+  })
+
   const propertyTypeField = useAutosaveField<string>({
     value: (job as any)?.propertyType || '',
     onSave: async (next) => {
@@ -1093,15 +1115,19 @@ export default function JobDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Model Name</label>
-                  {editMode ? (
-                    <input
-                      type="text"
-                      value={editedJob?.modelName || ''}
-                      onChange={(e) => setEditedJob({...editedJob, modelName: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  ) : (
+                  {isTech ? (
                     <p className="text-gray-900 dark:text-white">{job.modelName || 'N/A'}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        value={modelNameField.value}
+                        onChange={(e) => modelNameField.setValue(e.target.value)}
+                        onBlur={() => modelNameField.onBlur()}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                      <SaveIndicator status={modelNameField.status} error={modelNameField.error} />
+                    </div>
                   )}
                 </div>
                 <div>
@@ -1331,19 +1357,22 @@ export default function JobDetailPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</label>
-                    {editMode ? (
-                      <select
-                        value={typeof editedJob?.client === 'object' ? editedJob.client?.id : editedJob?.client || ''}
-                        onChange={(e) => setEditedJob({...editedJob, client: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="">Select Client</option>
-                        {clients.map(client => (
-                          <option key={client.id} value={client.id}>{client.name}</option>
-                        ))}
-                      </select>
-                    ) : (
+                    {isTech ? (
                       <p className="text-gray-900 dark:text-white">{job.client?.name || 'N/A'}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <select
+                          value={clientField.value}
+                          onChange={(e) => clientField.commit(e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">Select Client</option>
+                          {clients.map(client => (
+                            <option key={client.id} value={client.id}>{client.name}</option>
+                          ))}
+                        </select>
+                        <SaveIndicator status={clientField.status} error={clientField.error} />
+                      </div>
                     )}
                   </div>
                 </div>
