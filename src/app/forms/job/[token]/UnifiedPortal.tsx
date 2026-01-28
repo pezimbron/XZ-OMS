@@ -15,6 +15,11 @@ interface Job {
   state?: string
   schedulingNotes?: string
   techInstructions?: string
+  uploadLink?: string
+  mediaUploadLink?: string
+  sitePOCName?: string
+  sitePOCPhone?: string
+  sitePOCEmail?: string
   lineItems?: any[]
   workflowSteps?: Array<{
     stepName: string
@@ -452,6 +457,62 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
                 <div className="mt-4">
                   <label className="text-sm font-medium text-gray-500">Instructions</label>
                   <p className="text-gray-900 bg-gray-50 p-3 rounded-lg mt-1 whitespace-pre-wrap">{job.techInstructions}</p>
+                </div>
+              )}
+
+              {/* Upload Links */}
+              {(job.uploadLink || job.mediaUploadLink) && (
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-gray-500">Upload Locations</label>
+                  <div className="mt-2 space-y-2">
+                    {job.uploadLink && (
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs font-medium text-blue-900 mb-1">Primary Upload Link</p>
+                        <a href={job.uploadLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all text-sm">
+                          {job.uploadLink}
+                        </a>
+                      </div>
+                    )}
+                    {job.mediaUploadLink && (
+                      <div className="bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs font-medium text-blue-900 mb-1">Media Upload Link</p>
+                        <a href={job.mediaUploadLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all text-sm">
+                          {job.mediaUploadLink}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* On-Site Contact */}
+              {(job.sitePOCName || job.sitePOCPhone || job.sitePOCEmail) && (
+                <div className="mt-4">
+                  <label className="text-sm font-medium text-gray-500">On-Site Contact (POC)</label>
+                  <div className="mt-2 bg-gray-50 p-3 rounded-lg space-y-2">
+                    {job.sitePOCName && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500">Name</p>
+                        <p className="text-gray-900">{job.sitePOCName}</p>
+                      </div>
+                    )}
+                    {job.sitePOCPhone && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500">Phone</p>
+                        <a href={`tel:${job.sitePOCPhone}`} className="text-blue-600 hover:underline">
+                          {job.sitePOCPhone}
+                        </a>
+                      </div>
+                    )}
+                    {job.sitePOCEmail && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500">Email</p>
+                        <a href={`mailto:${job.sitePOCEmail}`} className="text-blue-600 hover:underline">
+                          {job.sitePOCEmail}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

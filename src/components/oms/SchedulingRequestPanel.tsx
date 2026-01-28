@@ -120,9 +120,9 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Scheduling Request</h3>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Scheduling Request</h2>
         {!isOpen && (
           <button
             onClick={() => setIsOpen(true)}

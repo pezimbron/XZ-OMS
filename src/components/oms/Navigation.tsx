@@ -20,7 +20,7 @@ const navItems: NavItem[] = [
   { label: 'Quick Create', href: '/oms/quick-create', icon: '⚡', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Bulk Import', href: '/oms/bulk-import', icon: '📥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Jobs', href: '/oms/jobs', icon: '📋' },
-  { label: 'Commissions', href: '/oms/commissions', icon: '💵', roles: ['tech'] },
+  { label: 'Commissions', href: '/oms/commissions', icon: '💵', roles: ['super-admin', 'ops-manager', 'tech'] },
   { label: 'Invoicing', href: '/oms/invoicing', icon: '💰', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Invoices', href: '/oms/invoices', icon: '🧾', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Clients', href: '/oms/clients', icon: '👥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },

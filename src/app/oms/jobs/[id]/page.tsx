@@ -32,6 +32,11 @@ interface Job {
   lineItems?: any[]
   techInstructions?: string
   schedulingNotes?: string
+  uploadLink?: string
+  mediaUploadLink?: string
+  sitePOCName?: string
+  sitePOCPhone?: string
+  sitePOCEmail?: string
   qcStatus?: string
   qcNotes?: string
   totalPayout?: number
@@ -226,6 +231,56 @@ export default function JobDetailPage() {
     onSave: async (next) => {
       if (!job?.id) return
       await patchJob(job.id, { techInstructions: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const uploadLinkField = useAutosaveField<string>({
+    value: job?.uploadLink || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { uploadLink: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const mediaUploadLinkField = useAutosaveField<string>({
+    value: job?.mediaUploadLink || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { mediaUploadLink: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const sitePOCNameField = useAutosaveField<string>({
+    value: job?.sitePOCName || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { sitePOCName: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const sitePOCPhoneField = useAutosaveField<string>({
+    value: job?.sitePOCPhone || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { sitePOCPhone: next || null })
+      await fetchJob(job.id)
+    },
+    debounceMs: 900,
+  })
+
+  const sitePOCEmailField = useAutosaveField<string>({
+    value: job?.sitePOCEmail || '',
+    onSave: async (next) => {
+      if (!job?.id) return
+      await patchJob(job.id, { sitePOCEmail: next || null })
       await fetchJob(job.id)
     },
     debounceMs: 900,
@@ -1547,79 +1602,6 @@ export default function JobDetailPage() {
               </div>
             </div>
 
-          </div>
-        )}
-
-        {activeTab === 'instructions' && (
-          <div className="space-y-6">
-            {/* Scheduling Notes */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Scheduling Notes / Restrictions</h2>
-              {isTech ? (
-                <div className="prose dark:prose-invert max-w-none">
-                  {job.schedulingNotes ? (
-                    <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                      {job.schedulingNotes}
-                    </pre>
-                  ) : (
-                    <p className="text-gray-400 italic">No scheduling notes</p>
-                  )}
-                </div>
-              ) : editMode ? (
-                <textarea
-                  value={editedJob?.schedulingNotes || ''}
-                  onChange={(e) => setEditedJob({...editedJob, schedulingNotes: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
-                  placeholder="Enter scheduling notes, restrictions, or special requirements..."
-                />
-              ) : (
-                <div className="space-y-1">
-                  <textarea
-                    value={schedulingNotesField.value || ''}
-                    onChange={(e) => schedulingNotesField.setValue(e.target.value)}
-                    onBlur={() => schedulingNotesField.onBlur()}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
-                    placeholder="Enter scheduling notes, restrictions, or special requirements..."
-                  />
-                  <SaveIndicator status={schedulingNotesField.status} error={schedulingNotesField.error} />
-                </div>
-              )}
-            </div>
-
-            {/* Tech Instructions */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">General Instructions for Tech</h2>
-              {isTech ? (
-                <div className="prose dark:prose-invert max-w-none">
-                  {job.techInstructions ? (
-                    <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                      {job.techInstructions}
-                    </pre>
-                  ) : (
-                    <p className="text-gray-400 italic">No instructions provided</p>
-                  )}
-                </div>
-              ) : editMode ? (
-                <textarea
-                  value={editedJob?.techInstructions || ''}
-                  onChange={(e) => setEditedJob({...editedJob, techInstructions: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
-                  placeholder="Enter general instructions for the tech..."
-                />
-              ) : (
-                <div className="space-y-1">
-                  <textarea
-                    value={techInstructionsField.value || ''}
-                    onChange={(e) => techInstructionsField.setValue(e.target.value)}
-                    onBlur={() => techInstructionsField.onBlur()}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
-                    placeholder="Enter general instructions for the tech..."
-                  />
-                  <SaveIndicator status={techInstructionsField.status} error={techInstructionsField.error} />
-                </div>
-              )}
-            </div>
-
             {/* Scheduling Request */}
             {!isTech && (
               <SchedulingRequestPanel
@@ -1631,8 +1613,8 @@ export default function JobDetailPage() {
 
             {/* Tech Scheduling Response */}
             {!isTech && (job as any).techResponse?.respondedAt && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tech Scheduling Response</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Scheduling Response</h2>
                 
                 <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded">
                   <p className="text-sm text-green-800 dark:text-green-300">
@@ -1676,7 +1658,6 @@ export default function JobDetailPage() {
                               const startTime = (job as any).techResponse.preferredStartTime || '09:00'
                               if (!confirm(`Confirm this time slot: ${new Date(selectedOption.date).toLocaleDateString()} at ${startTime}?`)) return
                               try {
-                                // Parse time and create proper ISO datetime with timezone
                                 const timezone = job.timezone || 'America/Chicago'
                                 const timezoneOffsets: Record<string, string> = {
                                   'America/Chicago': '-06:00',
@@ -1686,15 +1667,10 @@ export default function JobDetailPage() {
                                   'America/Phoenix': '-07:00',
                                 }
                                 const offset = timezoneOffsets[timezone] || '-06:00'
-                                
-                                // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
                                 const dateOnly = selectedOption.date.split('T')[0]
-                                
-                                // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
                                 let hours = 9, minutes = 0
                                 const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
                                 const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
-                                
                                 if (time24Match) {
                                   hours = parseInt(time24Match[1])
                                   minutes = parseInt(time24Match[2])
@@ -1705,251 +1681,282 @@ export default function JobDetailPage() {
                                   if (period === 'pm' && hours !== 12) hours += 12
                                   if (period === 'am' && hours === 12) hours = 0
                                 }
-                                
                                 const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
                                 const targetDateTime = `${dateOnly}T${timeStr}${offset}`
-                                
                                 await patchJob(job.id, { targetDate: targetDateTime })
-                                
-                                // Send confirmation email to tech
                                 try {
-                                  const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
+                                  await fetch('/api/scheduling/notify-confirmation', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ jobId: job.id }),
                                   })
-                                  
-                                  if (emailResponse.ok) {
-                                    console.log('Confirmation email sent to tech')
-                                  }
                                 } catch (emailError) {
-                                  console.error('Error sending confirmation email:', emailError)
+                                  console.error('Failed to send confirmation email:', emailError)
                                 }
-                                
                                 await fetchJob(job.id)
-                                alert('Target date set! Tech will be notified of confirmation.')
-                              } catch (e) {
-                                console.error('Failed to set target date:', e)
-                                alert('Failed to set target date')
+                                alert('Schedule confirmed!')
+                              } catch (error) {
+                                console.error('Error confirming schedule:', error)
+                                alert('Failed to confirm schedule')
                               }
                             }}
-                            className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                          >
-                            Accept This Time
-                          </button>
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                            >
+                              Accept This Time
+                            </button>
                           )}
                         </div>
                       </div>
                     )}
-
-                    {(job as any).schedulingRequest?.requestType === 'specific-time' && !job.targetDate && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
-                        <p className="text-gray-900 dark:text-white">Tech accepted the proposed time</p>
-                        <button
-                          onClick={async () => {
-                            const proposedOption = (job as any).schedulingRequest.timeOptions?.[0]
-                            if (!proposedOption) return
-                            const startTime = proposedOption.specificTime || '09:00'
-                            if (!confirm(`Confirm this time slot: ${new Date(proposedOption.date).toLocaleDateString()} at ${startTime}?`)) return
-                            try {
-                              // Parse time and create proper ISO datetime with timezone
-                              const timezone = job.timezone || 'America/Chicago'
-                              const timezoneOffsets: Record<string, string> = {
-                                'America/Chicago': '-06:00',
-                                'America/New_York': '-05:00',
-                                'America/Denver': '-07:00',
-                                'America/Los_Angeles': '-08:00',
-                                'America/Phoenix': '-07:00',
-                              }
-                              const offset = timezoneOffsets[timezone] || '-06:00'
-                              
-                              // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
-                              const dateOnly = proposedOption.date.split('T')[0]
-                              
-                              // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
-                              let hours = 9, minutes = 0
-                              const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
-                              const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
-                              
-                              if (time24Match) {
-                                hours = parseInt(time24Match[1])
-                                minutes = parseInt(time24Match[2])
-                              } else if (time12Match) {
-                                hours = parseInt(time12Match[1])
-                                minutes = parseInt(time12Match[2])
-                                const period = time12Match[3].toLowerCase()
-                                if (period === 'pm' && hours !== 12) hours += 12
-                                if (period === 'am' && hours === 12) hours = 0
-                              }
-                              
-                              const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
-                              const targetDateTime = `${dateOnly}T${timeStr}${offset}`
-                              
-                              await patchJob(job.id, { targetDate: targetDateTime })
-                              
-                              // Send confirmation email to tech
-                              try {
-                                const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ jobId: job.id }),
-                                })
-                                
-                                if (emailResponse.ok) {
-                                  console.log('Confirmation email sent to tech')
-                                }
-                              } catch (emailError) {
-                                console.error('Error sending confirmation email:', emailError)
-                              }
-                              
-                              await fetchJob(job.id)
-                              alert('Target date set! Tech will be notified of confirmation.')
-                            } catch (e) {
-                              console.error('Failed to set target date:', e)
-                              alert('Failed to set target date')
-                            }
-                          }}
-                          className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                        >
-                          Accept This Time
-                        </button>
-                      </div>
-                    )}
-
-                    {(job as any).schedulingRequest?.requestType === 'tech-proposes' && (job as any).techResponse.proposedOptions && (
-                      <div className="space-y-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Tech&apos;s Proposed Time Options:</p>
-                        {(job as any).techResponse.proposedOptions.map((option: any, index: number) => (
-                          <div key={index} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                Option {index + 1}: {new Date(option.date).toLocaleDateString()} at {option.startTime}
-                              </p>
-                              {option.notes && <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{option.notes}</p>}
-                            </div>
-                            {!job.targetDate && (
-                              <button
-                              onClick={async () => {
-                                if (!confirm(`Confirm this time slot: ${new Date(option.date).toLocaleDateString()} at ${option.startTime}?`)) return
-                                try {
-                                  // Parse time and create proper ISO datetime with timezone
-                                  const timezone = job.timezone || 'America/Chicago'
-                                  const timezoneOffsets: Record<string, string> = {
-                                    'America/Chicago': '-06:00',
-                                    'America/New_York': '-05:00',
-                                    'America/Denver': '-07:00',
-                                    'America/Los_Angeles': '-08:00',
-                                    'America/Phoenix': '-07:00',
-                                  }
-                                  const offset = timezoneOffsets[timezone] || '-06:00'
-                                  
-                                  // Extract just the date portion (YYYY-MM-DD) from the ISO datetime
-                                  const dateOnly = option.date.split('T')[0]
-                                  
-                                  // Handle both 24-hour (15:49) and 12-hour (3:49 PM) formats
-                                  let hours = 9, minutes = 0
-                                  const time24Match = option.startTime.match(/^(\d{1,2}):(\d{2})$/)
-                                  const time12Match = option.startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
-                                  
-                                  if (time24Match) {
-                                    hours = parseInt(time24Match[1])
-                                    minutes = parseInt(time24Match[2])
-                                  } else if (time12Match) {
-                                    hours = parseInt(time12Match[1])
-                                    minutes = parseInt(time12Match[2])
-                                    const period = time12Match[3].toLowerCase()
-                                    if (period === 'pm' && hours !== 12) hours += 12
-                                    if (period === 'am' && hours === 12) hours = 0
-                                  }
-                                  
-                                  const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
-                                  const targetDateTime = `${dateOnly}T${timeStr}${offset}`
-                                  
-                                  await patchJob(job.id, { targetDate: targetDateTime })
-                                  
-                                  // Send confirmation email to tech
-                                  try {
-                                    const emailResponse = await fetch('/api/scheduling/notify-confirmation', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ jobId: job.id }),
-                                    })
-                                    
-                                    if (emailResponse.ok) {
-                                      console.log('Confirmation email sent to tech')
-                                    }
-                                  } catch (emailError) {
-                                    console.error('Error sending confirmation email:', emailError)
-                                  }
-                                  
-                                  await fetchJob(job.id)
-                                  alert('Target date set! Tech will be notified of confirmation.')
-                                } catch (e) {
-                                  console.error('Failed to set target date:', e)
-                                  alert('Failed to set target date')
-                                }
-                              }}
-                              className="ml-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                            >
-                              Accept This Time
-                            </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {(job as any).techResponse.notes && (
-                      <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Additional Notes:</p>
-                        <p className="text-gray-900 dark:text-white whitespace-pre-wrap">{(job as any).techResponse.notes}</p>
-                      </div>
-                    )}
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      <span className="font-semibold">Tech Declined</span>
-                    </div>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <p className="text-red-800 dark:text-red-300 font-medium">Tech Declined</p>
                     {(job as any).techResponse.declineReason && (
-                      <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
-                        <p className="text-sm text-red-700 dark:text-red-300 mb-1">Reason:</p>
-                        <p className="text-red-900 dark:text-red-200 whitespace-pre-wrap">{(job as any).techResponse.declineReason}</p>
-                      </div>
+                      <p className="text-sm text-red-700 dark:text-red-400 mt-2">
+                        Reason: {(job as any).techResponse.declineReason}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Line Items */}
-            {job.lineItems && job.lineItems.length > 0 && (
+          </div>
+        )}
+
+        {activeTab === 'instructions' && (
+          <div className="space-y-6">
+            {/* Row 1: POC, Upload Links, To-Do List */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* On-Site Contact (POC) */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">To-Do List / Services</h3>
-                <div className="space-y-2">
-                  {job.lineItems.map((item: any, index: number) => (
-                    <div key={index} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {item.product?.name || 'Product'}
-                          </p>
-                          {item.instructions && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.instructions}</p>
-                          )}
-                        </div>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Qty: {item.quantity || 1}
-                        </span>
-                      </div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">On-Site Contact (POC)</h2>
+                {isTech ? (
+                  <div className="space-y-3">
+                    {job.sitePOCName || job.sitePOCPhone || job.sitePOCEmail ? (
+                      <>
+                        {job.sitePOCName && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                            <p className="text-sm text-gray-900 dark:text-white">{job.sitePOCName}</p>
+                          </div>
+                        )}
+                        {job.sitePOCPhone && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label>
+                            <a href={`tel:${job.sitePOCPhone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                              {job.sitePOCPhone}
+                            </a>
+                          </div>
+                        )}
+                        {job.sitePOCEmail && (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                            <a href={`mailto:${job.sitePOCEmail}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all">
+                              {job.sitePOCEmail}
+                            </a>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">No contact info</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Name</label>
+                      <input
+                        type="text"
+                        value={sitePOCNameField.value || ''}
+                        onChange={(e) => sitePOCNameField.setValue(e.target.value)}
+                        onBlur={() => sitePOCNameField.onBlur()}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="John Doe"
+                      />
+                      <SaveIndicator status={sitePOCNameField.status} error={sitePOCNameField.error} />
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Phone</label>
+                      <input
+                        type="tel"
+                        value={sitePOCPhoneField.value || ''}
+                        onChange={(e) => sitePOCPhoneField.setValue(e.target.value)}
+                        onBlur={() => sitePOCPhoneField.onBlur()}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="(555) 123-4567"
+                      />
+                      <SaveIndicator status={sitePOCPhoneField.status} error={sitePOCPhoneField.error} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Email</label>
+                      <input
+                        type="email"
+                        value={sitePOCEmailField.value || ''}
+                        onChange={(e) => sitePOCEmailField.setValue(e.target.value)}
+                        onBlur={() => sitePOCEmailField.onBlur()}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="contact@example.com"
+                      />
+                      <SaveIndicator status={sitePOCEmailField.status} error={sitePOCEmailField.error} />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+
+              {/* Upload Links */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Upload Locations</h2>
+                {isTech ? (
+                  <div className="space-y-3">
+                    {job.uploadLink ? (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Primary Upload</label>
+                        <a href={job.uploadLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all">
+                          {job.uploadLink}
+                        </a>
+                      </div>
+                    ) : null}
+                    {job.mediaUploadLink ? (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Media Upload</label>
+                        <a href={job.mediaUploadLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all">
+                          {job.mediaUploadLink}
+                        </a>
+                      </div>
+                    ) : null}
+                    {!job.uploadLink && !job.mediaUploadLink && (
+                      <p className="text-sm text-gray-400 italic">No upload links</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Primary Upload</label>
+                      <input
+                        type="url"
+                        value={uploadLinkField.value || ''}
+                        onChange={(e) => uploadLinkField.setValue(e.target.value)}
+                        onBlur={() => uploadLinkField.onBlur()}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="https://..."
+                      />
+                      <SaveIndicator status={uploadLinkField.status} error={uploadLinkField.error} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Media Upload</label>
+                      <input
+                        type="url"
+                        value={mediaUploadLinkField.value || ''}
+                        onChange={(e) => mediaUploadLinkField.setValue(e.target.value)}
+                        onBlur={() => mediaUploadLinkField.onBlur()}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="https://..."
+                      />
+                      <SaveIndicator status={mediaUploadLinkField.status} error={mediaUploadLinkField.error} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* To-Do List / Services */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">To-Do List / Services</h2>
+                {job.lineItems && job.lineItems.length > 0 ? (
+                  <div className="space-y-2">
+                    {job.lineItems.map((item: any, index: number) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                              {item.product?.name || 'Product'}
+                            </p>
+                            {item.instructions && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">{item.instructions}</p>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            Qty: {item.quantity || 1}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No services added</p>
+                )}
+              </div>
+            </div>
+
+            {/* Row 2: Scheduling Notes */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Scheduling Notes / Restrictions</h2>
+              {isTech ? (
+                <div className="prose dark:prose-invert max-w-none">
+                  {job.schedulingNotes ? (
+                    <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      {job.schedulingNotes}
+                    </pre>
+                  ) : (
+                    <p className="text-gray-400 italic">No scheduling notes</p>
+                  )}
+                </div>
+              ) : editMode ? (
+                <textarea
+                  value={editedJob?.schedulingNotes || ''}
+                  onChange={(e) => setEditedJob({...editedJob, schedulingNotes: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+                  placeholder="Enter scheduling notes, restrictions, or special requirements..."
+                />
+              ) : (
+                <div className="space-y-1">
+                  <textarea
+                    value={schedulingNotesField.value || ''}
+                    onChange={(e) => schedulingNotesField.setValue(e.target.value)}
+                    onBlur={() => schedulingNotesField.onBlur()}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+                    placeholder="Enter scheduling notes, restrictions, or special requirements..."
+                  />
+                  <SaveIndicator status={schedulingNotesField.status} error={schedulingNotesField.error} />
+                </div>
+              )}
+            </div>
+
+            {/* Row 3: General Instructions */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">General Instructions for Tech</h2>
+              {isTech ? (
+                <div className="prose dark:prose-invert max-w-none">
+                  {job.techInstructions ? (
+                    <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                      {job.techInstructions}
+                    </pre>
+                  ) : (
+                    <p className="text-gray-400 italic">No instructions provided</p>
+                  )}
+                </div>
+              ) : editMode ? (
+                <textarea
+                  value={editedJob?.techInstructions || ''}
+                  onChange={(e) => setEditedJob({...editedJob, techInstructions: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
+                  placeholder="Enter general instructions for the tech..."
+                />
+              ) : (
+                <div className="space-y-1">
+                  <textarea
+                    value={techInstructionsField.value || ''}
+                    onChange={(e) => techInstructionsField.setValue(e.target.value)}
+                    onBlur={() => techInstructionsField.onBlur()}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[150px]"
+                    placeholder="Enter general instructions for the tech..."
+                  />
+                  <SaveIndicator status={techInstructionsField.status} error={techInstructionsField.error} />
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 
