@@ -246,25 +246,68 @@ export default function ScheduleTab({ schedulingRequest, techResponse, onSubmit,
         {/* Specific Time Request Type */}
         {schedulingRequest.requestType === 'specific-time' && (
           <div className="mb-6">
-            <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
-              <p className="text-sm font-semibold text-blue-800 mb-2">Proposed Date & Time:</p>
-              {schedulingRequest.timeOptions?.[0] && (
-                <div className="text-lg font-bold text-gray-900">
-                  {new Date(schedulingRequest.timeOptions[0].date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    month: 'long', 
-                    day: 'numeric', 
-                    year: 'numeric' 
-                  })}
-                  {schedulingRequest.timeOptions[0].specificTime && (
-                    <span className="ml-2">at {schedulingRequest.timeOptions[0].specificTime}</span>
+            {schedulingRequest.timeOptions && schedulingRequest.timeOptions.length > 1 ? (
+              <>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select your preferred time option:
+                </label>
+                <div className="space-y-3">
+                  {schedulingRequest.timeOptions.map((option) => (
+                    <label
+                      key={option.optionNumber}
+                      className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        name="selectedOption"
+                        value={option.optionNumber}
+                        checked={response.selectedOption === option.optionNumber}
+                        onChange={(e) => setResponse({ ...response, selectedOption: parseInt(e.target.value) })}
+                        className="w-4 h-4 text-blue-600 mr-3"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">
+                          {new Date(option.date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            month: 'long', 
+                            day: 'numeric', 
+                            year: 'numeric' 
+                          })}
+                          {option.specificTime && (
+                            <span className="ml-2">at {option.specificTime}</span>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 mt-3">
+                  Can you complete this job at one of the proposed times? If not, please decline and provide a reason.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
+                  <p className="text-sm font-semibold text-blue-800 mb-2">Proposed Date & Time:</p>
+                  {schedulingRequest.timeOptions?.[0] && (
+                    <div className="text-lg font-bold text-gray-900">
+                      {new Date(schedulingRequest.timeOptions[0].date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric', 
+                        year: 'numeric' 
+                      })}
+                      {schedulingRequest.timeOptions[0].specificTime && (
+                        <span className="ml-2">at {schedulingRequest.timeOptions[0].specificTime}</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-            <p className="text-sm text-gray-600 mt-3">
-              Can you complete this job at the proposed time? If not, please decline and provide a reason.
-            </p>
+                <p className="text-sm text-gray-600 mt-3">
+                  Can you complete this job at the proposed time? If not, please decline and provide a reason.
+                </p>
+              </>
+            )}
           </div>
         )}
 

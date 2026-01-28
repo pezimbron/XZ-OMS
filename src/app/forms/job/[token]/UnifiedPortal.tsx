@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import JobPortalTabs from '@/components/forms/JobPortalTabs'
 import ScheduleTab from '@/components/forms/ScheduleTab'
+import WorkflowActionButton from '@/components/forms/WorkflowActionButton'
 
 interface Job {
   id: string
@@ -106,6 +107,12 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
     notes: '',
   })
   const [submittingSchedule, setSubmittingSchedule] = useState(false)
+
+  // Workflow completion modal state
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  const [selectedStep, setSelectedStep] = useState<string | null>(null)
+  const [completionNotes, setCompletionNotes] = useState('')
+  const [completingStep, setCompletingStep] = useState(false)
 
   useEffect(() => {
     fetchJob()
@@ -227,13 +234,10 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
             body: JSON.stringify({ jobId: job.id }),
           })
           
-          if (emailResponse.ok) {
-            console.log('Tech response email sent to ops team')
-          } else {
+          if (!emailResponse.ok) {
             console.warn('Failed to send tech response email')
           }
         } catch (emailError) {
-          console.error('Error sending tech response email:', emailError)
           // Don't fail the whole operation if email fails
         }
       }
@@ -244,6 +248,37 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
       alert(error.message || 'Failed to submit scheduling response')
     } finally {
       setSubmittingSchedule(false)
+    }
+  }
+
+  const handleCompleteStep = async () => {
+    if (!selectedStep) return
+    
+    setCompletingStep(true)
+    try {
+      const response = await fetch(`/api/forms/job/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'complete-step',
+          stepName: selectedStep,
+          feedback: completionNotes.trim() || undefined,
+        }),
+      })
+      
+      if (response.ok) {
+        await fetchJob()
+        setShowCompletionModal(false)
+        setSelectedStep(null)
+        setCompletionNotes('')
+      } else {
+        alert('Failed to mark step as complete')
+      }
+    } catch (error) {
+      console.error('Error completing step:', error)
+      alert('Failed to mark step as complete')
+    } finally {
+      setCompletingStep(false)
     }
   }
 
@@ -326,15 +361,6 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
         </svg>
       ),
     },
-    {
-      id: 'complete',
-      label: 'Complete Job',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
   ]
 
   return (
@@ -365,6 +391,57 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
             </div>
           </div>
         </div>
+
+        {/* Workflow Action Buttons - Above Tabs */}
+        {job.workflowSteps && job.workflowSteps.length > 0 && (() => {
+          const techSteps = job.workflowSteps.filter(step => 
+            step.requiredRole === 'tech' || 
+            step.stepName === 'Scanned' || 
+            step.stepName === 'Scan Uploaded'
+          )
+          
+          if (techSteps.length === 0) return null
+          
+          return (
+            <div className="bg-white rounded-xl shadow-md p-4 mb-4 flex gap-3">
+              {techSteps.map((step, index) => {
+                const isPreviousComplete = index === 0 || techSteps[index - 1]?.completed
+                const isDisabled = !isPreviousComplete || step.completed
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        setSelectedStep(step.stepName)
+                        setShowCompletionModal(true)
+                      }
+                    }}
+                    disabled={isDisabled}
+                    className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all flex items-center gap-2 ${
+                      step.completed
+                        ? 'bg-green-100 text-green-700 border-2 border-green-300 cursor-default'
+                        : isPreviousComplete
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {step.completed ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {step.stepName}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })()}
 
         {/* Main Content Card */}
         <div className="bg-white rounded-xl shadow-xl p-6">
@@ -532,135 +609,71 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
             </div>
           )}
 
-          {/* Complete Job Tab - Workflow Steps */}
-          {activeTab === 'complete' && (
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Job Tasks</h2>
-              
-              {job.workflowSteps && job.workflowSteps.length > 0 ? (
-                <div className="space-y-3">
-                  {(() => {
-                    // Debug: Log all workflow steps to see actual structure
-                    console.log('[Tech Portal] All workflow steps:', JSON.stringify(job.workflowSteps, null, 2))
-                    job.workflowSteps.forEach((step, idx) => {
-                      console.log(`[Tech Portal] Step ${idx}:`, {
-                        stepName: step.stepName,
-                        requiredRole: step.requiredRole,
-                        requiredRoleType: typeof step.requiredRole,
-                        completed: step.completed
-                      })
-                    })
-                    
-                    // Filter for tech-completable steps by requiredRole
-                    // Fallback to specific step names for backward compatibility
-                    const techSteps = job.workflowSteps.filter(step => 
-                      step.requiredRole === 'tech' || 
-                      step.stepName === 'Scanned' || 
-                      step.stepName === 'Scan Uploaded'
-                    )
-                    console.log('[Tech Portal] Filtered tech steps:', techSteps.length, techSteps.map(s => s.stepName))
-                    
-                    if (techSteps.length === 0) {
-                      return (
-                        <div className="text-center py-12 text-gray-500">
-                          <p>No tasks assigned to you yet.</p>
-                        </div>
-                      )
-                    }
-                    
-                    return (
-                      <>
-                        {techSteps.map((step, index) => (
-                      <div
-                        key={index}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          step.completed
-                            ? 'bg-green-50 border-green-200'
-                            : 'bg-white border-gray-200 hover:border-blue-300'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <button
-                            onClick={async () => {
-                              if (step.completed) return
-                              
-                              try {
-                                const response = await fetch(`/api/forms/job/${token}`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    action: 'complete-step',
-                                    stepName: step.stepName,
-                                  }),
-                                })
-                                
-                                if (response.ok) {
-                                  await fetchJob()
-                                } else {
-                                  alert('Failed to mark step as complete')
-                                }
-                              } catch (error) {
-                                console.error('Error completing step:', error)
-                                alert('Failed to mark step as complete')
-                              }
-                            }}
-                            disabled={step.completed}
-                            className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
-                              step.completed
-                                ? 'bg-green-500 border-green-500 cursor-default'
-                                : 'border-gray-300 hover:border-blue-500 cursor-pointer'
-                            }`}
-                          >
-                            {step.completed && (
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                          
-                          <div className="flex-1">
-                            <h3 className={`font-semibold ${
-                              step.completed ? 'text-green-900 line-through' : 'text-gray-900'
-                            }`}>
-                              {step.stepName}
-                            </h3>
-                            {step.description && (
-                              <p className="text-sm text-gray-600 mt-1">{step.description}</p>
-                            )}
-                            {step.completed && step.completedAt && (
-                              <p className="text-xs text-green-600 mt-2">
-                                ✓ Completed {new Date(step.completedAt).toLocaleString()}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                        ))}
-                        
-                        {techSteps.length > 0 && techSteps.every(step => step.completed) && (
-                          <div className="mt-6 p-6 bg-green-50 border-2 border-green-200 rounded-lg text-center">
-                            <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                            <h3 className="text-lg font-bold text-green-900 mb-1">All Tasks Complete!</h3>
-                            <p className="text-sm text-green-700">Great job! All your tasks for this job have been completed.</p>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <p>No workflow tasks assigned yet.</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Complete Task</h3>
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to mark <span className="font-semibold">{selectedStep}</span> as complete?
+            </p>
+
+            {/* Optional Notes */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Optional Notes
+              </label>
+              <textarea
+                value={completionNotes}
+                onChange={(e) => setCompletionNotes(e.target.value)}
+                placeholder="Any notes, issues, or feedback about this step..."
+                rows={4}
+                className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCompletionModal(false)
+                  setSelectedStep(null)
+                  setCompletionNotes('')
+                }}
+                disabled={completingStep}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCompleteStep}
+                disabled={completingStep}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {completingStep ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Completing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Confirm
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -102,6 +102,7 @@ export async function POST(
         completed: true,
         completedAt: new Date().toISOString(),
         completedBy: (job as any).tech?.email || 'Tech',
+        feedback: body.feedback || undefined,
       }
 
       await payload.update({

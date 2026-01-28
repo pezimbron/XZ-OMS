@@ -1892,7 +1892,27 @@ export default function JobDetailPage() {
             {/* Tech Feedback */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Feedback</h2>
-              {(job as any).techFeedback ? (
+              
+              {/* Per-Step Feedback from Workflow */}
+              {(job as any).workflowSteps && (job as any).workflowSteps.some((step: any) => step.feedback) ? (
+                <div className="space-y-4">
+                  {(job as any).workflowSteps
+                    .filter((step: any) => step.feedback)
+                    .map((step: any, index: number) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border-l-4 border-blue-500">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">{step.stepName}</h3>
+                          {step.completedAt && (
+                            <span className="text-xs text-gray-500">
+                              {new Date(step.completedAt).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{step.feedback}</p>
+                      </div>
+                    ))}
+                </div>
+              ) : (job as any).techFeedback ? (
                 <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                   {(job as any).techFeedback}
                 </pre>
