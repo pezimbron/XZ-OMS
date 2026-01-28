@@ -234,6 +234,7 @@ export const Jobs: CollectionConfig = {
     {
       name: 'purposeOfScan',
       type: 'textarea',
+      label: 'Purpose of Scan',
     },
     {
       name: 'techInstructions',
@@ -710,55 +711,7 @@ export const Jobs: CollectionConfig = {
       name: 'completionToken',
       type: 'text',
       admin: {
-        description: 'Unique token for tech completion form access',
-      },
-    },
-    {
-      name: 'completionFormSubmitted',
-      type: 'checkbox',
-      defaultValue: false,
-      admin: {
-        description: 'Whether the tech has submitted the completion form',
-      },
-    },
-    {
-      name: 'completionStatus',
-      type: 'select',
-      options: [
-        { label: 'Completed', value: 'completed' },
-        { label: 'Incomplete', value: 'incomplete' },
-      ],
-      admin: {
-        description: 'Status reported by tech in completion form',
-      },
-    },
-    {
-      name: 'incompletionReason',
-      type: 'select',
-      options: [
-        { label: 'Not able to access location', value: 'no-access' },
-        { label: "POC didn't show up", value: 'poc-no-show' },
-        { label: 'POC asked to reschedule', value: 'poc-reschedule' },
-        { label: 'Other', value: 'other' },
-      ],
-      admin: {
-        description: 'Reason for incompletion if applicable',
-        condition: (data) => data.completionStatus === 'incomplete',
-      },
-    },
-    {
-      name: 'incompletionNotes',
-      type: 'textarea',
-      admin: {
-        description: 'Additional details about incompletion',
-        condition: (data) => data.completionStatus === 'incomplete',
-      },
-    },
-    {
-      name: 'techFeedback',
-      type: 'textarea',
-      admin: {
-        description: 'Feedback from tech about the job',
+        description: 'Unique token for tech portal access',
       },
     },
     {

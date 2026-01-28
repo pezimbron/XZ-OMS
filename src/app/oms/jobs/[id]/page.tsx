@@ -166,6 +166,28 @@ export default function JobDetailPage() {
     debounceMs: 0,
   })
 
+  const propertyTypeField = useAutosaveField<string>({
+    value: (job as any)?.propertyType || '',
+    onSave: async (next) => {
+      const jobId = params.id as string
+      if (!jobId) return
+      await patchJob(jobId, { propertyType: next || null })
+      await fetchJob(jobId)
+    },
+    debounceMs: 0,
+  })
+
+  const purposeOfScanField = useAutosaveField<string>({
+    value: (job as any)?.purposeOfScan || '',
+    onSave: async (next) => {
+      const jobId = params.id as string
+      if (!jobId) return
+      await patchJob(jobId, { purposeOfScan: next || null })
+      await fetchJob(jobId)
+    },
+    debounceMs: 0,
+  })
+
   const schedulingNotesField = useAutosaveField<string>({
     value: job?.schedulingNotes || '',
     onSave: async (next) => {
@@ -321,9 +343,10 @@ export default function JobDetailPage() {
   const regionField = useAutosaveField<string>({
     value: job?.region || '',
     onSave: async (next) => {
-      if (!job?.id) return
-      await patchJob(job.id, { region: next || null })
-      await fetchJob(job.id)
+      const jobId = params.id as string
+      if (!jobId) return
+      await patchJob(jobId, { region: next || null })
+      await fetchJob(jobId)
     },
     debounceMs: 0,
   })
@@ -1183,8 +1206,15 @@ export default function JobDetailPage() {
                     <div className="space-y-1">
                       <select
                         value={regionField.value || ''}
-                        onChange={(e) => regionField.setValue(e.target.value)}
-                        onBlur={() => regionField.onBlur()}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          const commit = (regionField as any).commit
+                          if (typeof commit === 'function') {
+                            commit(next)
+                            return
+                          }
+                          regionField.setValue(next)
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="">Select Region</option>
@@ -1222,6 +1252,69 @@ export default function JobDetailPage() {
                         />
                       )}
                       {!isTech && <SaveIndicator status={sqFtField.status} error={sqFtField.error} />}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Property Type</label>
+                  {isTech ? (
+                    <p className="text-gray-900 dark:text-white capitalize">{(job as any).propertyType?.replace('-', ' ') || 'N/A'}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <select
+                        value={propertyTypeField.value || ''}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          const commit = (propertyTypeField as any).commit
+                          if (typeof commit === 'function') {
+                            commit(next)
+                            return
+                          }
+                          propertyTypeField.setValue(next)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Select Property Type</option>
+                        <option value="commercial">Commercial</option>
+                        <option value="residential">Residential</option>
+                        <option value="industrial">Industrial</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <SaveIndicator status={propertyTypeField.status} error={propertyTypeField.error} />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Purpose of Scan</label>
+                  {isTech ? (
+                    <p className="text-gray-900 dark:text-white capitalize">{(job as any).purposeOfScan?.replace(/-/g, ' ') || 'N/A'}</p>
+                  ) : (
+                    <div className="space-y-1">
+                      <select
+                        value={purposeOfScanField.value || ''}
+                        onChange={(e) => {
+                          const next = e.target.value
+                          const commit = (purposeOfScanField as any).commit
+                          if (typeof commit === 'function') {
+                            commit(next)
+                            return
+                          }
+                          purposeOfScanField.setValue(next)
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">Select Purpose</option>
+                        <option value="construction-documentation">Construction Documentation</option>
+                        <option value="property-marketing">Property Marketing</option>
+                        <option value="facility-management">Facility Management</option>
+                        <option value="insurance-claims">Insurance/Claims</option>
+                        <option value="historical-preservation">Historical Preservation</option>
+                        <option value="renovation-planning">Renovation Planning</option>
+                        <option value="as-built-documentation">As-Built Documentation</option>
+                        <option value="virtual-tours">Virtual Tours</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <SaveIndicator status={purposeOfScanField.status} error={purposeOfScanField.error} />
                     </div>
                   )}
                 </div>
@@ -1830,95 +1923,89 @@ export default function JobDetailPage() {
 
         {activeTab === 'tech-feedback' && (
           <div className="space-y-6">
-            {/* Completion Info */}
+            {/* Tech Contact Information */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Completion Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Assigned Tech</label>
-                  <p className="text-gray-900 dark:text-white font-medium">
-                    {job.tech?.name || <span className="text-gray-400 italic">Unassigned</span>}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Status</label>
-                  <p className="text-gray-900 dark:text-white font-medium">
-                    {(job as any).completionStatus ? (
-                      <span className={`px-2 py-1 rounded text-sm ${
-                        (job as any).completionStatus === 'completed' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
-                        (job as any).completionStatus === 'partially-completed' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                        'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                      }`}>
-                        {(job as any).completionStatus === 'completed' ? 'Completed' :
-                         (job as any).completionStatus === 'partially-completed' ? 'Partially Completed' :
-                         'Not Able to Complete'}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400 italic">Not reported</span>
-                    )}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Date</label>
-                  <p className="text-gray-900 dark:text-white">
-                    {(job as any).scannedDate ? new Date((job as any).scannedDate).toLocaleString() : (
-                      <span className="text-gray-400 italic">Not completed yet</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {/* Incompletion Reason */}
-              {((job as any).completionStatus === 'not-completed' || (job as any).completionStatus === 'partially-completed') && (job as any).incompletionReason && (
-                <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                  <label className="text-sm font-medium text-yellow-800 dark:text-yellow-300 block mb-1">
-                    Reason for Incompletion
-                  </label>
-                  <p className="text-yellow-900 dark:text-yellow-200">
-                    {(job as any).incompletionReason === 'no-access' ? 'Not able to access' :
-                     (job as any).incompletionReason === 'poc-no-show' ? 'POC didn\'t show up' :
-                     (job as any).incompletionReason === 'poc-reschedule' ? 'POC asked to reschedule' :
-                     'Other'}
-                  </p>
-                  {(job as any).incompletionNotes && (
-                    <p className="text-sm text-yellow-800 dark:text-yellow-300 mt-2">
-                      {(job as any).incompletionNotes}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Assigned Technician</h2>
+              {job.tech ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</label>
+                    <p className="text-gray-900 dark:text-white font-medium">{job.tech.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
+                    <p className="text-gray-900 dark:text-white">
+                      <a href={`mailto:${job.tech.email}`} className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                        {job.tech.email}
+                      </a>
                     </p>
+                  </div>
+                  {job.tech.phone && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</label>
+                      <p className="text-gray-900 dark:text-white">
+                        <a href={`tel:${job.tech.phone}`} className="text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                          {job.tech.phone}
+                        </a>
+                      </p>
+                    </div>
                   )}
                 </div>
+              ) : (
+                <p className="text-gray-400 italic">No technician assigned yet</p>
               )}
             </div>
 
-            {/* Tech Feedback */}
+            {/* Workflow Step Completion Timeline */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Feedback</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Workflow Completion Timeline</h2>
               
-              {/* Per-Step Feedback from Workflow */}
-              {(job as any).workflowSteps && (job as any).workflowSteps.some((step: any) => step.feedback) ? (
-                <div className="space-y-4">
-                  {(job as any).workflowSteps
-                    .filter((step: any) => step.feedback)
-                    .map((step: any, index: number) => (
-                      <div key={index} className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border-l-4 border-blue-500">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{step.stepName}</h3>
-                          {step.completedAt && (
-                            <span className="text-xs text-gray-500">
-                              {new Date(step.completedAt).toLocaleString()}
-                            </span>
-                          )}
+              {(() => {
+                const techSteps = (job as any).workflowSteps?.filter((step: any) => 
+                  step.completed && 
+                  step.completedBy && 
+                  step.completedBy !== 'system' &&
+                  !['Job Request', 'Job Scheduled'].includes(step.stepName)
+                ) || []
+                
+                if (techSteps.length > 0) {
+                  return (
+                    <div className="space-y-3">
+                      {techSteps.map((step: any, index: number) => (
+                        <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-green-500">
+                          <div className="flex-shrink-0 mt-1">
+                            <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <h3 className="font-semibold text-gray-900 dark:text-white">{step.stepName}</h3>
+                              {step.completedAt && (
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  {new Date(step.completedAt).toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                            {step.completedBy && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                                Completed by: {step.completedBy}
+                              </p>
+                            )}
+                            {step.notes && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                                {step.notes}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{step.feedback}</p>
-                      </div>
-                    ))}
-                </div>
-              ) : (job as any).techFeedback ? (
-                <pre className="whitespace-pre-wrap text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
-                  {(job as any).techFeedback}
-                </pre>
-              ) : (
-                <p className="text-gray-400 italic">No feedback provided yet</p>
-              )}
+                      ))}
+                    </div>
+                  )
+                } else {
+                  return <p className="text-gray-400 italic">No workflow steps completed by technician yet</p>
+                }
+              })()}
             </div>
 
             {/* Upload Links */}

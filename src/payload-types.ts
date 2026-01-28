@@ -912,11 +912,6 @@ export interface Job {
   taxAmount?: number | null;
   totalWithTax?: number | null;
   completionToken?: string | null;
-  completionFormSubmitted?: boolean | null;
-  completionStatus?: ('completed' | 'incomplete') | null;
-  incompletionReason?: ('no-access' | 'poc-no-show' | 'poc-reschedule' | 'other') | null;
-  incompletionNotes?: string | null;
-  techFeedback?: string | null;
   deliverables?: {
     model3dLink?: string | null;
     floorPlansLink?: string | null;
@@ -1797,11 +1792,6 @@ export interface JobsSelect<T extends boolean = true> {
   taxAmount?: T;
   totalWithTax?: T;
   completionToken?: T;
-  completionFormSubmitted?: T;
-  completionStatus?: T;
-  incompletionReason?: T;
-  incompletionNotes?: T;
-  techFeedback?: T;
   deliverables?:
     | T
     | {

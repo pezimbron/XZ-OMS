@@ -102,8 +102,10 @@ export async function POST(
         completed: true,
         completedAt: new Date().toISOString(),
         completedBy: (job as any).tech?.email || 'Tech',
-        feedback: body.feedback || undefined,
+        notes: body.feedback || undefined,
       }
+
+      console.log(`[Tech Portal] Completing step "${body.stepName}" with notes:`, body.feedback ? `"${body.feedback}"` : 'none')
 
       await payload.update({
         collection: 'jobs',
