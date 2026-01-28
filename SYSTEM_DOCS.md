@@ -359,6 +359,8 @@
 - **2026-01-28**: Refined Tech Feedback tab with timeline and tech contact info
 - **2026-01-28**: Workflow completion tracking with per-step notes in tech portal
 - **2026-01-28**: Scheduling system with 3 request types (time-windows, specific-time, tech-proposes)
+- **2026-01-28**: Product calendar exclusion feature - products inherit `excludeFromCalendar` default in jobs
+- **2026-01-28**: Products/Services modal now saves only on "Done" click (no autosave during editing)
 - **2026-01-27**: Subcontractor messaging via token-based links (no account required)
 - **2026-01-27**: Job messaging system with dual notifications (email + in-app)
 - **2026-01-27**: Site-wide tab query parameter support

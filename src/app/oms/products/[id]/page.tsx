@@ -54,19 +54,15 @@ export default function ProductDetailPage() {
   }
 
   const patchProduct = async (id: string, update: any) => {
-    console.log('[patchProduct] Updating product:', id, 'with:', update)
     const response = await fetch(`/api/products/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(update),
     })
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[patchProduct] Failed:', response.status, errorText)
       throw new Error('Failed to update product')
     }
     const data = await response.json()
-    console.log('[patchProduct] Response:', data)
     const updated = data.doc || data
     setProduct(updated)
   }
@@ -178,7 +174,6 @@ export default function ProductDetailPage() {
     value: product?.excludeFromCalendar ?? false,
     onSave: async (val) => {
       if (!product?.id) return
-      console.log('[excludeFromCalendar] Saving value:', val)
       await patchProduct(product.id, { excludeFromCalendar: val })
     },
   })

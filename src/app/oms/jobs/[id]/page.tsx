@@ -256,16 +256,19 @@ export default function JobDetailPage() {
     onSave: async (next) => {
       if (!job?.id) return
       const normalized = Array.isArray(next)
-        ? next.map((item: any) => ({
-            product: normalizeRelationId(item?.product) || item?.product || null,
-            quantity: item?.quantity ?? 1,
-            instructions: item?.instructions ?? '',
-          }))
+        ? next
+            .filter((item: any) => item?.product && item.product !== '')
+            .map((item: any) => ({
+              product: normalizeRelationId(item?.product) || item?.product || null,
+              quantity: item?.quantity ?? 1,
+              instructions: item?.instructions ?? '',
+              excludeFromCalendar: item?.excludeFromCalendar ?? undefined,
+            }))
         : []
       await patchJob(job.id, { lineItems: normalized })
       await fetchJob(job.id)
     },
-    debounceMs: 900,
+    debounceMs: 999999,
   })
 
   const externalExpensesField = useAutosaveField<any[]>({
@@ -275,7 +278,7 @@ export default function JobDetailPage() {
       await patchJob(job.id, { externalExpenses: Array.isArray(next) ? next : [] })
       await fetchJob(job.id)
     },
-    debounceMs: 900,
+    debounceMs: 999999,
   })
 
   const discountField = useAutosaveField<any>({
@@ -2254,16 +2257,18 @@ export default function JobDetailPage() {
                         <select
                           value={typeof item.product === 'object' ? item.product?.id : item.product}
                           onChange={(e) => {
-                            const selectedProduct = products.find(p => p.id === e.target.value)
+                            const selectedProduct = products.find(p => String(p.id) === String(e.target.value))
                             const next = [...(lineItemsField.value || [])]
-                            next[index] = { 
+                            const updatedItem: any = { 
                               ...next[index], 
                               product: e.target.value,
-                              excludeFromCalendar: selectedProduct?.excludeFromCalendar || false
                             }
+                            if (selectedProduct?.excludeFromCalendar) {
+                              updatedItem.excludeFromCalendar = true
+                            }
+                            next[index] = updatedItem
                             lineItemsField.setValue(next)
                           }}
-                          onBlur={() => lineItemsField.onBlur()}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                           <option value="">Select Product...</option>
@@ -2282,7 +2287,6 @@ export default function JobDetailPage() {
                             next[index] = { ...next[index], instructions: e.target.value }
                             lineItemsField.setValue(next)
                           }}
-                          onBlur={() => lineItemsField.onBlur()}
                           rows={2}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="Optional instructions for this service..."
@@ -2292,13 +2296,19 @@ export default function JobDetailPage() {
                           <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                             <input
                               type="checkbox"
-                              checked={item.excludeFromCalendar || false}
+                              checked={(() => {
+                                if (item.excludeFromCalendar !== undefined) {
+                                  return item.excludeFromCalendar
+                                }
+                                const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                                const product = products.find(p => p.id === productId)
+                                return product?.excludeFromCalendar || false
+                              })()}
                               onChange={(e) => {
                                 const next = [...(lineItemsField.value || [])]
                                 next[index] = { ...next[index], excludeFromCalendar: e.target.checked }
                                 lineItemsField.setValue(next)
                               }}
-                              onBlur={() => lineItemsField.onBlur()}
                               className="w-4 h-4 text-blue-600 border-gray-300 rounded"
                             />
                             Exclude from tech calendar (post-production only)
@@ -2316,7 +2326,6 @@ export default function JobDetailPage() {
                             next[index] = { ...next[index], quantity: parseInt(e.target.value) }
                             lineItemsField.setValue(next)
                           }}
-                          onBlur={() => lineItemsField.onBlur()}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -2325,7 +2334,6 @@ export default function JobDetailPage() {
                         onClick={() => {
                           const next = (lineItemsField.value || []).filter((_: any, i: number) => i !== index)
                           lineItemsField.setValue(next)
-                          lineItemsField.onBlur()
                         }}
                         className="mt-7 p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       >
@@ -2865,7 +2873,6 @@ export default function JobDetailPage() {
                                 next[index] = { ...next[index], description: e.target.value }
                                 externalExpensesField.setValue(next)
                               }}
-                              onBlur={() => externalExpensesField.onBlur()}
                               className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                               placeholder="Description (e.g., Floor Plans)"
                             />
@@ -2878,7 +2885,6 @@ export default function JobDetailPage() {
                                 next[index] = { ...next[index], amount: parseFloat(e.target.value) || 0 }
                                 externalExpensesField.setValue(next)
                               }}
-                              onBlur={() => externalExpensesField.onBlur()}
                               className="w-28 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-right"
                               placeholder="0.00"
                             />
@@ -2887,7 +2893,6 @@ export default function JobDetailPage() {
                               onClick={() => {
                                 const next = (externalExpensesField.value || []).filter((_: any, i: number) => i !== index)
                                 externalExpensesField.setValue(next)
-                                externalExpensesField.onBlur()
                               }}
                               className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                             >
@@ -2904,7 +2909,6 @@ export default function JobDetailPage() {
                               next[index] = { ...next[index], supplier: e.target.value }
                               externalExpensesField.setValue(next)
                             }}
-                            onBlur={() => externalExpensesField.onBlur()}
                             className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             placeholder="Supplier name (optional)"
                           />
