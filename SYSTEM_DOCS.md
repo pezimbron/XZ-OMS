@@ -353,6 +353,12 @@
 
 ## 🔄 Update History
 
+- **2026-01-28**: Enhanced job details with `propertyType` and `purposeOfScan` fields
+- **2026-01-28**: Removed redundant completion fields (now tracked via workflow system)
+- **2026-01-28**: Fixed dropdown autosave using `commit()` method and `params.id`
+- **2026-01-28**: Refined Tech Feedback tab with timeline and tech contact info
+- **2026-01-28**: Workflow completion tracking with per-step notes in tech portal
+- **2026-01-28**: Scheduling system with 3 request types (time-windows, specific-time, tech-proposes)
 - **2026-01-27**: Subcontractor messaging via token-based links (no account required)
 - **2026-01-27**: Job messaging system with dual notifications (email + in-app)
 - **2026-01-27**: Site-wide tab query parameter support
@@ -361,6 +367,6 @@
 
 ---
 
-**Last Updated**: January 27, 2026
+**Last Updated**: January 28, 2026
 **Maintained By**: Development Team
 **Purpose**: Quick reference for AI assistants and developers
