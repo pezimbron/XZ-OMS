@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface SchedulingRequestPanelProps {
   jobId: string
@@ -23,6 +23,18 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
   const [requestMessage, setRequestMessage] = useState(existingRequest?.requestMessage || '')
   const [specialInstructions, setSpecialInstructions] = useState(existingRequest?.specialInstructions || '')
   const [deadlineHours, setDeadlineHours] = useState(24)
+
+  // Ensure timeOptions has correct structure when request type changes
+  useEffect(() => {
+    if (requestType === 'specific-time' && timeOptions.length === 0) {
+      setTimeOptions([{ optionNumber: 1, date: '', specificTime: '' }])
+    } else if (requestType === 'time-windows' && timeOptions.length === 0) {
+      setTimeOptions([
+        { optionNumber: 1, date: '', timeWindow: 'morning', startTime: '', endTime: '' },
+        { optionNumber: 2, date: '', timeWindow: 'afternoon', startTime: '', endTime: '' },
+      ])
+    }
+  }, [requestType, timeOptions.length])
 
   const addTimeOption = () => {
     setTimeOptions([

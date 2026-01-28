@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build response details based on whether tech accepted or declined
-    const baseUrl = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
     const jobLink = `${baseUrl}/oms/jobs/${job.id}?tab=instructions`
     
     let responseDetails = ''

@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         const schedulingRequest = (job as any).schedulingRequest
         if (!schedulingRequest) continue
 
-        const baseUrl = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
         const portalLink = `${baseUrl}/forms/job/${(job as any).completionToken}`
 
         const deadline = schedulingRequest.deadline ? new Date(schedulingRequest.deadline).toLocaleString('en-US', { 

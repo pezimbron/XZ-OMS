@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       hour12: true
     })
 
-    const baseUrl = process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
+    const baseUrl = process.env.NEXT_PUBLIC_SERVER_URL || process.env.PAYLOAD_PUBLIC_SERVER_URL || 'http://localhost:3000'
     const portalLink = `${baseUrl}/forms/job/${(job as any).completionToken}`
 
     // Send confirmation email
