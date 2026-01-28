@@ -110,6 +110,7 @@ export async function POST(
         data: {
           workflowSteps: updatedSteps,
         },
+        overrideAccess: true,
       })
 
       console.log(`[Tech Portal] Step "${body.stepName}" marked complete for job ${(job as any).jobId}`)
