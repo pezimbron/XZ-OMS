@@ -16,6 +16,14 @@ interface Job {
   techInstructions?: string
   lineItems?: any[]
   completionFormSubmitted?: boolean
+  workflowSteps?: Array<{
+    stepName: string
+    description?: string
+    requiredRole: string
+    completed: boolean
+    completedAt?: string
+    completedBy?: any
+  }>
   tech?: {
     id: string
     name: string
@@ -524,109 +532,98 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
             </div>
           )}
 
-          {/* Complete Job Tab */}
+          {/* Complete Job Tab - Workflow Steps */}
           {activeTab === 'complete' && (
             <div>
-              {job.completionFormSubmitted ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Already Submitted</h2>
-                  <p className="text-gray-600">This job completion form has already been submitted.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleCompletionSubmit}>
-                  <h2 className="text-xl font-bold text-gray-900 mb-6">Completion Report</h2>
-
-                  {/* Completion Status */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Completion Status <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      required
-                      value={formData.completionStatus}
-                      onChange={(e) => setFormData({...formData, completionStatus: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="completed">Completed</option>
-                      <option value="partially-completed">Partially Completed</option>
-                      <option value="not-completed">Not Able to Complete</option>
-                    </select>
-                  </div>
-
-                  {/* Incompletion Reason */}
-                  {(formData.completionStatus === 'not-completed' || formData.completionStatus === 'partially-completed') && (
-                    <>
-                      <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Reason <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                          required
-                          value={formData.incompletionReason}
-                          onChange={(e) => setFormData({...formData, incompletionReason: e.target.value})}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="">Select a reason...</option>
-                          <option value="no-access">Not able to access location</option>
-                          <option value="poc-no-show">POC didn&apos;t show up</option>
-                          <option value="poc-reschedule">POC asked to reschedule</option>
-                          <option value="other">Other</option>
-                        </select>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Job Tasks</h2>
+              
+              {job.workflowSteps && job.workflowSteps.length > 0 ? (
+                <div className="space-y-3">
+                  {job.workflowSteps
+                    .filter(step => step.requiredRole === 'tech')
+                    .map((step, index) => (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          step.completed
+                            ? 'bg-green-50 border-green-200'
+                            : 'bg-white border-gray-200 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <button
+                            onClick={async () => {
+                              if (step.completed) return
+                              
+                              try {
+                                const response = await fetch(`/api/forms/job/${token}`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    action: 'complete-step',
+                                    stepName: step.stepName,
+                                  }),
+                                })
+                                
+                                if (response.ok) {
+                                  await fetchJob()
+                                } else {
+                                  alert('Failed to mark step as complete')
+                                }
+                              } catch (error) {
+                                console.error('Error completing step:', error)
+                                alert('Failed to mark step as complete')
+                              }
+                            }}
+                            disabled={step.completed}
+                            className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+                              step.completed
+                                ? 'bg-green-500 border-green-500 cursor-default'
+                                : 'border-gray-300 hover:border-blue-500 cursor-pointer'
+                            }`}
+                          >
+                            {step.completed && (
+                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                          
+                          <div className="flex-1">
+                            <h3 className={`font-semibold ${
+                              step.completed ? 'text-green-900 line-through' : 'text-gray-900'
+                            }`}>
+                              {step.stepName}
+                            </h3>
+                            {step.description && (
+                              <p className="text-sm text-gray-600 mt-1">{step.description}</p>
+                            )}
+                            {step.completed && step.completedAt && (
+                              <p className="text-xs text-green-600 mt-2">
+                                ✓ Completed {new Date(step.completedAt).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Additional Details
-                        </label>
-                        <textarea
-                          value={formData.incompletionNotes}
-                          onChange={(e) => setFormData({...formData, incompletionNotes: e.target.value})}
-                          rows={3}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Please provide any additional details..."
-                        />
+                    ))}
+                  
+                  {job.workflowSteps.filter(step => step.requiredRole === 'tech').every(step => step.completed) && (
+                    <div className="mt-6 p-6 bg-green-50 border-2 border-green-200 rounded-lg text-center">
+                      <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
                       </div>
-                    </>
-                  )}
-
-                  {/* Tech Feedback */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Notes / Feedback
-                    </label>
-                    <textarea
-                      value={formData.techFeedback}
-                      onChange={(e) => setFormData({...formData, techFeedback: e.target.value})}
-                      rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Any notes, issues encountered, or feedback about the job..."
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-red-800">{error}</p>
+                      <h3 className="text-lg font-bold text-green-900 mb-1">All Tasks Complete!</h3>
+                      <p className="text-sm text-green-700">Great job! All your tasks for this job have been completed.</p>
                     </div>
                   )}
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Completion Report'}
-                  </button>
-
-                  <p className="text-sm text-gray-500 text-center mt-4">
-                    By submitting this form, you confirm that the information provided is accurate.
-                  </p>
-                </form>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p>No workflow tasks assigned yet.</p>
+                </div>
               )}
             </div>
           )}

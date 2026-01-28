@@ -44,6 +44,7 @@ export async function GET(
       techInstructions: job.techInstructions,
       lineItems: job.lineItems,
       completionFormSubmitted: job.completionFormSubmitted,
+      workflowSteps: (job as any).workflowSteps,
       schedulingRequest: (job as any).schedulingRequest,
       techResponse: (job as any).techResponse,
       tech: (job as any).tech,
@@ -85,6 +86,36 @@ export async function POST(
     }
 
     const job = jobs.docs[0]
+
+    // Handle workflow step completion
+    if (body.action === 'complete-step') {
+      const currentWorkflowSteps = (job as any).workflowSteps || []
+      const stepIndex = currentWorkflowSteps.findIndex((step: any) => step.stepName === body.stepName)
+      
+      if (stepIndex === -1) {
+        return NextResponse.json({ error: 'Step not found' }, { status: 404 })
+      }
+
+      const updatedSteps = [...currentWorkflowSteps]
+      updatedSteps[stepIndex] = {
+        ...updatedSteps[stepIndex],
+        completed: true,
+        completedAt: new Date().toISOString(),
+        completedBy: (job as any).tech?.email || 'Tech',
+      }
+
+      await payload.update({
+        collection: 'jobs',
+        id: job.id,
+        data: {
+          workflowSteps: updatedSteps,
+        },
+      })
+
+      console.log(`[Tech Portal] Step "${body.stepName}" marked complete for job ${(job as any).jobId}`)
+
+      return NextResponse.json({ success: true })
+    }
 
     // Check if already submitted
     if (job.completionFormSubmitted) {
