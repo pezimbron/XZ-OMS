@@ -502,7 +502,47 @@
 
 ---
 
-## ��🔄 Update History
+##  Update History
+
+### January 28, 2026 - Session 3 - Instructions Tab & Tech Portal Enhancements
+- **Instructions Tab Reorganization**:
+  - 3-column layout: POC, Upload Links, To-Do List (first row)
+  - Full-width sections: Scheduling Notes, General Instructions (subsequent rows)
+  - Moved Scheduling Request panels to Details tab
+  - To-Do List converted to clean bullet format
+  - Filters out products with `excludeFromCalendar` flag
+- **Custom To-Do Items**:
+  - Added `customTodoItems` field to Jobs collection (array with task/notes)
+  - Inline form UI for adding custom tasks (not product-based)
+  - Hover-to-remove functionality for custom items
+  - Autosave integration
+  - Synced with tech portal and calendar invites
+- **Calendar Invite Restructuring**:
+  - New 8-section format: To-Do List, Job Details, Location, POC, Tech Portal Access, Scheduling Notes, Instructions, Upload Locations
+  - Combined product items and custom tasks in single numbered list
+  - Added timezone to target date display
+  - POC email excluded from calendar (privacy)
+  - Tech portal access link included
+  - Auto-updates on all field changes (POC, notes, links, custom items, etc.)
+- **Tech Portal Layout Improvements**:
+  - Color-coded sections with icons
+  - Numbered badges for to-do items (1, 2, 3...)
+  - Prominent blue card for Services/To-Do List
+  - Improved visual hierarchy with better spacing
+  - Clickable upload link cards with hover effects
+  - 2-column grid for key details at top
+- **Security Fixes**:
+  - **CRITICAL**: Restricted admin panel access to admin roles only (super-admin, sales-admin, ops-manager)
+  - Techs and non-admin users can no longer access `/admin`
+  - Updated Users collection access control from `authenticated` to `isAdmin`
+- **Navigation Improvements**:
+  - Added prominent "Go to OMS" button on admin dashboard
+  - Created custom unauthorized page with "Go to Operations Dashboard" button
+  - Removed Reports link from navigation (not yet built)
+- **Bug Fixes**:
+  - Fixed upload link autosave race condition (removed unnecessary `fetchJob` calls)
+  - Fixed empty string handling for upload links (null vs empty string)
+  - Resolved 404 errors from Reports prefetching
 
 ### January 28, 2026 - Session 2
 - **Notifications Page**: Full-featured notifications page at `/oms/notifications` with all/unread/read filters, mark as read/unread, delete actions
