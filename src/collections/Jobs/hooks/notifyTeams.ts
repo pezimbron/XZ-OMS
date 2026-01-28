@@ -50,53 +50,7 @@ export const notifyTeams: CollectionAfterChangeHook = async ({
       console.log(`[Notification] Created ${qcTeam.docs.length} notifications for QC team about job ${doc.jobId}`)
     }
 
-    // 2. Job marked as incomplete or partially completed → Notify Admin
-    if (
-      doc.completionStatus === 'not-completed' ||
-      doc.completionStatus === 'partially-completed'
-    ) {
-      if (
-        previousDoc.completionStatus !== doc.completionStatus ||
-        previousDoc.incompletionReason !== doc.incompletionReason
-      ) {
-        console.log(`[Notification] Job ${doc.jobId} marked as ${doc.completionStatus} - notifying admin`)
-        
-        // Find all admins
-        const admins = await payload.find({
-          collection: 'users',
-          where: {
-            role: {
-              in: ['super-admin', 'ops-manager'],
-            },
-          },
-        })
-
-        // Create notification for each admin
-        const reasonText = doc.incompletionReason === 'no-access' ? 'Unable to access location' :
-                          doc.incompletionReason === 'poc-no-show' ? 'POC did not show up' :
-                          doc.incompletionReason === 'poc-reschedule' ? 'POC requested reschedule' :
-                          'Other reason'
-        
-        for (const admin of admins.docs) {
-          await payload.create({
-            collection: 'notifications',
-            data: {
-              user: admin.id,
-              title: 'Job Incomplete',
-              message: `Job ${doc.jobId} (${doc.modelName}) was marked as ${doc.completionStatus === 'not-completed' ? 'not completed' : 'partially completed'}. Reason: ${reasonText}. ${doc.incompletionNotes ? 'Notes: ' + doc.incompletionNotes : ''}`,
-              type: 'warning',
-              read: false,
-              relatedJob: doc.id,
-              actionUrl: `/oms/jobs/${doc.id}`,
-            },
-          })
-        }
-        
-        console.log(`[Notification] Created ${admins.docs.length} notifications for admins about incomplete job ${doc.jobId}`)
-      }
-    }
-
-    // 3. Check if job is past scheduled date and not completed
+    // 2. Check if job is past scheduled date and not completed
     if (doc.targetDate && doc.status !== 'done') {
       const targetDate = new Date(doc.targetDate)
       const now = new Date()

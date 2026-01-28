@@ -43,7 +43,6 @@ export async function GET(
       schedulingNotes: job.schedulingNotes,
       techInstructions: job.techInstructions,
       lineItems: job.lineItems,
-      completionFormSubmitted: job.completionFormSubmitted,
       workflowSteps: (job as any).workflowSteps,
       schedulingRequest: (job as any).schedulingRequest,
       techResponse: (job as any).techResponse,
@@ -119,74 +118,6 @@ export async function POST(
       console.log(`[Tech Portal] Step "${body.stepName}" marked complete for job ${(job as any).jobId}`)
 
       return NextResponse.json({ success: true })
-    }
-
-    // Check if already submitted
-    if (job.completionFormSubmitted) {
-      return NextResponse.json(
-        { error: 'Form already submitted' },
-        { status: 400 }
-      )
-    }
-
-    // Get current workflow steps
-    const currentWorkflowSteps = (job as any).workflowSteps || []
-    
-    // Auto-update workflow steps based on completion status
-    let updatedWorkflowSteps = [...currentWorkflowSteps]
-    if (body.completionStatus === 'completed' && updatedWorkflowSteps.length > 0) {
-      const now = new Date().toISOString()
-      const techEmail = (job as any).tech?.email || 'Tech'
-      
-      // Mark "Scan Completed" step as complete
-      const scanStepIndex = updatedWorkflowSteps.findIndex((step: any) => 
-        step.stepName?.toLowerCase().includes('scan completed') || 
-        step.stepName?.toLowerCase().includes('scan complete')
-      )
-      if (scanStepIndex !== -1) {
-        updatedWorkflowSteps[scanStepIndex] = {
-          ...updatedWorkflowSteps[scanStepIndex],
-          completed: true,
-          completedAt: now,
-          completedBy: techEmail,
-          notes: 'Auto-completed via tech completion form'
-        }
-      }
-      
-      // Mark "Upload" related steps as complete
-      const uploadStepIndex = updatedWorkflowSteps.findIndex((step: any) => 
-        step.stepName?.toLowerCase().includes('upload')
-      )
-      if (uploadStepIndex !== -1) {
-        updatedWorkflowSteps[uploadStepIndex] = {
-          ...updatedWorkflowSteps[uploadStepIndex],
-          completed: true,
-          completedAt: now,
-          completedBy: techEmail,
-          notes: 'Auto-completed via tech completion form'
-        }
-      }
-    }
-
-    // Update job with completion data and workflow steps
-    const updatedJob = await payload.update({
-      collection: 'jobs',
-      id: job.id,
-      data: {
-        completionStatus: body.completionStatus,
-        incompletionReason: body.incompletionReason || null,
-        incompletionNotes: body.incompletionNotes || null,
-        techFeedback: body.techFeedback || null,
-        scannedDate: body.scannedDate,
-        completionFormSubmitted: true,
-        status: body.completionStatus === 'completed' ? 'scanned' : job.status,
-        workflowSteps: updatedWorkflowSteps.length > 0 ? updatedWorkflowSteps : undefined,
-      },
-    })
-
-    console.log(`[Completion Form] Job ${job.jobId} completion form submitted via token`)
-    if (updatedWorkflowSteps.length > 0) {
-      console.log(`[Completion Form] Auto-updated workflow steps for job ${job.jobId}`)
     }
 
     return NextResponse.json({

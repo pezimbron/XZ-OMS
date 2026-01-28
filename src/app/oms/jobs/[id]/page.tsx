@@ -2254,8 +2254,13 @@ export default function JobDetailPage() {
                         <select
                           value={typeof item.product === 'object' ? item.product?.id : item.product}
                           onChange={(e) => {
+                            const selectedProduct = products.find(p => p.id === e.target.value)
                             const next = [...(lineItemsField.value || [])]
-                            next[index] = { ...next[index], product: e.target.value }
+                            next[index] = { 
+                              ...next[index], 
+                              product: e.target.value,
+                              excludeFromCalendar: selectedProduct?.excludeFromCalendar || false
+                            }
                             lineItemsField.setValue(next)
                           }}
                           onBlur={() => lineItemsField.onBlur()}

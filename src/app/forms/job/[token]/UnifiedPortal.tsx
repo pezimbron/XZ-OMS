@@ -16,7 +16,6 @@ interface Job {
   schedulingNotes?: string
   techInstructions?: string
   lineItems?: any[]
-  completionFormSubmitted?: boolean
   workflowSteps?: Array<{
     stepName: string
     description?: string
@@ -83,15 +82,6 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
   const [newMessage, setNewMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
   const [messageSuccess, setMessageSuccess] = useState(false)
-
-  // Completion form state
-  const [submitting, setSubmitting] = useState(false)
-  const [formData, setFormData] = useState({
-    completionStatus: 'completed',
-    incompletionReason: '',
-    incompletionNotes: '',
-    techFeedback: '',
-  })
 
   // Scheduling state
   const [schedulingResponse, setSchedulingResponse] = useState({
@@ -178,36 +168,6 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
       alert(error.message || 'Failed to send message')
     } finally {
       setSendingMessage(false)
-    }
-  }
-
-  const handleCompletionSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError('')
-
-    try {
-      const response = await fetch(`/api/forms/job/${token}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          scannedDate: new Date().toISOString(),
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to submit form')
-      }
-
-      alert('Thank you! Your completion report has been submitted successfully.')
-      await fetchJob()
-    } catch (error: any) {
-      setError(error.message || 'Failed to submit form')
-    } finally {
-      setSubmitting(false)
     }
   }
 
