@@ -4,79 +4,6 @@ import React, { useEffect, useState } from 'react'
 import JobPortalTabs from '@/components/forms/JobPortalTabs'
 import ScheduleTab from '@/components/forms/ScheduleTab'
 
-// Slide-to-confirm workflow action button
-function WorkflowActionButton({ stepName, onComplete }: { stepName: string; onComplete: () => Promise<void> }) {
-  const [slidePosition, setSlidePosition] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false)
-  const maxSlide = 200 // pixels to slide
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true)
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left - 30 // offset for button width
-    const newPosition = Math.max(0, Math.min(x, maxSlide))
-    setSlidePosition(newPosition)
-
-    // Auto-complete if slid far enough
-    if (newPosition >= maxSlide - 10) {
-      handleComplete()
-    }
-  }
-
-  const handleMouseUp = () => {
-    if (slidePosition < maxSlide - 10) {
-      setSlidePosition(0) // Reset if not completed
-    }
-    setIsDragging(false)
-  }
-
-  const handleComplete = async () => {
-    if (isCompleting) return
-    setIsDragging(false)
-    setIsCompleting(true)
-    try {
-      await onComplete()
-    } finally {
-      setIsCompleting(false)
-      setSlidePosition(0)
-    }
-  }
-
-  return (
-    <div className="mt-3">
-      <div
-        className="relative h-14 bg-gray-200 rounded-full overflow-hidden cursor-pointer select-none"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        {/* Background text */}
-        <div className="absolute inset-0 flex items-center justify-center text-gray-500 font-semibold">
-          {isCompleting ? 'Completing...' : 'Slide to Complete →'}
-        </div>
-
-        {/* Sliding button */}
-        <div
-          className={`absolute left-1 top-1 h-12 w-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full shadow-lg flex items-center justify-center transition-transform ${
-            isDragging ? '' : 'transition-all duration-200'
-          }`}
-          style={{ transform: `translateX(${slidePosition}px)` }}
-          onMouseDown={handleMouseDown}
-        >
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 interface Job {
   id: string
   jobId: string
@@ -399,6 +326,15 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
         </svg>
       ),
     },
+    {
+      id: 'complete',
+      label: 'Complete Job',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
   ]
 
   return (
@@ -513,67 +449,6 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
           {/* Messages Tab */}
           {activeTab === 'messages' && (
             <div>
-              {/* Workflow Action Buttons */}
-              {job.workflowSteps && job.workflowSteps.length > 0 && (() => {
-                const techSteps = job.workflowSteps.filter(step => 
-                  step.requiredRole === 'tech' || 
-                  step.stepName === 'Scanned' || 
-                  step.stepName === 'Scan Uploaded'
-                )
-                
-                // Find the next incomplete step
-                const nextStep = techSteps.find(step => !step.completed)
-                
-                if (!nextStep) return null
-                
-                // Check if previous step is complete (for sequential enforcement)
-                const currentIndex = techSteps.findIndex(s => s.stepName === nextStep.stepName)
-                const isPreviousComplete = currentIndex === 0 || techSteps[currentIndex - 1]?.completed
-                
-                return (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h3 className="font-bold text-gray-900">Next Task</h3>
-                        <p className="text-sm text-gray-600">{nextStep.stepName}</p>
-                      </div>
-                      {!isPreviousComplete && (
-                        <span className="text-xs text-orange-600 font-semibold bg-orange-100 px-3 py-1 rounded-full">
-                          Complete previous step first
-                        </span>
-                      )}
-                    </div>
-                    
-                    {isPreviousComplete && (
-                      <WorkflowActionButton
-                        stepName={nextStep.stepName}
-                        onComplete={async () => {
-                          try {
-                            const response = await fetch(`/api/forms/job/${token}`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                action: 'complete-step',
-                                stepName: nextStep.stepName,
-                              }),
-                            })
-                            
-                            if (response.ok) {
-                              await fetchJob()
-                            } else {
-                              alert('Failed to mark step as complete')
-                            }
-                          } catch (error) {
-                            console.error('Error completing step:', error)
-                            alert('Failed to mark step as complete')
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-                )
-              })()}
-              
               {messages.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                   <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -657,14 +532,25 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
             </div>
           )}
 
-          {/* Removed Complete Job Tab - workflow actions now in Messages tab */}
-          {activeTab === 'complete' && false && (
+          {/* Complete Job Tab - Workflow Steps */}
+          {activeTab === 'complete' && (
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-6">Job Tasks</h2>
               
               {job.workflowSteps && job.workflowSteps.length > 0 ? (
                 <div className="space-y-3">
                   {(() => {
+                    // Debug: Log all workflow steps to see actual structure
+                    console.log('[Tech Portal] All workflow steps:', JSON.stringify(job.workflowSteps, null, 2))
+                    job.workflowSteps.forEach((step, idx) => {
+                      console.log(`[Tech Portal] Step ${idx}:`, {
+                        stepName: step.stepName,
+                        requiredRole: step.requiredRole,
+                        requiredRoleType: typeof step.requiredRole,
+                        completed: step.completed
+                      })
+                    })
+                    
                     // Filter for tech-completable steps by requiredRole
                     // Fallback to specific step names for backward compatibility
                     const techSteps = job.workflowSteps.filter(step => 
@@ -672,6 +558,7 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
                       step.stepName === 'Scanned' || 
                       step.stepName === 'Scan Uploaded'
                     )
+                    console.log('[Tech Portal] Filtered tech steps:', techSteps.length, techSteps.map(s => s.stepName))
                     
                     if (techSteps.length === 0) {
                       return (
