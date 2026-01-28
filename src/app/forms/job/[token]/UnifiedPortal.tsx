@@ -416,99 +416,125 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
 
           {/* Job Info Tab */}
           {activeTab === 'info' && (
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Job Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Job ID</label>
-                  <p className="text-gray-900 font-medium">{job.jobId}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Model/Project</label>
-                  <p className="text-gray-900 font-medium">{job.modelName}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Scheduled Date</label>
-                  {job.schedulingRequest && !job.targetDate ? (
-                    <p className="text-amber-600 italic">To be determined - please check Schedule tab</p>
-                  ) : job.targetDate ? (
-                    <p className="text-gray-900">{new Date(job.targetDate).toLocaleString()}</p>
-                  ) : (
-                    <p className="text-gray-500 italic">Not scheduled yet</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Location</label>
-                  <p className="text-gray-900">
-                    {job.captureAddress || 'N/A'}
-                    {job.city && `, ${job.city}`}
-                    {job.state && `, ${job.state}`}
-                  </p>
-                </div>
-              </div>
-
-              {job.schedulingNotes && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-500">Scheduling Notes</label>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg mt-1">{job.schedulingNotes}</p>
-                </div>
-              )}
-
-              {job.techInstructions && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-500">Instructions</label>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg mt-1 whitespace-pre-wrap">{job.techInstructions}</p>
-                </div>
-              )}
-
-              {/* Upload Links */}
-              {(job.uploadLink || job.mediaUploadLink) && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-500">Upload Locations</label>
-                  <div className="mt-2 space-y-2">
-                    {job.uploadLink && (
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-xs font-medium text-blue-900 mb-1">Primary Upload Link</p>
-                        <a href={job.uploadLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all text-sm">
-                          {job.uploadLink}
-                        </a>
-                      </div>
-                    )}
-                    {job.mediaUploadLink && (
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-xs font-medium text-blue-900 mb-1">Media Upload Link</p>
-                        <a href={job.mediaUploadLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all text-sm">
-                          {job.mediaUploadLink}
-                        </a>
-                      </div>
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-gray-900">Job Information</h2>
+              
+              {/* Key Details - 2 Column Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Job ID</label>
+                    <p className="text-gray-900 font-semibold">{job.jobId}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Model/Project</label>
+                    <p className="text-gray-900 font-medium">{job.modelName}</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Scheduled Date</label>
+                    {job.schedulingRequest && !job.targetDate ? (
+                      <p className="text-amber-600 italic text-sm">To be determined - check Schedule tab</p>
+                    ) : job.targetDate ? (
+                      <p className="text-gray-900">{new Date(job.targetDate).toLocaleString()}</p>
+                    ) : (
+                      <p className="text-gray-500 italic text-sm">Not scheduled yet</p>
                     )}
                   </div>
                 </div>
+
+                {/* Right Column */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Location</label>
+                    <p className="text-gray-900">
+                      {job.captureAddress || 'N/A'}
+                    </p>
+                    {(job.city || job.state) && (
+                      <p className="text-gray-600 text-sm">
+                        {job.city}{job.city && job.state ? ', ' : ''}{job.state}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Services / To-Do List - Prominent Section */}
+              {((job.lineItems?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar).length ?? 0) > 0 || (job.customTodoItems?.length ?? 0) > 0) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Services / To-Do List
+                  </h3>
+                  <ul className="space-y-2">
+                    {job.lineItems
+                      ?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar)
+                      .map((item: any, index: number) => (
+                      <li key={`product-${index}`} className="flex items-start">
+                        <span className="inline-block w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mt-0.5 mr-3 flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        <div className="flex-1">
+                          <p className="text-gray-900 font-medium">
+                            {item.product?.name || 'Service'}
+                            {item.quantity > 1 && <span className="text-gray-600 font-normal"> (Qty: {item.quantity})</span>}
+                          </p>
+                          {item.instructions && (
+                            <p className="text-sm text-gray-600 mt-1">{item.instructions}</p>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                    {job.customTodoItems?.map((item: any, index: number) => {
+                      const itemNumber = (job.lineItems?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar).length ?? 0) + index + 1
+                      return (
+                        <li key={`custom-${index}`} className="flex items-start">
+                          <span className="inline-block w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center mt-0.5 mr-3 flex-shrink-0">
+                            {itemNumber}
+                          </span>
+                          <div className="flex-1">
+                            <p className="text-gray-900 font-medium">{item.task}</p>
+                            {item.notes && (
+                              <p className="text-sm text-gray-600 mt-1">{item.notes}</p>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
               )}
 
-              {/* On-Site Contact */}
+              {/* On-Site Contact (POC) */}
               {(job.sitePOCName || job.sitePOCPhone || job.sitePOCEmail) && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-500">On-Site Contact (POC)</label>
-                  <div className="mt-2 bg-gray-50 p-3 rounded-lg space-y-2">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    On-Site Contact (POC)
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {job.sitePOCName && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500">Name</p>
-                        <p className="text-gray-900">{job.sitePOCName}</p>
+                        <p className="text-xs font-medium text-gray-500 mb-1">Name</p>
+                        <p className="text-gray-900 font-medium">{job.sitePOCName}</p>
                       </div>
                     )}
                     {job.sitePOCPhone && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500">Phone</p>
-                        <a href={`tel:${job.sitePOCPhone}`} className="text-blue-600 hover:underline">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Phone</p>
+                        <a href={`tel:${job.sitePOCPhone}`} className="text-blue-600 hover:underline font-medium">
                           {job.sitePOCPhone}
                         </a>
                       </div>
                     )}
                     {job.sitePOCEmail && (
                       <div>
-                        <p className="text-xs font-medium text-gray-500">Email</p>
-                        <a href={`mailto:${job.sitePOCEmail}`} className="text-blue-600 hover:underline">
+                        <p className="text-xs font-medium text-gray-500 mb-1">Email</p>
+                        <a href={`mailto:${job.sitePOCEmail}`} className="text-blue-600 hover:underline break-all text-sm">
                           {job.sitePOCEmail}
                         </a>
                       </div>
@@ -517,30 +543,69 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
                 </div>
               )}
 
-              {((job.lineItems?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar).length ?? 0) > 0 || (job.customTodoItems?.length ?? 0) > 0) && (
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-gray-500">Services / To-Do List</label>
-                  <ul className="mt-2 space-y-2 list-disc list-inside text-gray-900">
-                    {job.lineItems
-                      ?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar)
-                      .map((item: any, index: number) => (
-                      <li key={`product-${index}`} className="text-sm">
-                        <span className="font-medium">{item.product?.name || 'Service'}</span>
-                        {item.quantity > 1 && <span className="text-gray-500"> (Qty: {item.quantity})</span>}
-                        {item.instructions && (
-                          <p className="ml-5 text-xs text-gray-600 mt-0.5">{item.instructions}</p>
-                        )}
-                      </li>
-                    ))}
-                    {job.customTodoItems?.map((item: any, index: number) => (
-                      <li key={`custom-${index}`} className="text-sm">
-                        <span className="font-medium">{item.task}</span>
-                        {item.notes && (
-                          <p className="ml-5 text-xs text-gray-600 mt-0.5">{item.notes}</p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+              {/* Scheduling Notes */}
+              {job.schedulingNotes && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-amber-900 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Scheduling Notes
+                  </h3>
+                  <p className="text-gray-900 text-sm whitespace-pre-wrap">{job.schedulingNotes}</p>
+                </div>
+              )}
+
+              {/* General Instructions */}
+              {job.techInstructions && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    General Instructions
+                  </h3>
+                  <p className="text-gray-900 text-sm whitespace-pre-wrap">{job.techInstructions}</p>
+                </div>
+              )}
+
+              {/* Upload Locations */}
+              {(job.uploadLink || job.mediaUploadLink) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-green-900 mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    Upload Locations
+                  </h3>
+                  <div className="space-y-2">
+                    {job.uploadLink && (
+                      <a 
+                        href={job.uploadLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="block bg-white border-2 border-green-300 hover:border-green-500 rounded-lg p-3 transition-colors"
+                      >
+                        <p className="text-xs font-medium text-green-900 mb-1">Primary Upload Link</p>
+                        <p className="text-blue-600 hover:underline break-all text-sm font-medium">
+                          {job.uploadLink}
+                        </p>
+                      </a>
+                    )}
+                    {job.mediaUploadLink && (
+                      <a 
+                        href={job.mediaUploadLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="block bg-white border-2 border-green-300 hover:border-green-500 rounded-lg p-3 transition-colors"
+                      >
+                        <p className="text-xs font-medium text-green-900 mb-1">Media Upload Link</p>
+                        <p className="text-blue-600 hover:underline break-all text-sm font-medium">
+                          {job.mediaUploadLink}
+                        </p>
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
