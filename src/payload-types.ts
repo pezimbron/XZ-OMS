@@ -840,6 +840,13 @@ export interface Job {
         id?: string | null;
       }[]
     | null;
+  customTodoItems?:
+    | {
+        task: string;
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   targetDate?: string | null;
   timezone?:
     | ('America/Chicago' | 'America/New_York' | 'America/Denver' | 'America/Los_Angeles' | 'America/Phoenix')
@@ -1716,6 +1723,13 @@ export interface JobsSelect<T extends boolean = true> {
         quantity?: T;
         instructions?: T;
         excludeFromCalendar?: T;
+        id?: T;
+      };
+  customTodoItems?:
+    | T
+    | {
+        task?: T;
+        notes?: T;
         id?: T;
       };
   targetDate?: T;

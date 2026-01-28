@@ -21,6 +21,7 @@ interface Job {
   sitePOCPhone?: string
   sitePOCEmail?: string
   lineItems?: any[]
+  customTodoItems?: any[]
   workflowSteps?: Array<{
     stepName: string
     description?: string
@@ -516,19 +517,30 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
                 </div>
               )}
 
-              {job.lineItems && job.lineItems.length > 0 && (
+              {((job.lineItems?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar).length ?? 0) > 0 || (job.customTodoItems?.length ?? 0) > 0) && (
                 <div className="mt-4">
                   <label className="text-sm font-medium text-gray-500">Services / To-Do List</label>
-                  <div className="mt-2 space-y-2">
-                    {job.lineItems.map((item: any, index: number) => (
-                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                        <p className="font-medium text-gray-900">{item.product?.name || 'Service'} (Qty: {item.quantity || 1})</p>
+                  <ul className="mt-2 space-y-2 list-disc list-inside text-gray-900">
+                    {job.lineItems
+                      ?.filter((item: any) => !item.product?.excludeFromCalendar && !item.excludeFromCalendar)
+                      .map((item: any, index: number) => (
+                      <li key={`product-${index}`} className="text-sm">
+                        <span className="font-medium">{item.product?.name || 'Service'}</span>
+                        {item.quantity > 1 && <span className="text-gray-500"> (Qty: {item.quantity})</span>}
                         {item.instructions && (
-                          <p className="text-sm text-gray-600 mt-1">{item.instructions}</p>
+                          <p className="ml-5 text-xs text-gray-600 mt-0.5">{item.instructions}</p>
                         )}
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                    {job.customTodoItems?.map((item: any, index: number) => (
+                      <li key={`custom-${index}`} className="text-sm">
+                        <span className="font-medium">{item.task}</span>
+                        {item.notes && (
+                          <p className="ml-5 text-xs text-gray-600 mt-0.5">{item.notes}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>

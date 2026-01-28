@@ -289,6 +289,27 @@ export const Jobs: CollectionConfig = {
       ],
     },
     {
+      name: 'customTodoItems',
+      type: 'array',
+      label: 'Custom To-Do Items',
+      admin: {
+        description: 'Add custom to-do items that are not products (e.g., specific tasks, reminders)',
+      },
+      fields: [
+        {
+          name: 'task',
+          type: 'text',
+          required: true,
+          label: 'Task Description',
+        },
+        {
+          name: 'notes',
+          type: 'textarea',
+          label: 'Additional Notes',
+        },
+      ],
+    },
+    {
       name: 'targetDate',
       type: 'date',
       admin: {

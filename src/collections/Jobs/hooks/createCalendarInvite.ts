@@ -57,6 +57,16 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     const zipChanged = previousDoc.zip !== doc.zip
     const modelNameChanged = previousDoc.modelName !== doc.modelName
     const instructionsChanged = previousDoc.techInstructions !== doc.techInstructions
+    const schedulingNotesChanged = previousDoc.schedulingNotes !== doc.schedulingNotes
+    
+    // POC fields
+    const pocNameChanged = previousDoc.sitePOCName !== doc.sitePOCName
+    const pocPhoneChanged = previousDoc.sitePOCPhone !== doc.sitePOCPhone
+    const pocEmailChanged = previousDoc.sitePOCEmail !== doc.sitePOCEmail
+    
+    // Upload links
+    const uploadLinkChanged = previousDoc.uploadLink !== doc.uploadLink
+    const mediaUploadLinkChanged = previousDoc.mediaUploadLink !== doc.mediaUploadLink
     
     // Improved lineItems comparison - normalize data to avoid false positives
     const normalizeLineItems = (items: any[]) => {
@@ -71,6 +81,9 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     const currLineItems = normalizeLineItems(doc.lineItems || [])
     const lineItemsChanged = JSON.stringify(prevLineItems) !== JSON.stringify(currLineItems)
     
+    // Check if custom todo items changed
+    const customTodoItemsChanged = JSON.stringify(previousDoc.customTodoItems || []) !== JSON.stringify(doc.customTodoItems || [])
+    
     // Exclude workflow-related fields from triggering calendar updates
     const statusChanged = previousDoc.status !== doc.status
     const workflowStepsChanged = JSON.stringify(previousDoc.workflowSteps) !== JSON.stringify(doc.workflowSteps)
@@ -78,7 +91,9 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     const calendarFieldsChanged = 
       techChanged || dateChanged || addressChanged || cityChanged || 
       stateChanged || zipChanged || modelNameChanged || clientChanged || 
-      instructionsChanged || lineItemsChanged
+      instructionsChanged || lineItemsChanged || customTodoItemsChanged ||
+      schedulingNotesChanged || pocNameChanged || pocPhoneChanged || pocEmailChanged ||
+      uploadLinkChanged || mediaUploadLinkChanged
     
     // Check if ONLY workflow fields changed (status, workflowSteps)
     const onlyWorkflowFieldsChanged = (statusChanged || workflowStepsChanged) && !calendarFieldsChanged
@@ -105,7 +120,14 @@ export const createCalendarInvite: CollectionAfterChangeHook = async ({
     if (modelNameChanged) changedFields.push('modelName')
     if (clientChanged) changedFields.push('client')
     if (instructionsChanged) changedFields.push('techInstructions')
+    if (schedulingNotesChanged) changedFields.push('schedulingNotes')
+    if (pocNameChanged) changedFields.push('sitePOCName')
+    if (pocPhoneChanged) changedFields.push('sitePOCPhone')
+    if (pocEmailChanged) changedFields.push('sitePOCEmail')
+    if (uploadLinkChanged) changedFields.push('uploadLink')
+    if (mediaUploadLinkChanged) changedFields.push('mediaUploadLink')
     if (lineItemsChanged) changedFields.push('lineItems')
+    if (customTodoItemsChanged) changedFields.push('customTodoItems')
     
     req.payload.logger.info(`[Calendar Hook] Calendar fields changed: ${changedFields.join(', ')} - proceeding with update`)
   }
@@ -296,150 +318,107 @@ function formatCalendarDescription(
 ): string {
   const sections: string[] = []
 
-  // 1. TO-DO LIST - From Workflow Steps (Tech Tasks Only)
-  if (job.workflowSteps && job.workflowSteps.length > 0) {
-    const techSteps = job.workflowSteps.filter((step: any) => 
-      step.requiredRole === 'tech' && !step.completed
-    )
+  // 1. TO-DO LIST - All items (products + custom tasks)
+  const calendarItems = job.lineItems?.filter((item: any) => !item.excludeFromCalendar && !item.product?.excludeFromCalendar) || []
+  const customItems = job.customTodoItems || []
+  
+  if (calendarItems.length > 0 || customItems.length > 0) {
+    sections.push('✅ TO-DO LIST')
+    let itemNumber = 1
     
-    if (techSteps.length > 0) {
-      sections.push('📋 TO-DO LIST (Field Tasks)')
-      techSteps.forEach((step: any, index: number) => {
-        sections.push(`${index + 1}. ${step.stepName}`)
-        if (step.description) {
-          sections.push(`   ${step.description}`)
-        }
-      })
-      sections.push('')
-    }
+    // Product-based items first
+    calendarItems.forEach((item: any) => {
+      const product = products[job.lineItems.indexOf(item)]
+      const productName = product?.name || 'Service'
+      const quantity = item.quantity || 1
+      sections.push(`${itemNumber}. ${productName}${quantity > 1 ? ` (Qty: ${quantity})` : ''}`)
+      if (item.instructions) {
+        sections.push(`   ${item.instructions}`)
+      }
+      itemNumber++
+    })
+    
+    // Custom tasks
+    customItems.forEach((item: any) => {
+      sections.push(`${itemNumber}. ${item.task}`)
+      if (item.notes) {
+        sections.push(`   ${item.notes}`)
+      }
+      itemNumber++
+    })
+    sections.push('')
   }
 
-  // Optional: Include line items that are NOT excluded from calendar
-  if (job.lineItems && job.lineItems.length > 0) {
-    const calendarItems = job.lineItems.filter((item: any) => !item.excludeFromCalendar)
-    
-    if (calendarItems.length > 0) {
-      sections.push('📦 ADDITIONAL ITEMS')
-      calendarItems.forEach((item: any, index: number) => {
-        const product = products[job.lineItems.indexOf(item)]
-        const productName = product?.name || 'Service'
-        const quantity = item.quantity || 1
-        sections.push(`${index + 1}. ${productName} (Qty: ${quantity})`)
-      })
-      sections.push('')
-    }
-  }
-
-  // 2. PURPOSE OF SCAN (Client name removed for privacy)
+  // 2. JOB DETAILS
   sections.push('══════════')
-  sections.push('� PURPOSE')
-  if (job.purposeOfScan) {
-    sections.push(`Purpose: ${job.purposeOfScan}`)
+  sections.push('📋 JOB DETAILS')
+  if (job.jobId) sections.push(`Job ID: ${job.jobId}`)
+  if (job.modelName) sections.push(`Model/Project: ${job.modelName}`)
+  if (job.targetDate) {
+    const date = new Date(job.targetDate)
+    const timezone = job.timezone || 'America/Chicago'
+    sections.push(`Target Date: ${date.toLocaleString('en-US', { timeZone: timezone })} (${timezone})`)
   }
-  if (job.captureType) {
-    sections.push(`Capture Type: ${job.captureType}`)
-  }
+  if (job.propertyType) sections.push(`Property Type: ${job.propertyType}`)
+  if (job.purposeOfScan) sections.push(`Purpose: ${job.purposeOfScan}`)
   sections.push('')
 
-  // 3. ADDRESS AND SQUARE FOOTAGE
+  // 3. LOCATION & SIZE
   sections.push('══════════')
-  sections.push('📍 LOCATION & SIZE')
+  sections.push('📍 LOCATION')
   if (job.captureAddress) {
-    sections.push(`Address: ${job.captureAddress}`)
+    sections.push(`${job.captureAddress}`)
     if (job.city || job.state || job.zip) {
-      sections.push(
-        `         ${job.city || ''}${job.city && job.state ? ', ' : ''}${job.state || ''} ${job.zip || ''}`
-      )
+      sections.push(`${job.city || ''}${job.city && job.state ? ', ' : ''}${job.state || ''} ${job.zip || ''}`)
     }
   }
   if (job.sqFt) {
     sections.push(`Square Footage: ${job.sqFt} sq ft`)
   }
-  if (job.propertyType) {
-    sections.push(`Property Type: ${job.propertyType}`)
-  }
-  if (job.schedulingNotes) {
-    sections.push(`⚠️  SCHEDULING NOTES: ${job.schedulingNotes}`)
-  }
   sections.push('')
 
-  // 4. POC INFORMATION
-  if (job.sitePOCName || job.sitePOCPhone || job.sitePOCEmail) {
+  // 4. POC INFORMATION (no email)
+  if (job.sitePOCName || job.sitePOCPhone) {
     sections.push('══════════')
-    sections.push('📞 ON-SITE CONTACT')
+    sections.push('📞 ON-SITE CONTACT (POC)')
     if (job.sitePOCName) sections.push(`Name: ${job.sitePOCName}`)
     if (job.sitePOCPhone) sections.push(`Phone: ${job.sitePOCPhone}`)
-    if (job.sitePOCEmail) sections.push(`Email: ${job.sitePOCEmail}`)
     sections.push('')
   }
 
-  // 5. GENERAL TECH INSTRUCTIONS (if any)
+  // 5. TECH PORTAL ACCESS
+  if (job.completionToken) {
+    sections.push('══════════')
+    sections.push('� TECH PORTAL ACCESS')
+    sections.push(`Complete job & upload files:`)
+    sections.push(`https://xz-oms.vercel.app/forms/job/${job.completionToken}`)
+    sections.push('')
+  }
+
+  // 6. SCHEDULING NOTES
+  if (job.schedulingNotes) {
+    sections.push('══════════')
+    sections.push('⚠️  SCHEDULING NOTES')
+    sections.push(job.schedulingNotes)
+    sections.push('')
+  }
+
+  // 7. GENERAL INSTRUCTIONS FOR TECH
   if (job.techInstructions) {
     sections.push('══════════')
-    sections.push('📝 GENERAL INSTRUCTIONS')
+    sections.push('� GENERAL INSTRUCTIONS FOR TECH')
     sections.push(job.techInstructions)
     sections.push('')
   }
 
-  // 5. SPECIFIC INSTRUCTIONS FOR EACH TO-DO ITEM
-  if (job.lineItems && job.lineItems.length > 0) {
-    const calendarItems = job.lineItems.filter((item: any) => !item.excludeFromCalendar)
-    const hasInstructions = calendarItems.some((item: any) => item.instructions)
-    
-    if (hasInstructions) {
-      sections.push('══════════')
-      sections.push('📝 SPECIFIC INSTRUCTIONS PER ITEM')
-      calendarItems.forEach((item: any) => {
-        if (item.instructions) {
-          const itemIndex = job.lineItems.indexOf(item)
-          const product = products[itemIndex]
-          const productName = product?.name || 'Service'
-          sections.push(`• ${productName}:`)
-          sections.push(`  ${item.instructions}`)
-          sections.push('')
-        }
-      })
-    }
-  }
-
-  // 6. WHERE TO UPLOAD THE PROJECT
-  if (job.uploadLink) {
+  // 8. UPLOAD LOCATIONS
+  if (job.uploadLink || job.mediaUploadLink) {
     sections.push('══════════')
     sections.push('📤 UPLOAD LOCATIONS')
-    sections.push(`Primary Upload: ${job.uploadLink}`)
-  }
-
-  // 7. MEDIA UPLOAD URL (if different)
-  if (job.mediaUploadLink) {
-    if (!job.uploadLink) {
-      sections.push('══════════')
-      sections.push('📤 UPLOAD LOCATIONS')
-    }
-    sections.push(`Media Upload: ${job.mediaUploadLink}`)
-  }
-
-  if (job.uploadLink || job.mediaUploadLink) {
+    if (job.uploadLink) sections.push(`Primary Upload: ${job.uploadLink}`)
+    if (job.mediaUploadLink) sections.push(`Media Upload: ${job.mediaUploadLink}`)
     sections.push('')
   }
-
-  // Tech Portal Access Link
-  if (job.completionToken) {
-    const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
-    const portalUrl = `${serverUrl}/forms/job/${job.completionToken}`
-    
-    sections.push('══════════')
-    sections.push('🔗 TECH PORTAL ACCESS')
-    sections.push('View job details, send messages, and complete workflow steps:')
-    sections.push(portalUrl)
-    sections.push('')
-  }
-
-  // Additional job info
-  sections.push('══════════')
-  sections.push('ℹ️  JOB INFO')
-  if (job.jobId) sections.push(`Job ID: ${job.jobId}`)
-  if (job.priority) sections.push(`Priority: ${job.priority}`)
-  sections.push('')
 
   return sections.join('\n')
 }
