@@ -147,11 +147,12 @@ export default function JobDetailPage() {
   const targetDateField = useAutosaveField<string>({
     value: job?.targetDate || '',
     onSave: async (next) => {
-      if (!job?.id) return
-      const timezone = timezoneField.value || job.timezone || 'America/Chicago'
+      const jobId = params.id as string
+      if (!jobId) return
+      const timezone = timezoneField.value || job?.timezone || 'America/Chicago'
       const nextISO = toISOWithTimezoneOffset(next, timezone)
-      await patchJob(job.id, { targetDate: nextISO })
-      await fetchJob(job.id)
+      await patchJob(jobId, { targetDate: nextISO })
+      await fetchJob(jobId)
     },
     debounceMs: 0,
   })
@@ -358,9 +359,15 @@ export default function JobDetailPage() {
   const timezoneField = useAutosaveField<string>({
     value: job?.timezone || 'America/Chicago',
     onSave: async (next) => {
-      if (!job?.id) return
-      await patchJob(job.id, { timezone: next })
-      await fetchJob(job.id)
+      const jobId = params.id as string
+      if (!jobId) {
+        console.error('[Timezone] No job ID available')
+        return
+      }
+      console.log('[Timezone] Saving timezone:', next, 'for job:', jobId)
+      await patchJob(jobId, { timezone: next })
+      console.log('[Timezone] Save successful, refetching job')
+      await fetchJob(jobId)
     },
     debounceMs: 0,
   })
@@ -1149,8 +1156,7 @@ export default function JobDetailPage() {
                           const minutes = String(date.getMinutes()).padStart(2, '0')
                           return `${year}-${month}-${day}T${hours}:${minutes}`
                         })() : ''}
-                        onChange={(e) => targetDateField.setValue(e.target.value)}
-                        onBlur={() => targetDateField.onBlur()}
+                        onChange={(e) => targetDateField.commit(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />
                       <SaveIndicator status={targetDateField.status} error={targetDateField.error} />
@@ -1172,8 +1178,7 @@ export default function JobDetailPage() {
                     <div className="space-y-1">
                       <select
                         value={timezoneField.value || 'America/Chicago'}
-                        onChange={(e) => timezoneField.setValue(e.target.value)}
-                        onBlur={() => timezoneField.onBlur()}
+                        onChange={(e) => timezoneField.commit(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="America/Chicago">Central Time (Austin/San Antonio)</option>

@@ -351,8 +351,109 @@
 
 ---
 
-## 🔄 Update History
+## �️ Product Roadmap
 
+### Phase 1: Core Operations & Workflow ✅ **COMPLETE**
+
+**1. Post-Producer/QC Queue** - ✅ IMPLEMENTED
+- **Location**: `/oms/qc-queue`
+- **Features**:
+  - QC dashboard with stats (Pending, In Review, Needs Revision, Passed)
+  - Filter by QC status, priority, assignee
+  - Search by job ID, model, client
+  - Batch approval/rejection
+  - Assign QC tasks to specific post-producers
+  - Time tracking (qcStartTime, qcEndTime)
+  - Revision tracking via qcStatus field
+
+**2. QuickBooks Invoice Creation** - ✅ IMPLEMENTED
+- **Location**: `/oms/invoices` and `/oms/invoices/[id]`
+- **Features**:
+  - Invoice dashboard with stats
+  - Filter by status, client, date range
+  - QuickBooks sync status tracking
+  - Invoice CRUD operations
+  - Batch invoicing
+  - Status tracking (draft, approved, sent, paid, overdue)
+  - One-click invoice creation from jobs
+  - Auto-populate line items from job products
+
+**3. Bi-Weekly Payroll/Commissions** - ✅ IMPLEMENTED
+- **Location**: `/oms/commissions`
+- **Features**:
+  - Summary cards (Pending Payment, Total Paid, Total Jobs)
+  - Bi-weekly pay run system with automatic 2-week window calculation
+  - Bulk operations (select multiple jobs, set payout date, mark as paid)
+  - Filtering by payment status, tech, payout date range
+  - Per-job breakdown (capture, travel, off-hours payouts)
+  - Dual view (tech view for own jobs, admin view for all techs)
+  - Commission payout date tracking
+  - Payment status tracking (pending/paid)
+- **Note**: Subcontractors paid separately from their invoice (varies by contractor)
+
+### Phase 2: Business Integrations ❌ **NOT STARTED**
+
+**4. HubSpot Integration**
+- Goal: Sync CRM data between XZ-OMS and HubSpot
+- Features:
+  - Bi-directional client sync
+  - Job activity tracking in HubSpot
+  - Deal creation from jobs
+  - Contact property updates
+  - Activity timeline sync
+  - Lead source tracking
+
+**5. Payment Matching System**
+- Goal: Match bulk payments to jobs and auto-generate internal invoices
+- Features:
+  - Payment import (CSV/manual entry)
+  - Smart matching algorithm (by client, date range, amount)
+  - Suggest job matches with manual override
+  - Auto-generate internal invoices (batch invoice with job per line item)
+  - Payment allocation tracking
+  - Unmatched payment queue
+
+**6. Twilio SMS Notifications**
+- Goal: Add SMS notifications alongside email
+- Features:
+  - SMS notification preferences per client
+  - SMS templates (similar to email templates)
+  - Send SMS for job scheduled reminders, completion alerts, deliverables ready, payment confirmations
+  - SMS delivery status tracking
+  - Opt-out management
+
+### Phase 3: Client Experience & Analytics ❌ **NOT STARTED**
+
+**7. Client Portal**
+- Goal: Self-service portal for clients
+- Features:
+  - Client authentication
+  - Job dashboard (active/completed)
+  - Download deliverables
+  - Job status tracking
+  - Request new jobs
+  - View invoices
+  - Communication history
+  - Manage 3D model hosting
+
+**8. Enhanced Reporting & Analytics**
+- Goal: Business intelligence and performance tracking
+- Features:
+  - Revenue reports (by client, period, service)
+  - Tech performance metrics
+  - Job completion time analysis
+  - Client activity reports
+  - Profit margin tracking
+  - Workflow bottleneck identification
+  - CSV/Excel export
+  - Email report delivery
+
+---
+
+## �🔄 Update History
+
+- **2026-01-28**: Client default workflow auto-applied on job creation and client changes
+- **2026-01-28**: Quick edit for Client and Model Name fields with autosave
 - **2026-01-28**: Enhanced job details with `propertyType` and `purposeOfScan` fields
 - **2026-01-28**: Removed redundant completion fields (now tracked via workflow system)
 - **2026-01-28**: Fixed dropdown autosave using `commit()` method and `params.id`
@@ -360,7 +461,7 @@
 - **2026-01-28**: Workflow completion tracking with per-step notes in tech portal
 - **2026-01-28**: Scheduling system with 3 request types (time-windows, specific-time, tech-proposes)
 - **2026-01-28**: Product calendar exclusion feature - products inherit `excludeFromCalendar` default in jobs
-- **2026-01-28**: Products/Services modal now saves only on "Done" click (no autosave during editing)
+- **2026-01-28**: Products/Services and External Expenses modals save only on "Done" click
 - **2026-01-27**: Subcontractor messaging via token-based links (no account required)
 - **2026-01-27**: Job messaging system with dual notifications (email + in-app)
 - **2026-01-27**: Site-wide tab query parameter support

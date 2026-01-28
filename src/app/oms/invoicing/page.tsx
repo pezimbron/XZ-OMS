@@ -16,10 +16,21 @@ interface Job {
     invoicingPreferences?: {
       terms?: string
       autoApprove?: boolean
+      taxExempt?: boolean
+      taxRate?: number
     }
   }
   totalPrice?: number
   targetDate?: string
+  scannedDate?: string
+  completedDate?: string
+  sqFt?: number
+  lineItems?: any[]
+  discount?: {
+    type?: string
+    value?: number
+  }
+  workflowSteps?: any[]
 }
 
 export default function InvoicingPage() {
@@ -36,15 +47,87 @@ export default function InvoicingPage() {
 
   const fetchJobsReadyToInvoice = async () => {
     try {
-      // Fetch completed jobs that are ready to invoice
-      const response = await fetch('/api/jobs?limit=1000&depth=1')
+      // Fetch completed jobs that are ready to invoice with products
+      const response = await fetch('/api/jobs?limit=1000&depth=2')
       const data = await response.json()
+      
+      // Fetch products for price calculation
+      const productsResponse = await fetch('/api/products?limit=1000')
+      const productsData = await productsResponse.json()
+      const products = productsData.docs || []
       
       // Filter for jobs with status 'done' and invoice status 'not-invoiced' or 'ready'
       const readyJobs = data.docs.filter((job: any) => 
         job.status === 'done' && 
         (job.invoiceStatus === 'not-invoiced' || job.invoiceStatus === 'ready')
-      )
+      ).map((job: any) => {
+        // Calculate total price from line items
+        let subtotal = 0
+        const jobSqFt = parseInt(job.sqFt) || 0
+        
+        if (job.lineItems && job.lineItems.length > 0) {
+          job.lineItems.forEach((item: any) => {
+            const productId = typeof item.product === 'object' ? item.product?.id : item.product
+            const product = products.find((p: any) => p.id === productId)
+            if (product?.basePrice) {
+              const price = product.basePrice
+              const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+              subtotal += price * multiplier
+            }
+          })
+        }
+        
+        // Calculate tax if applicable
+        let taxAmount = 0
+        const client = job.client
+        if (client && !client.invoicingPreferences?.taxExempt && client.invoicingPreferences?.taxRate) {
+          let taxableAmount = 0
+          job.lineItems?.forEach((item: any) => {
+            const productId = typeof item.product === 'object' ? item.product?.id : item.product
+            const product = products.find((p: any) => p.id === productId)
+            if (product?.taxable) {
+              const price = product.basePrice || 0
+              const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+              taxableAmount += price * multiplier
+            }
+          })
+          taxAmount = taxableAmount * ((client.invoicingPreferences.taxRate || 0) / 100)
+        }
+        
+        // Apply discount
+        const discountType = job.discount?.type || 'none'
+        const discountValue = job.discount?.value || 0
+        const discountAmount = discountType === 'fixed' 
+          ? discountValue
+          : discountType === 'percentage'
+          ? subtotal * (discountValue / 100)
+          : 0
+        
+        const totalPrice = subtotal + taxAmount - discountAmount
+        
+        // Get the completion date from the last completed workflow step
+        let completedDate = null
+        if (job.workflowSteps && job.workflowSteps.length > 0) {
+          const completedSteps = job.workflowSteps
+            .filter((step: any) => step.completed && step.completedAt)
+            .sort((a: any, b: any) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+          
+          if (completedSteps.length > 0) {
+            completedDate = completedSteps[0].completedAt
+          }
+        }
+        
+        // Fall back to scannedDate or targetDate if no workflow completion date
+        if (!completedDate) {
+          completedDate = job.scannedDate || job.targetDate
+        }
+        
+        return {
+          ...job,
+          totalPrice,
+          completedDate
+        }
+      })
       
       setJobs(readyJobs)
       setLoading(false)
@@ -168,98 +251,25 @@ export default function InvoicingPage() {
     }
   }
 
-  const JobCard = ({ job }: { job: Job }) => {
-    const isSelected = selectedJobs.has(job.id)
+  const getBillingBadge = (preference: string) => {
+    const styles = {
+      'immediate': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+      'weekly-batch': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+      'monthly-batch': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+      'payment-first': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    }
+    
+    const labels = {
+      'immediate': 'Immediate',
+      'weekly-batch': 'Weekly Batch',
+      'monthly-batch': 'Monthly Batch',
+      'payment-first': 'Payment First',
+    }
     
     return (
-      <div
-        className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
-          isSelected
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
-        }`}
-        onClick={() => toggleJobSelection(job.id)}
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggleJobSelection(job.id)}
-                className="w-4 h-4"
-                onClick={(e) => e.stopPropagation()}
-              />
-              <Link
-                href={`/oms/jobs/${job.id}`}
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {job.jobId}
-              </Link>
-            </div>
-            <p className="text-gray-900 dark:text-white mt-1">{job.modelName}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Client: {job.client?.name || 'Unknown'}
-            </p>
-            {job.targetDate && (
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                Completed: {new Date(job.targetDate).toLocaleDateString()}
-              </p>
-            )}
-          </div>
-          <div className="text-right">
-            {job.totalPrice && (
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
-                ${job.totalPrice.toFixed(2)}
-              </p>
-            )}
-            {job.client?.invoicingPreferences?.autoApprove && (
-              <span className="inline-block mt-1 px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
-                Auto-Approve
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const JobGroup = ({ title, jobs, color }: { title: string; jobs: Job[]; color: string }) => {
-    if (jobs.length === 0) return null
-
-    const totalAmount = jobs.reduce((sum, job) => sum + (job.totalPrice || 0), 0)
-
-    return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${color}`}></div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-              {title}
-            </h2>
-            <span className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
-              {jobs.length} {jobs.length === 1 ? 'job' : 'jobs'}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
-              ${totalAmount.toFixed(2)}
-            </span>
-            <button
-              onClick={() => selectAllInGroup(jobs)}
-              className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded transition-colors"
-            >
-              Select All
-            </button>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {jobs.map(job => (
-            <JobCard key={job.id} job={job} />
-          ))}
-        </div>
-      </div>
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[preference as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[preference as keyof typeof labels] || preference}
+      </span>
     )
   }
 
@@ -372,53 +382,123 @@ export default function InvoicingPage() {
         )}
       </div>
 
-      {/* Content */}
+      {/* Content - Table */}
       <div className="p-8">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {filteredJobs.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
-              <p className="text-gray-600 dark:text-gray-400 text-lg">
-                No jobs ready to invoice
-              </p>
-              <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-                Completed jobs will appear here when they&apos;re ready to be invoiced
-              </p>
-            </div>
-          ) : filter === 'all' ? (
-            <>
-              <JobGroup
-                title="Immediate Billing"
-                jobs={groupedJobs.immediate}
-                color="bg-green-500"
-              />
-              <JobGroup
-                title="Weekly Batch"
-                jobs={groupedJobs.weeklyBatch}
-                color="bg-blue-500"
-              />
-              <JobGroup
-                title="Monthly Batch"
-                jobs={groupedJobs.monthlyBatch}
-                color="bg-purple-500"
-              />
-              <JobGroup
-                title="Payment First"
-                jobs={groupedJobs.paymentFirst}
-                color="bg-orange-500"
-              />
-            </>
-          ) : (
-            <JobGroup
-              title={filter === 'immediate' ? 'Immediate Billing' : 
-                     filter === 'weekly-batch' ? 'Weekly Batch' :
-                     filter === 'monthly-batch' ? 'Monthly Batch' : 'Payment First'}
-              jobs={filteredJobs}
-              color={filter === 'immediate' ? 'bg-green-500' :
-                     filter === 'weekly-batch' ? 'bg-blue-500' :
-                     filter === 'monthly-batch' ? 'bg-purple-500' : 'bg-orange-500'}
-            />
-          )}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedJobs.size === filteredJobs.length && filteredJobs.length > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedJobs(new Set(filteredJobs.map(j => j.id)))
+                        } else {
+                          setSelectedJobs(new Set())
+                        }
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Job ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Model / Client
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Billing Type
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Completed Date
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                      <p className="text-lg">No jobs ready to invoice</p>
+                      <p className="text-sm mt-2">Completed jobs will appear here when they&apos;re ready to be invoiced</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredJobs.map((job) => (
+                    <tr
+                      key={job.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedJobs.has(job.id)}
+                          onChange={() => toggleJobSelection(job.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Link
+                          href={`/oms/jobs/${job.id}`}
+                          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          {job.jobId || job.id}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {job.modelName}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {job.client?.name || 'Unknown'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getBillingBadge(job.client?.billingPreference || 'immediate')}
+                        {job.client?.invoicingPreferences?.autoApprove && (
+                          <span className="ml-2 inline-block px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded">
+                            Auto
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {job.completedDate ? new Date(job.completedDate).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {job.totalPrice ? `$${job.totalPrice.toFixed(2)}` : '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <Link
+                          href={`/oms/jobs/${job.id}`}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
+                        >
+                          View →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Results Count */}
+        {filteredJobs.length > 0 && (
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
+            Showing {filteredJobs.length} of {jobs.length} jobs ready to invoice
+          </div>
+        )}
       </div>
     </div>
   )
