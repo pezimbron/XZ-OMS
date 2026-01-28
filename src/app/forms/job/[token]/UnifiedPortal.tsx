@@ -540,6 +540,17 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
               {job.workflowSteps && job.workflowSteps.length > 0 ? (
                 <div className="space-y-3">
                   {(() => {
+                    // Debug: Log all workflow steps to see actual structure
+                    console.log('[Tech Portal] All workflow steps:', JSON.stringify(job.workflowSteps, null, 2))
+                    job.workflowSteps.forEach((step, idx) => {
+                      console.log(`[Tech Portal] Step ${idx}:`, {
+                        stepName: step.stepName,
+                        requiredRole: step.requiredRole,
+                        requiredRoleType: typeof step.requiredRole,
+                        completed: step.completed
+                      })
+                    })
+                    
                     // Filter for tech-completable steps by requiredRole
                     // Fallback to specific step names for backward compatibility
                     const techSteps = job.workflowSteps.filter(step => 
@@ -547,6 +558,7 @@ export default function UnifiedPortal({ token, initialTab = 'info' }: UnifiedPor
                       step.stepName === 'Scanned' || 
                       step.stepName === 'Scan Uploaded'
                     )
+                    console.log('[Tech Portal] Filtered tech steps:', techSteps.length, techSteps.map(s => s.stepName))
                     
                     if (techSteps.length === 0) {
                       return (
