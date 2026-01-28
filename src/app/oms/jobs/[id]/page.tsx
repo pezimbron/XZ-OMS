@@ -1543,8 +1543,9 @@ export default function JobDetailPage() {
                               </p>
                             )}
                           </div>
-                          <button
-                            onClick={async () => {
+                          {!job.targetDate && (
+                            <button
+                              onClick={async () => {
                               const selectedOption = (job as any).schedulingRequest.timeOptions?.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption)
                               if (!selectedOption) return
                               const startTime = (job as any).techResponse.preferredStartTime || '09:00'
@@ -1611,11 +1612,12 @@ export default function JobDetailPage() {
                           >
                             Accept This Time
                           </button>
+                          )}
                         </div>
                       </div>
                     )}
 
-                    {(job as any).schedulingRequest?.requestType === 'specific-time' && (
+                    {(job as any).schedulingRequest?.requestType === 'specific-time' && !job.targetDate && (
                       <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between">
                         <p className="text-gray-900 dark:text-white">Tech accepted the proposed time</p>
                         <button
@@ -1700,7 +1702,8 @@ export default function JobDetailPage() {
                               </p>
                               {option.notes && <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{option.notes}</p>}
                             </div>
-                            <button
+                            {!job.targetDate && (
+                              <button
                               onClick={async () => {
                                 if (!confirm(`Confirm this time slot: ${new Date(option.date).toLocaleDateString()} at ${option.startTime}?`)) return
                                 try {
@@ -1765,6 +1768,7 @@ export default function JobDetailPage() {
                             >
                               Accept This Time
                             </button>
+                            )}
                           </div>
                         ))}
                       </div>

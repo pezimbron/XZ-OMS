@@ -130,9 +130,15 @@ export async function POST(request: NextRequest) {
       minute: '2-digit' 
     })
 
-    // Send email to each ops user
-    for (const opsUser of opsUsers.docs) {
+    // Send email to each ops user (with delay to avoid rate limits)
+    for (let i = 0; i < opsUsers.docs.length; i++) {
+      const opsUser = opsUsers.docs[i]
       if (!opsUser.email) continue
+
+      // Add delay between emails to avoid Resend rate limit (2 req/sec)
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 600))
+      }
 
       try {
         await payload.sendEmail({
@@ -194,6 +200,27 @@ export async function POST(request: NextRequest) {
         payload.logger.info(`[Scheduling] Sent tech response email to ${opsUser.email} for job ${job.jobId}`)
       } catch (emailError) {
         payload.logger.error(`[Scheduling] Failed to send email to ${opsUser.email}:`, emailError)
+      }
+
+      // Create in-app notification
+      try {
+        await payload.create({
+          collection: 'notifications',
+          data: {
+            user: opsUser.id,
+            title: techResponse.interested ? 'Tech Accepted Scheduling' : 'Tech Declined Scheduling',
+            message: techResponse.interested 
+              ? `${tech?.name || 'A technician'} has accepted the scheduling request for Job ${job.jobId}. Review and confirm the time.`
+              : `${tech?.name || 'A technician'} has declined the scheduling request for Job ${job.jobId}. ${techResponse.declineReason ? `Reason: ${techResponse.declineReason}` : ''}`,
+            type: techResponse.interested ? 'info' : 'warning',
+            read: false,
+            relatedJob: job.id,
+            actionUrl: `/oms/jobs/${job.id}?tab=instructions`,
+          },
+        })
+        payload.logger.info(`[Scheduling] Created in-app notification for ${opsUser.email}`)
+      } catch (notifError) {
+        payload.logger.error(`[Scheduling] Failed to create notification for ${opsUser.email}:`, notifError)
       }
     }
 
