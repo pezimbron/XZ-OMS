@@ -53,10 +53,21 @@
 
 ### In-App Notifications
 - **Collection**: `notifications`
-- **Fields**: `user` (relationship), `title`, `message`, `type`, `read`, `relatedJob`
-- **UI Component**: `NotificationBell.tsx` (top navigation)
+- **Fields**: `user` (relationship), `title`, `message`, `type`, `read`, `relatedJob`, `actionUrl`
+- **UI Components**: 
+  - `NotificationBell.tsx` (top navigation dropdown)
+  - `/oms/notifications` (full notifications page)
 - **Polling**: 30-second refresh interval
 - **Access**: Users can only see their own notifications
+- **Features**:
+  - ✅ Notification bell with unread count badge
+  - ✅ Dropdown with recent 10 notifications
+  - ✅ "Mark all as read" bulk action
+  - ✅ "View All" link to full notifications page
+  - ✅ Full notifications page with filtering (all/unread/read)
+  - ✅ Individual mark as read/unread actions
+  - ✅ Delete notifications
+  - ✅ Clickable notifications with smart routing to related jobs/actions
 
 ### Email Notifications
 - **Provider**: Resend
@@ -67,6 +78,7 @@
   - Job status changes
   - QC feedback
   - Invoice generation
+  - Scheduling requests and responses
 
 ### Job Messaging Notifications
 - **Tech sends message** → Notifies all ops/admin users (super-admin, ops-manager, sales-admin)
@@ -261,10 +273,23 @@
   - Resend email service integration
   - API endpoints: `/api/scheduling/notify-request`, `/notify-response`, `/notify-confirmation`, `/send-reminders`
 
-### Workflow-Based Calendar
-- **Feature**: Products can be excluded from calendar via `excludeFromCalendar` flag
-- **Use Case**: Admin tasks, recurring services that don't need calendar entries
-- **Implementation**: Job detail page shows workflow steps with calendar toggle
+### Google Calendar Integration ✅ ENHANCED
+- **Feature**: Automatic calendar invites when tech assigned to job
+- **Hook**: `createCalendarInvite.ts` (afterChange hook)
+- **Calendar Description Includes**:
+  - TO-DO LIST (workflow steps for tech)
+  - Additional items (products/services not excluded from calendar)
+  - Purpose of scan and capture type
+  - Location and property details
+  - On-site contact information
+  - General and specific instructions
+  - Upload locations
+  - **🔗 Tech Portal Link** - Direct access to job portal for techs without accounts
+  - Job info (ID, priority)
+- **Privacy**: Client name removed from calendar title (shows model name and job ID only)
+- **Product Exclusion**: Products can be excluded from calendar via `excludeFromCalendar` flag
+- **Smart Updates**: Only triggers on calendar-relevant field changes (tech, date, address, products, instructions)
+- **Environment**: Uses `NEXT_PUBLIC_SERVER_URL` for portal links
 
 ### OMS-Native CRUD
 - **Clients**: Full edit/create flows with 5 tabs
@@ -391,6 +416,33 @@
   - Payment status tracking (pending/paid)
 - **Note**: Subcontractors paid separately from their invoice (varies by contractor)
 
+**4. Invoicing Queue** - ✅ REDESIGNED (Jan 28, 2026)
+- **Location**: `/oms/invoicing`
+- **Features**:
+  - Table layout (replaced card-based UI)
+  - Workflow completion date tracking (last completed workflow step)
+  - Total price calculation from line items
+  - Filter by billing preference (invoice/statement), client, search
+  - Sort by completion date, job ID, client
+  - Quick actions (create invoice, mark as invoiced)
+  - Invoice status tracking
+  - Batch invoicing support
+
+### Job Assignment Validation ✅ IMPLEMENTED (Jan 28, 2026)
+- **Hook**: `validateTechAssignment.ts` (beforeChange hook)
+- **Purpose**: Ensures essential job information exists before tech assignment
+- **Validation Rules**:
+  - ✅ At least one Product/Service must be added
+  - ✅ Capture Address must be filled
+  - ✅ Workflow Template must be assigned
+  - ❌ Target Date NOT required (allows scheduling requests)
+- **Error Message**: Lists missing fields with clear explanation
+- **Benefits**:
+  - Prevents incomplete jobs from being assigned
+  - Ensures techs receive complete information
+  - Works with scheduling request workflow
+  - Flexible for both direct assignment and scheduling
+
 ### Phase 2: Business Integrations ❌ **NOT STARTED**
 
 **4. HubSpot Integration**
@@ -450,23 +502,33 @@
 
 ---
 
-## �🔄 Update History
+## ��🔄 Update History
 
-- **2026-01-28**: Client default workflow auto-applied on job creation and client changes
-- **2026-01-28**: Quick edit for Client and Model Name fields with autosave
-- **2026-01-28**: Enhanced job details with `propertyType` and `purposeOfScan` fields
-- **2026-01-28**: Removed redundant completion fields (now tracked via workflow system)
-- **2026-01-28**: Fixed dropdown autosave using `commit()` method and `params.id`
-- **2026-01-28**: Refined Tech Feedback tab with timeline and tech contact info
-- **2026-01-28**: Workflow completion tracking with per-step notes in tech portal
-- **2026-01-28**: Scheduling system with 3 request types (time-windows, specific-time, tech-proposes)
-- **2026-01-28**: Product calendar exclusion feature - products inherit `excludeFromCalendar` default in jobs
-- **2026-01-28**: Products/Services and External Expenses modals save only on "Done" click
-- **2026-01-27**: Subcontractor messaging via token-based links (no account required)
-- **2026-01-27**: Job messaging system with dual notifications (email + in-app)
-- **2026-01-27**: Site-wide tab query parameter support
-- **2026-01-27**: Workflow-based calendar with product exclusion
-- **2026-01-27**: OMS-native client and product CRUD
+### January 28, 2026 - Session 2
+- **Notifications Page**: Full-featured notifications page at `/oms/notifications` with all/unread/read filters, mark as read/unread, delete actions
+- **Calendar Invite Enhancement**: Added tech portal link to calendar invites for direct access without login
+- **Tech Assignment Validation**: Validates essential fields (products, address, workflow) before allowing tech assignment
+- **Invoicing Queue Redesign**: Converted to table layout with workflow completion dates and price calculation
+- **Timezone/Target Date Fix**: Fixed autosave issues using `commit()` method and `params.id` to avoid closure problems
+
+### January 28, 2026 - Session 1
+- **Client Default Workflow**: Auto-applied on job creation and client changes
+- **Quick Edit Fields**: Client and Model Name with instant autosave
+- **Enhanced Job Details**: Added `propertyType` and `purposeOfScan` fields
+- **Removed Redundant Fields**: Completion fields now tracked via workflow system
+- **Dropdown Autosave Fix**: Using `commit()` method for immediate saves
+- **Tech Feedback Tab**: Refined layout with timeline and tech contact info
+- **Workflow Completion**: Per-step notes tracking in tech portal
+- **Scheduling System**: 3 request types (time-windows, specific-time, tech-proposes)
+- **Calendar Exclusion**: Products can be excluded from calendar invites
+- **Modal Save Behavior**: Products/Services and External Expenses save only on "Done" click
+
+### January 27, 2026
+- **Subcontractor Messaging**: Token-based links for techs without accounts
+- **Job Messaging System**: Dual notifications (email + in-app)
+- **Tab Navigation**: Site-wide query parameter support
+- **Workflow Calendar**: Product exclusion feature
+- **OMS-Native CRUD**: Client and product management
 
 ---
 

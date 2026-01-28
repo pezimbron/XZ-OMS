@@ -1,8 +1,9 @@
 import type { CollectionBeforeChangeHook } from 'payload'
 
 /**
- * Validates that a tech can only be assigned after the first workflow step is completed
- * This ensures the job is fully configured before scheduling/calendar invites are sent
+ * Validates that essential job information exists before allowing tech assignment
+ * This ensures the tech receives complete job details when assigned or when receiving
+ * a scheduling request
  */
 export const validateTechAssignment: CollectionBeforeChangeHook = async ({
   data,
@@ -28,23 +29,34 @@ export const validateTechAssignment: CollectionBeforeChangeHook = async ({
     return data
   }
 
-  // Check if job has workflow steps
-  if (!data.workflowSteps || data.workflowSteps.length === 0) {
-    throw new Error('Cannot assign tech: Job must have a workflow template assigned first.')
+  // Validate essential job information exists
+  const missingFields: string[] = []
+
+  // Check for at least one product/service
+  if (!data.lineItems || data.lineItems.length === 0) {
+    missingFields.push('at least one Product/Service')
   }
 
-  // Check if the first workflow step is completed
-  const firstStep = data.workflowSteps[0]
-  
-  if (!firstStep.completed) {
+  // Check for capture address
+  if (!data.captureAddress || data.captureAddress.trim() === '') {
+    missingFields.push('Capture Address')
+  }
+
+  // Check for workflow template
+  if (!data.workflowTemplate) {
+    missingFields.push('Workflow Template')
+  }
+
+  // If any required fields are missing, throw error
+  if (missingFields.length > 0) {
     throw new Error(
-      `Cannot assign tech: The first workflow step "${firstStep.stepName}" must be completed before assigning a technician. This ensures all job details, products/services, and scheduling information are ready.`
+      `Cannot assign tech: Please complete the following required fields first: ${missingFields.join(', ')}. This ensures the technician receives complete job information.`
     )
   }
 
   // Validation passed
   req.payload.logger.info(
-    `[Tech Assignment] Validation passed - First step "${firstStep.stepName}" is completed`
+    `[Tech Assignment] Validation passed - all essential fields are populated`
   )
 
   return data
