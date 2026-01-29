@@ -15,7 +15,7 @@ import { validateTechAssignment } from './Jobs/hooks/validateTechAssignment'
 export const Jobs: CollectionConfig = {
   slug: 'jobs',
   hooks: {
-    beforeChange: [applyClientDefaultWorkflow, populateWorkflowSteps, validateTechAssignment, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus],
+    beforeChange: [applyClientDefaultWorkflow, populateWorkflowSteps, validateTechAssignment, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus, populateTechInstructions],
     afterChange: [createCalendarInvite, afterWorkflowStepUpdate],
   },
   access: {

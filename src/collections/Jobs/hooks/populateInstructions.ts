@@ -1,4 +1,4 @@
-import type { FieldHook } from 'payload'
+import type { FieldHook, CollectionBeforeChangeHook } from 'payload'
 
 /**
  * Hook to auto-populate line item instructions from Product.defaultInstructions
@@ -50,40 +50,88 @@ export const populateLineItemInstructions: FieldHook = async ({
 
 /**
  * Hook to auto-populate techInstructions from Client.instructionTemplate
- * when a client is selected for a job
+ * combined with all Product.defaultInstructions from line items
  */
-export const populateTechInstructions: FieldHook = async ({
+export const populateTechInstructions: CollectionBeforeChangeHook = async ({
   data,
   req,
   operation,
-  originalDoc,
 }) => {
-  // Only run on create or when client changes
+  // Only run on create or update
   if (operation !== 'create' && operation !== 'update') {
     return data
   }
 
-  // Skip if techInstructions already exist (don't overwrite manual edits)
-  if (data?.techInstructions && data.techInstructions.trim() !== '') {
-    return data
-  }
+  try {
+    let instructions = ''
 
-  // If client is selected and techInstructions are empty, fetch client's instructionTemplate
-  if (data?.client) {
-    try {
-      const clientId = typeof data.client === 'string' ? data.client : data.client.id
-      
-      const client = await req.payload.findByID({
-        collection: 'clients',
-        id: clientId,
-      })
-
-      if (client?.instructionTemplate) {
-        return client.instructionTemplate
+    // Start with client instruction template if available
+    if (data?.client) {
+      let clientId: string | number | undefined
+      if (typeof data.client === 'string' || typeof data.client === 'number') {
+        clientId = data.client
+      } else if (typeof data.client === 'object' && data.client?.id) {
+        clientId = data.client.id
       }
-    } catch (error) {
-      req.payload.logger.error(`Error fetching client for instructions: ${error}`)
+
+      if (clientId) {
+        const client = await req.payload.findByID({
+          collection: 'clients',
+          id: String(clientId),
+          depth: 0,
+        })
+
+        if (client?.instructionTemplate && client.instructionTemplate.trim()) {
+          instructions = client.instructionTemplate
+          req.payload.logger.info(`[Populate Instructions] Added client template for client ${clientId}`)
+        }
+      }
     }
+
+    // Fetch and append product instructions from line items
+    const lineItems = data?.lineItems || []
+    let lineItemCount = 0
+    
+    for (const item of lineItems) {
+      if (item.product) {
+        try {
+          // Extract product ID
+          let productId: string | number | undefined
+          if (typeof item.product === 'string' || typeof item.product === 'number') {
+            productId = item.product
+          } else if (typeof item.product === 'object' && item.product?.id) {
+            productId = item.product.id
+          }
+
+          if (productId) {
+            // Fetch product to get defaultInstructions
+            const product = await req.payload.findByID({
+              collection: 'products',
+              id: String(productId),
+              depth: 0,
+            })
+
+            if (product?.defaultInstructions && product.defaultInstructions.trim()) {
+              instructions += `\n\n${product.name}:\n${product.defaultInstructions}`
+              lineItemCount++
+            }
+          }
+        } catch (error) {
+          req.payload.logger.error(`[Populate Instructions] Error fetching product for line item: ${error}`)
+        }
+      }
+    }
+
+    if (lineItemCount > 0) {
+      req.payload.logger.info(`[Populate Instructions] Added ${lineItemCount} product instructions from line items`)
+    }
+
+    if (instructions) {
+      data.techInstructions = instructions
+      req.payload.logger.info(`[Populate Instructions] Populated combined instructions`)
+    }
+  } catch (error) {
+    req.payload.logger.error(`[Populate Instructions] Error in populateTechInstructions: ${error}`)
   }
 
   return data

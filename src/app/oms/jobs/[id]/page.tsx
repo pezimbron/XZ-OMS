@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
 import QCPanel from '@/components/oms/QCPanel'
 import { WorkflowTimeline } from '@/components/oms/WorkflowTimeline'
@@ -66,7 +66,6 @@ interface Job {
 
 export default function JobDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const [job, setJob] = useState<Job | null>(null)
   const [loading, setLoading] = useState(true)
@@ -2032,7 +2031,10 @@ export default function JobDetailPage() {
 
             {/* Row 3: General Instructions */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">General Instructions for Tech</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">General Instructions for Tech</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Auto-generated from client template + product instructions. Will regenerate when products are added/changed. Add all products first, then make manual edits if needed.
+              </p>
               {isTech ? (
                 <div className="prose dark:prose-invert max-w-none">
                   {job.techInstructions ? (
