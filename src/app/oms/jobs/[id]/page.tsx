@@ -1111,7 +1111,7 @@ export default function JobDetailPage() {
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                QC
+                Post-Processing
               </button>
             )}
             {user?.role !== 'tech' && (
@@ -2196,7 +2196,7 @@ export default function JobDetailPage() {
         )}
 
         {activeTab === 'qc' && (
-          <QCPanel job={job} onUpdate={() => fetchJob(params.id as string)} />
+          <QCPanel job={job} user={user} onUpdate={() => fetchJob(params.id as string)} />
         )}
 
         {activeTab === 'financials' && (

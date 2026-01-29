@@ -5,10 +5,11 @@ import { CheckCircle, XCircle, AlertCircle, Clock, User, MessageSquare, Plus } f
 
 interface QCPanelProps {
   job: any
+  user: any
   onUpdate: () => void
 }
 
-export default function QCPanel({ job, onUpdate }: QCPanelProps) {
+export default function QCPanel({ job, user, onUpdate }: QCPanelProps) {
   const [qcNotes, setQcNotes] = useState(job.qcNotes || '')
   const [revisionDescription, setRevisionDescription] = useState('')
   const [showRevisionForm, setShowRevisionForm] = useState(false)
@@ -37,20 +38,45 @@ export default function QCPanel({ job, onUpdate }: QCPanelProps) {
         qcNotes,
       }
 
+      let messageContent = ''
+      let messageType = 'update'
+
       if (action === 'approve') {
         updateData.qcStatus = 'passed'
         updateData.qcEndTime = new Date().toISOString()
         updateData.status = 'done'
+        messageContent = 'Post-processing approved. Job ready for client delivery.'
+        messageType = 'update'
+        
+        // Find and complete the Post-Production workflow step
+        if (job.workflowSteps && Array.isArray(job.workflowSteps)) {
+          const updatedSteps = job.workflowSteps.map((step: any) => {
+            if (step.stepName === 'Post-Production' && !step.completed) {
+              return {
+                ...step,
+                completed: true,
+                completedAt: new Date().toISOString(),
+              }
+            }
+            return step
+          })
+          updateData.workflowSteps = updatedSteps
+        }
       } else if (action === 'reject') {
         updateData.qcStatus = 'rejected'
         updateData.qcEndTime = new Date().toISOString()
+        messageContent = 'Post-processing rejected.'
+        messageType = 'update'
       } else if (action === 'needs-revision') {
         updateData.qcStatus = 'needs-revision'
+        // Message will be created separately with revision details
       } else if (action === 'start-review') {
         updateData.qcStatus = 'in-review'
         if (!job.qcStartTime) {
           updateData.qcStartTime = new Date().toISOString()
         }
+        messageContent = 'Post-processing review started.'
+        messageType = 'update'
       }
 
       console.log('Updating QC status with data:', updateData)
@@ -83,6 +109,33 @@ export default function QCPanel({ job, onUpdate }: QCPanelProps) {
         }
         
         console.log('QC update successful!')
+        
+        // Create message in job thread if we have content
+        if (messageContent && action !== 'needs-revision') {
+          try {
+            const msgResponse = await fetch('/api/job-messages', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                job: job.id,
+                author: {
+                  relationTo: 'users',
+                  value: user?.id,
+                },
+                messageType,
+                message: messageContent,
+              }),
+            })
+            if (!msgResponse.ok) {
+              const errorText = await msgResponse.text()
+              console.error('Failed to create message:', errorText)
+            }
+          } catch (msgError) {
+            console.error('Failed to create message:', msgError)
+            // Don't fail the whole operation if message creation fails
+          }
+        }
+        
         onUpdate()
       } catch (error) {
         if (error.name === 'AbortError') {
@@ -232,8 +285,35 @@ export default function QCPanel({ job, onUpdate }: QCPanelProps) {
         throw new Error('Failed to add revision request')
       }
       
+      // Create qc-feedback message to notify tech
+      try {
+        const msgResponse = await fetch('/api/job-messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job: job.id,
+            author: {
+              relationTo: 'users',
+              value: user?.id,
+            },
+            messageType: 'qc-feedback',
+            message: `Revision requested: ${revisionDescription}`,
+          }),
+        })
+        if (!msgResponse.ok) {
+          const errorText = await msgResponse.text()
+          console.error('Failed to create revision message:', errorText)
+        } else {
+          console.log('Revision message sent to tech')
+        }
+      } catch (msgError) {
+        console.error('Failed to create revision message:', msgError)
+        // Don't fail the whole operation
+      }
+      
       setRevisionDescription('')
       setShowRevisionForm(false)
+      alert('Revision request sent to technician')
       onUpdate()
     } catch (error) {
       console.error('Error adding revision:', error)
@@ -310,7 +390,7 @@ export default function QCPanel({ job, onUpdate }: QCPanelProps) {
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          🎬 Quality Control
+          🎬 Post-Processing
         </h2>
         {getQCStatusBadge(job.qcStatus)}
       </div>

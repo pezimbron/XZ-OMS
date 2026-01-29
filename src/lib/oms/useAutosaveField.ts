@@ -58,7 +58,7 @@ export const useAutosaveField = <T>({ value, onSave, debounceMs = 700 }: UseAuto
     } catch (e: any) {
       setStatus('error')
       setError(e?.message || 'Failed to save')
-      setTimeout(() => setStatus('idle'), 2500)
+      setTimeout(() => setStatus('idle'), 8000)
     } finally {
       inflight.current = null
     }

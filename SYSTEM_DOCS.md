@@ -500,6 +500,34 @@
   - CSV/Excel export
   - Email report delivery
 
+**9. Mobile App for Technicians**
+- **Goal**: Native mobile app for field technicians (Phase 3 strategic initiative)
+- **Current State**: 
+  - Employee techs use full OMS interface (desktop/tablet optimized)
+  - Subcontractors use token-based web portal (mobile-friendly)
+  - Both approaches are functional and meet current needs
+- **Strategic Decision**: Keep current setup, build dedicated mobile app later when resources allow
+- **Rationale**:
+  - Current interfaces work well for their respective use cases
+  - Avoid duplicating effort on responsive web when native app is the end goal
+  - Focus development resources on core business features (Phase 1-2)
+  - Mobile app requires proper planning, budget, and time for offline sync, native features
+  - Build app when workflows are proven and stable
+- **Planned Features**:
+  - Job list and calendar view
+  - Job details with color-coded sections
+  - To-do list with completion tracking
+  - Messaging with ops team
+  - Job completion forms
+  - Commission/payout tracking
+  - Camera integration for photo uploads
+  - GPS location tracking
+  - Offline mode with sync
+  - Push notifications
+  - Barcode/QR scanning for equipment
+- **Technology Options**: React Native, Flutter, or Native (iOS/Android)
+- **Timeline**: Phase 3 (after Client Portal and Analytics)
+
 ---
 
 ##  Update History

@@ -1,3 +1,5 @@
+'use client'
+
 import { Banner } from '@payloadcms/ui/elements/Banner'
 import React from 'react'
 
@@ -15,19 +17,7 @@ const BeforeDashboard: React.FC = () => {
       <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
         <a 
           href="/oms" 
-          style={{
-            display: 'inline-block',
-            padding: '12px 24px',
-            backgroundColor: '#0070f3',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '6px',
-            fontWeight: '600',
-            fontSize: '16px',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0051cc'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0070f3'}
+          className="oms-button"
         >
           🚀 Go to Operations Management System
         </a>
