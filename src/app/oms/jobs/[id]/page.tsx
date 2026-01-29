@@ -1204,6 +1204,46 @@ export default function JobDetailPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Basic Information</h2>
               <div className="space-y-3">
                 <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</label>
+                  {isTech ? (
+                    <div className="flex items-center gap-2">
+                      <p className="text-gray-900 dark:text-white flex-1">{job.client?.name || 'N/A'}</p>
+                      {job.client?.id && (
+                        <Link
+                          href={`/oms/clients/${job.client.id}`}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                        >
+                          View Client
+                        </Link>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={clientField.value}
+                          onChange={(e) => clientField.commit(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        >
+                          <option value="">Select Client</option>
+                          {clients.map(client => (
+                            <option key={client.id} value={client.id}>{client.name}</option>
+                          ))}
+                        </select>
+                        {job.client?.id && (
+                          <Link
+                            href={`/oms/clients/${job.client.id}`}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                          >
+                            View Client
+                          </Link>
+                        )}
+                      </div>
+                      <SaveIndicator status={clientField.status} error={clientField.error} />
+                    </div>
+                  )}
+                </div>
+                <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Job ID</label>
                   {isTech ? (
                     <p className="text-gray-900 dark:text-white">{job.jobId || 'N/A'}</p>
@@ -1308,163 +1348,6 @@ export default function JobDetailPage() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
-                  {editMode ? (
-                    <select
-                      value={editedJob?.status || ''}
-                      onChange={(e) => setEditedJob({...editedJob, status: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="request">Request</option>
-                      <option value="scheduled">Scheduled</option>
-                      <option value="scanned">Scanned</option>
-                      <option value="qc">QC</option>
-                      <option value="done">Done</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                  ) : (
-                    <div className="space-y-1">
-                      {isAdmin && !isTech ? (
-                        <>
-                          <select
-                            value={statusField.value || 'request'}
-                            onChange={(e) => statusField.setValue(e.target.value)}
-                            onBlur={() => statusField.onBlur()}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                          >
-                            <option value="request">Request</option>
-                            <option value="scheduled">Scheduled</option>
-                            <option value="scanned">Scanned</option>
-                            <option value="qc">QC</option>
-                            <option value="done">Done</option>
-                            <option value="archived">Archived</option>
-                          </select>
-                          <SaveIndicator status={statusField.status} error={statusField.error} />
-                          <p className="text-xs text-gray-500">Admin Override</p>
-                        </>
-                      ) : (
-                        <p className="text-gray-900 dark:text-white capitalize">{job.status || 'request'}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Region</label>
-                  {isTech ? (
-                    <p className="text-gray-900 dark:text-white capitalize">{job.region?.replace('-', ' ') || 'N/A'}</p>
-                  ) : (
-                    <div className="space-y-1">
-                      <select
-                        value={regionField.value || ''}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          const commit = (regionField as any).commit
-                          if (typeof commit === 'function') {
-                            commit(next)
-                            return
-                          }
-                          regionField.setValue(next)
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="">Select Region</option>
-                        <option value="austin">Austin Area</option>
-                        <option value="san-antonio">San Antonio Area</option>
-                        <option value="outsourced">Outsourced</option>
-                        <option value="other">Other</option>
-                      </select>
-                      <SaveIndicator status={regionField.status} error={regionField.error} />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Square Feet</label>
-                  {editMode ? (
-                    <input
-                      type="number"
-                      value={editedJob?.sqFt || ''}
-                      onChange={(e) => setEditedJob({...editedJob, sqFt: parseInt(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Enter square feet"
-                    />
-                  ) : (
-                    <div className="space-y-1">
-                      {isTech ? (
-                        <p className="text-gray-900 dark:text-white">{(job as any).sqFt?.toLocaleString() || 'N/A'} sq ft</p>
-                      ) : (
-                        <input
-                          type="number"
-                          value={sqFtField.value || ''}
-                          onChange={(e) => sqFtField.setValue(e.target.value)}
-                          onBlur={() => sqFtField.onBlur()}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                          placeholder="Enter square feet"
-                        />
-                      )}
-                      {!isTech && <SaveIndicator status={sqFtField.status} error={sqFtField.error} />}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Estimated Duration (hours)</label>
-                  {editMode ? (
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={editedJob?.estimatedDuration || ''}
-                      onChange={(e) => setEditedJob({...editedJob, estimatedDuration: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      placeholder="Auto-calculated from sqft"
-                    />
-                  ) : (
-                    <div className="space-y-1">
-                      {isTech ? (
-                        <p className="text-gray-900 dark:text-white">{(job as any).estimatedDuration ? `${(job as any).estimatedDuration} hours` : 'N/A'}</p>
-                      ) : (
-                        <input
-                          type="number"
-                          step="0.5"
-                          value={estimatedDurationField.value || ''}
-                          onChange={(e) => estimatedDurationField.setValue(e.target.value)}
-                          onBlur={() => estimatedDurationField.onBlur()}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                          placeholder="Auto-calculated from sqft"
-                        />
-                      )}
-                      {!isTech && <SaveIndicator status={estimatedDurationField.status} error={estimatedDurationField.error} />}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Property Type</label>
-                  {isTech ? (
-                    <p className="text-gray-900 dark:text-white capitalize">{(job as any).propertyType?.replace('-', ' ') || 'N/A'}</p>
-                  ) : (
-                    <div className="space-y-1">
-                      <select
-                        value={propertyTypeField.value || ''}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          const commit = (propertyTypeField as any).commit
-                          if (typeof commit === 'function') {
-                            commit(next)
-                            return
-                          }
-                          propertyTypeField.setValue(next)
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                      >
-                        <option value="">Select Property Type</option>
-                        <option value="commercial">Commercial</option>
-                        <option value="residential">Residential</option>
-                        <option value="industrial">Industrial</option>
-                        <option value="other">Other</option>
-                      </select>
-                      <SaveIndicator status={propertyTypeField.status} error={propertyTypeField.error} />
-                    </div>
-                  )}
-                </div>
-                <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Purpose of Scan</label>
                   {isTech ? (
                     <p className="text-gray-900 dark:text-white capitalize">{(job as any).purposeOfScan?.replace(/-/g, ' ') || 'N/A'}</p>
@@ -1502,33 +1385,6 @@ export default function JobDetailPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Client Info */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Client Information</h2>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Client</label>
-                    {isTech ? (
-                      <p className="text-gray-900 dark:text-white">{job.client?.name || 'N/A'}</p>
-                    ) : (
-                      <div className="space-y-1">
-                        <select
-                          value={clientField.value}
-                          onChange={(e) => clientField.commit(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        >
-                          <option value="">Select Client</option>
-                          {clients.map(client => (
-                            <option key={client.id} value={client.id}>{client.name}</option>
-                          ))}
-                        </select>
-                        <SaveIndicator status={clientField.status} error={clientField.error} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               {/* Location */}
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Location</h2>
@@ -1652,6 +1508,126 @@ export default function JobDetailPage() {
                             placeholder="ZIP"
                           />
                           <SaveIndicator status={zipField.status} error={zipField.error} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Region</label>
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white capitalize">{job.region?.replace('-', ' ') || 'N/A'}</p>
+                      ) : (
+                        <div className="space-y-1">
+                          <select
+                            value={regionField.value || ''}
+                            onChange={(e) => {
+                              const next = e.target.value
+                              const commit = (regionField as any).commit
+                              if (typeof commit === 'function') {
+                                commit(next)
+                                return
+                              }
+                              regionField.setValue(next)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="">Select Region</option>
+                            <option value="austin">Austin Area</option>
+                            <option value="san-antonio">San Antonio Area</option>
+                            <option value="outsourced">Outsourced</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <SaveIndicator status={regionField.status} error={regionField.error} />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Property Type</label>
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white capitalize">{(job as any).propertyType?.replace('-', ' ') || 'N/A'}</p>
+                      ) : (
+                        <div className="space-y-1">
+                          <select
+                            value={propertyTypeField.value || ''}
+                            onChange={(e) => {
+                              const next = e.target.value
+                              const commit = (propertyTypeField as any).commit
+                              if (typeof commit === 'function') {
+                                commit(next)
+                                return
+                              }
+                              propertyTypeField.setValue(next)
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          >
+                            <option value="">Select Property Type</option>
+                            <option value="commercial">Commercial</option>
+                            <option value="residential">Residential</option>
+                            <option value="industrial">Industrial</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <SaveIndicator status={propertyTypeField.status} error={propertyTypeField.error} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Square Feet</label>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          value={editedJob?.sqFt || ''}
+                          onChange={(e) => setEditedJob({...editedJob, sqFt: parseInt(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Enter square feet"
+                        />
+                      ) : (
+                        <div className="space-y-1">
+                          {isTech ? (
+                            <p className="text-gray-900 dark:text-white">{(job as any).sqFt?.toLocaleString() || 'N/A'} sq ft</p>
+                          ) : (
+                            <input
+                              type="number"
+                              value={sqFtField.value || ''}
+                              onChange={(e) => sqFtField.setValue(e.target.value)}
+                              onBlur={() => sqFtField.onBlur()}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Enter square feet"
+                            />
+                          )}
+                          {!isTech && <SaveIndicator status={sqFtField.status} error={sqFtField.error} />}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Estimated Duration (hours)</label>
+                      {editMode ? (
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={editedJob?.estimatedDuration || ''}
+                          onChange={(e) => setEditedJob({...editedJob, estimatedDuration: parseFloat(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Auto-calculated from sqft"
+                        />
+                      ) : (
+                        <div className="space-y-1">
+                          {isTech ? (
+                            <p className="text-gray-900 dark:text-white">{(job as any).estimatedDuration ? `${(job as any).estimatedDuration} hours` : 'N/A'}</p>
+                          ) : (
+                            <input
+                              type="number"
+                              step="0.5"
+                              value={estimatedDurationField.value || ''}
+                              onChange={(e) => estimatedDurationField.setValue(e.target.value)}
+                              onBlur={() => estimatedDurationField.onBlur()}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                              placeholder="Auto-calculated from sqft"
+                            />
+                          )}
+                          {!isTech && <SaveIndicator status={estimatedDurationField.status} error={estimatedDurationField.error} />}
                         </div>
                       )}
                     </div>
