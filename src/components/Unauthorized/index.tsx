@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
 import './index.scss'
 
 const baseClass = 'unauthorized'
@@ -10,15 +11,15 @@ const Unauthorized: React.FC = () => {
     <div className={baseClass}>
       <div className={`${baseClass}__content`}>
         <h1>Access Restricted</h1>
-        <p>You don't have permission to access the admin panel.</p>
+        <p>You don&apos;t have permission to access the admin panel.</p>
         <p>The admin panel is for system administrators only.</p>
         <div className={`${baseClass}__actions`}>
-          <a 
+          <Link 
             href="/oms" 
             className={`${baseClass}__button ${baseClass}__button--primary`}
           >
             🏠 Go to Operations Dashboard
-          </a>
+          </Link>
           <a 
             href="/api/users/logout" 
             className={`${baseClass}__button ${baseClass}__button--secondary`}

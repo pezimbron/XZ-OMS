@@ -532,6 +532,42 @@
 
 ##  Update History
 
+### January 28, 2026 - Session 4 - Post-Processing Workflow Integration
+- **Renamed "QC" to "Post-Processing"**:
+  - Tab renamed from "QC" to "Post-Processing" for accurate terminology
+  - Section header updated to "🎬 Post-Processing"
+  - Backend field names remain as `qcStatus`, `qcNotes` for consistency
+  - Better reflects actual work (editing, processing, quality checks)
+- **Messaging System Integration**:
+  - All post-processing actions now create messages in job thread
+  - **Start Review**: Creates "Post-processing review started" message (type: update)
+  - **Approve & Complete**: Creates "Post-processing approved. Job ready for client delivery" message (type: update)
+  - **Request Revision**: Creates "Revision requested: [description]" message (type: qc-feedback)
+  - **Reject**: Creates "Post-processing rejected" message (type: update)
+  - Messages automatically trigger email notifications to relevant parties
+  - Tech receives notification for revision requests and can reply in message thread
+- **Workflow Synchronization**:
+  - "Approve & Complete" now completes the "Post-Production" workflow step
+  - Automatically advances workflow to next step
+  - Marks step as completed with timestamp
+  - Triggers downstream workflow automations
+  - Provides visual feedback in workflow timeline
+- **Two-Way Communication**:
+  - Revision requests notify tech via existing messaging system
+  - Tech can ask clarifying questions in message thread
+  - Full conversation history preserved in Messages tab
+  - Works for both employee techs and subcontractors
+- **UX Improvements**:
+  - Error messages now display cleanly without JSON formatting
+  - Error display duration increased to 8 seconds for better readability
+  - Smart error parsing extracts clean messages from API responses
+  - Styled error boxes with proper spacing and colors
+- **Bug Fixes**:
+  - Fixed BeforeDashboard Client Component error (added 'use client' directive)
+  - Fixed message creation API calls (added required `author` field)
+  - Corrected field names (`message` instead of `content`)
+  - Moved hover effects from JavaScript to CSS
+
 ### January 28, 2026 - Session 3 - Instructions Tab & Tech Portal Enhancements
 - **Instructions Tab Reorganization**:
   - 3-column layout: POC, Upload Links, To-Do List (first row)
