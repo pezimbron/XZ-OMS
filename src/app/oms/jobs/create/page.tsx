@@ -11,6 +11,17 @@ type Client = {
   companyName?: string
 }
 
+type JobTemplate = {
+  id: string | number
+  name: string
+  client?: any
+  defaultWorkflow?: any
+  defaultProducts?: any[]
+  defaultInstructions?: string
+  defaultPricing?: number
+  requiredFields?: string[]
+}
+
 export default function OmsCreateJobPage() {
   const router = useRouter()
 
@@ -20,18 +31,25 @@ export default function OmsCreateJobPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [loadingClients, setLoadingClients] = useState(true)
 
+  const [templates, setTemplates] = useState<JobTemplate[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  const [selectedTemplateData, setSelectedTemplateData] = useState<JobTemplate | null>(null)
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string>('')
+  const [warnings, setWarnings] = useState<string[]>([])
 
   const [form, setForm] = useState({
     modelName: '',
+    jobId: '',
     client: '',
     captureAddress: '',
     city: '',
     state: 'TX',
     zip: '',
     targetDateLocal: '',
-    status: 'scheduled',
+    status: 'request',
   })
 
   const canAccess = user?.role && user.role !== 'tech'
@@ -74,6 +92,30 @@ export default function OmsCreateJobPage() {
     }
   }, [loadingUser, user, router])
 
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      if (!form.client) {
+        setTemplates([])
+        return
+      }
+
+      setLoadingTemplates(true)
+      try {
+        const response = await fetch(
+          `/api/job-templates?where[or][0][client][equals]=null&where[or][1][client][equals]=${form.client}&where[isActive][equals]=true&depth=2`
+        )
+        const data = await response.json()
+        setTemplates(Array.isArray(data.docs) ? data.docs : [])
+      } catch {
+        setTemplates([])
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+
+    fetchTemplates()
+  }, [form.client])
+
   const clientOptions = useMemo(() => {
     return [...clients].sort((a, b) => {
       const aName = String(a.companyName || a.name || '')
@@ -82,6 +124,25 @@ export default function OmsCreateJobPage() {
     })
   }, [clients])
 
+  const handleTemplateSelect = async (templateId: string) => {
+    setSelectedTemplate(templateId)
+    setWarnings([])
+
+    if (!templateId) {
+      setSelectedTemplateData(null)
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/job-templates/${templateId}?depth=2`)
+      const template = await response.json()
+      setSelectedTemplateData(template)
+    } catch (err) {
+      console.error('Failed to fetch template details:', err)
+      setSelectedTemplateData(null)
+    }
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -89,19 +150,62 @@ export default function OmsCreateJobPage() {
 
     setSubmitting(true)
     setError('')
+    setWarnings([])
 
     try {
       if (!form.modelName.trim()) throw new Error('Model Name is required')
       if (!form.client) throw new Error('Client is required')
 
+      // Check required fields from template (non-blocking warnings)
+      const newWarnings: string[] = []
+      if (selectedTemplateData?.requiredFields) {
+        selectedTemplateData.requiredFields.forEach((field) => {
+          if (field === 'captureAddress' && !form.captureAddress.trim()) {
+            newWarnings.push('Capture Address is recommended for this template')
+          }
+          if (field === 'city' && !form.city.trim()) {
+            newWarnings.push('City is recommended for this template')
+          }
+          if (field === 'state' && !form.state.trim()) {
+            newWarnings.push('State is recommended for this template')
+          }
+          if (field === 'zip' && !form.zip.trim()) {
+            newWarnings.push('Zip is recommended for this template')
+          }
+          if (field === 'targetDate' && !form.targetDateLocal) {
+            newWarnings.push('Target Date is recommended for this template')
+          }
+        })
+      }
+
+      if (newWarnings.length > 0) {
+        setWarnings(newWarnings)
+      }
+
       const payload: any = {
         modelName: form.modelName.trim(),
+        jobId: form.jobId.trim() || null,
         client: parseInt(form.client),
         captureAddress: form.captureAddress.trim() || null,
         city: form.city.trim() || null,
         state: form.state.trim() || null,
         zip: form.zip.trim() || null,
         status: form.status,
+      }
+
+      // Add template workflow if selected
+      if (selectedTemplateData?.defaultWorkflow) {
+        const workflowId = typeof selectedTemplateData.defaultWorkflow === 'object' 
+          ? selectedTemplateData.defaultWorkflow.id 
+          : selectedTemplateData.defaultWorkflow
+        if (workflowId) {
+          payload.workflow = workflowId
+        }
+      }
+
+      // Add template pricing if selected
+      if (selectedTemplateData?.defaultPricing) {
+        payload.totalPrice = selectedTemplateData.defaultPricing
       }
 
       if (form.targetDateLocal) {
@@ -125,6 +229,24 @@ export default function OmsCreateJobPage() {
       const newJobId = data?.doc?.id ?? data?.id
       if (!newJobId) {
         throw new Error('Job created but no id was returned')
+      }
+
+      // Auto-add template products silently
+      if (selectedTemplateData?.defaultProducts && Array.isArray(selectedTemplateData.defaultProducts)) {
+        const lineItems = selectedTemplateData.defaultProducts.map((product: any) => ({
+          product: typeof product === 'object' ? product.id : product,
+          quantity: 1,
+        }))
+
+        if (lineItems.length > 0) {
+          await fetch(`/api/jobs/${newJobId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineItems }),
+          }).catch((err) => {
+            console.error('Failed to add template products:', err)
+          })
+        }
       }
 
       router.push(`/oms/jobs/${newJobId}`)
@@ -186,6 +308,17 @@ export default function OmsCreateJobPage() {
             </div>
           )}
 
+          {warnings.length > 0 && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3 text-sm text-yellow-700 dark:text-yellow-300">
+              <p className="font-medium mb-1">Recommended fields:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {warnings.map((warning, idx) => (
+                  <li key={idx}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model Name</label>
@@ -197,6 +330,18 @@ export default function OmsCreateJobPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Job ID (Optional)</label>
+              <input
+                value={form.jobId}
+                onChange={(e) => setForm((p) => ({ ...p, jobId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="For outsourcing partners with their own IDs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Client</label>
               <select
@@ -217,6 +362,48 @@ export default function OmsCreateJobPage() {
               </select>
             </div>
           </div>
+
+          {form.client && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Job Template (Optional)</label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => handleTemplateSelect(e.target.value)}
+                disabled={loadingTemplates}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="">{loadingTemplates ? 'Loading templates...' : 'No template - manual setup'}</option>
+                {templates.filter(t => !t.client).length > 0 && (
+                  <optgroup label="General Templates">
+                    {templates.filter(t => !t.client).map((t) => (
+                      <option key={String(t.id)} value={String(t.id)}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {templates.filter(t => t.client).length > 0 && (
+                  <optgroup label="Client-Specific Templates">
+                    {templates.filter(t => t.client).map((t) => (
+                      <option key={String(t.id)} value={String(t.id)}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+              {selectedTemplateData && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {selectedTemplateData.defaultProducts && Array.isArray(selectedTemplateData.defaultProducts) && selectedTemplateData.defaultProducts.length > 0 && (
+                    <span>Will add {selectedTemplateData.defaultProducts.length} product(s). </span>
+                  )}
+                  {selectedTemplateData.defaultPricing && (
+                    <span>Suggested price: ${selectedTemplateData.defaultPricing}</span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Capture Address</label>
@@ -263,32 +450,14 @@ export default function OmsCreateJobPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Date</label>
-              <input
-                type="datetime-local"
-                value={form.targetDateLocal}
-                onChange={(e) => setForm((p) => ({ ...p, targetDateLocal: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="request">Request</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="scanned">Scanned</option>
-                <option value="qc">QC</option>
-                <option value="done">Done</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Date</label>
+            <input
+              type="datetime-local"
+              value={form.targetDateLocal}
+              onChange={(e) => setForm((p) => ({ ...p, targetDateLocal: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
           </div>
 
           <div className="pt-2 flex gap-3">

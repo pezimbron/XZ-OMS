@@ -465,6 +465,50 @@ export default function JobDetailPage() {
     debounceMs: 700,
   })
 
+  const estimatedDurationField = useAutosaveField<string>({
+    value: typeof (job as any)?.estimatedDuration === 'number' ? String((job as any).estimatedDuration) : '',
+    onSave: async (next) => {
+      const jobIdRaw = (job as any)?.id ?? (params as any)?.id
+      const jobId = Array.isArray(jobIdRaw) ? jobIdRaw[0] : jobIdRaw
+      if (!jobId) {
+        throw new Error('Job ID not loaded')
+      }
+
+      const trimmed = String(next ?? '').trim()
+      if (trimmed === '') {
+        await patchJob(String(jobId), { estimatedDuration: null })
+        await fetchJob(String(jobId))
+        return
+      }
+
+      const parsed = Number(trimmed)
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new Error('Invalid duration value')
+      }
+
+      await patchJob(String(jobId), { estimatedDuration: parsed })
+      await fetchJob(String(jobId))
+    },
+    debounceMs: 700,
+  })
+
+  const jobIdField = useAutosaveField<string>({
+    value: (job as any)?.jobId || '',
+    onSave: async (next) => {
+      const jobIdRaw = (job as any)?.id ?? (params as any)?.id
+      const jobId = Array.isArray(jobIdRaw) ? jobIdRaw[0] : jobIdRaw
+      if (!jobId) {
+        throw new Error('Job ID not loaded')
+      }
+
+      const trimmed = String(next ?? '').trim()
+      
+      await patchJob(String(jobId), { jobId: trimmed || null })
+      await fetchJob(String(jobId))
+    },
+    debounceMs: 700,
+  })
+
   const techField = useAutosaveField<string>({
     value: (() => {
       const raw = job?.tech && typeof job.tech === 'object' ? (job.tech as any)?.id : (job?.tech as any)
@@ -1161,19 +1205,36 @@ export default function JobDetailPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Job ID</label>
-                  <div className="flex items-center justify-between gap-2">
+                  {isTech ? (
                     <p className="text-gray-900 dark:text-white">{job.jobId || 'N/A'}</p>
-                    {!isTech && !job.jobId && (
-                      <button
-                        type="button"
-                        onClick={autosaveJobId}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
-                        title="Generate random Job ID"
-                      >
-                        🎲 Generate
-                      </button>
-                    )}
-                  </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={jobIdField.value || ''}
+                          onChange={(e) => jobIdField.setValue(e.target.value)}
+                          onBlur={() => jobIdField.onBlur()}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Enter custom Job ID (optional)"
+                        />
+                        {!job.jobId && (
+                          <button
+                            type="button"
+                            onClick={autosaveJobId}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                            title="Generate random Job ID"
+                          >
+                            🎲 Generate
+                          </button>
+                        )}
+                      </div>
+                      <SaveIndicator status={jobIdField.status} error={jobIdField.error} />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        For outsourcing partners who use their own IDs
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Model Name</label>
@@ -1341,6 +1402,36 @@ export default function JobDetailPage() {
                         />
                       )}
                       {!isTech && <SaveIndicator status={sqFtField.status} error={sqFtField.error} />}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Estimated Duration (hours)</label>
+                  {editMode ? (
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={editedJob?.estimatedDuration || ''}
+                      onChange={(e) => setEditedJob({...editedJob, estimatedDuration: parseFloat(e.target.value) || 0})}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Auto-calculated from sqft"
+                    />
+                  ) : (
+                    <div className="space-y-1">
+                      {isTech ? (
+                        <p className="text-gray-900 dark:text-white">{(job as any).estimatedDuration ? `${(job as any).estimatedDuration} hours` : 'N/A'}</p>
+                      ) : (
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={estimatedDurationField.value || ''}
+                          onChange={(e) => estimatedDurationField.setValue(e.target.value)}
+                          onBlur={() => estimatedDurationField.onBlur()}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          placeholder="Auto-calculated from sqft"
+                        />
+                      )}
+                      {!isTech && <SaveIndicator status={estimatedDurationField.status} error={estimatedDurationField.error} />}
                     </div>
                   )}
                 </div>

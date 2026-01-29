@@ -26,6 +26,7 @@ export interface Config {
     notifications: Notification;
     'notification-templates': NotificationTemplate;
     'workflow-templates': WorkflowTemplate;
+    'job-templates': JobTemplate;
     'job-messages': JobMessage;
     redirects: Redirect;
     forms: Form;
@@ -52,6 +53,7 @@ export interface Config {
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
     'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
+    'job-templates': JobTemplatesSelect<false> | JobTemplatesSelect<true>;
     'job-messages': JobMessagesSelect<false> | JobMessagesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
@@ -824,6 +826,7 @@ export interface Job {
   state?: string | null;
   zip?: string | null;
   sqFt?: number | null;
+  estimatedDuration?: number | null;
   propertyType?: ('commercial' | 'residential' | 'industrial' | 'other') | null;
   schedulingNotes?: string | null;
   region?: ('austin' | 'san-antonio' | 'outsourced' | 'other') | null;
@@ -1053,6 +1056,23 @@ export interface NotificationTemplate {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-templates".
+ */
+export interface JobTemplate {
+  id: number;
+  name: string;
+  client?: (number | null) | Client;
+  isActive?: boolean | null;
+  defaultWorkflow: number | WorkflowTemplate;
+  defaultProducts?: (number | Product)[] | null;
+  defaultInstructions?: string | null;
+  defaultPricing?: number | null;
+  requiredFields?: ('captureAddress' | 'city' | 'state' | 'zip' | 'targetDate' | 'sqFt' | 'propertyType')[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "job-messages".
  */
 export interface JobMessage {
@@ -1217,6 +1237,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'workflow-templates';
         value: number | WorkflowTemplate;
+      } | null)
+    | ({
+        relationTo: 'job-templates';
+        value: number | JobTemplate;
       } | null)
     | ({
         relationTo: 'job-messages';
@@ -1709,6 +1733,7 @@ export interface JobsSelect<T extends boolean = true> {
   state?: T;
   zip?: T;
   sqFt?: T;
+  estimatedDuration?: T;
   propertyType?: T;
   schedulingNotes?: T;
   region?: T;
@@ -1969,6 +1994,22 @@ export interface WorkflowTemplatesSelect<T extends boolean = true> {
             };
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "job-templates_select".
+ */
+export interface JobTemplatesSelect<T extends boolean = true> {
+  name?: T;
+  client?: T;
+  isActive?: T;
+  defaultWorkflow?: T;
+  defaultProducts?: T;
+  defaultInstructions?: T;
+  defaultPricing?: T;
+  requiredFields?: T;
   updatedAt?: T;
   createdAt?: T;
 }

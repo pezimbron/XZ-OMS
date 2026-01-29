@@ -21,6 +21,7 @@ import { Invoices } from './collections/Invoices'
 import { Notifications } from './collections/Notifications'
 import { NotificationTemplates } from './collections/NotificationTemplates'
 import { WorkflowTemplates } from './collections/WorkflowTemplates'
+import { JobTemplates } from './collections/JobTemplates'
 import { JobMessages } from './collections/JobMessages'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
@@ -105,6 +106,7 @@ export default buildConfig({
     Notifications,
     NotificationTemplates,
     WorkflowTemplates,
+    JobTemplates,
     JobMessages,
   ],
   cors: [getServerSideURL()].filter(Boolean),

@@ -48,6 +48,9 @@ export const Jobs: CollectionConfig = {
       name: 'jobId',
       type: 'text',
       unique: true,
+      admin: {
+        description: 'Unique job identifier. Can be manually set for outsourcing partners who use their own IDs.',
+      },
     },
     {
       name: 'modelName',
@@ -188,6 +191,38 @@ export const Jobs: CollectionConfig = {
       name: 'sqFt',
       type: 'number',
       label: 'Square Feet',
+    },
+    {
+      name: 'estimatedDuration',
+      type: 'number',
+      label: 'Estimated Duration (hours)',
+      admin: {
+        description: 'Estimated time to complete this job. Auto-calculated from square footage (30 min per 1000 sqft) or manually entered.',
+      },
+      hooks: {
+        beforeChange: [
+          async ({ data, req, operation, value, previousValue }) => {
+            // Auto-calculate on create if not manually set
+            if (operation === 'create' && data && data.sqFt !== undefined && value === undefined) {
+              return (data.sqFt / 1000) * 0.5
+            }
+            
+            // Auto-recalculate on update if sqFt changed and estimatedDuration wasn't manually edited
+            if (operation === 'update' && data && data.sqFt !== undefined) {
+              // Check if estimatedDuration is being explicitly set in this update
+              if (value !== undefined && value !== previousValue) {
+                // User is manually editing estimatedDuration, don't override
+                return value
+              }
+              
+              // sqFt changed but estimatedDuration wasn't touched, recalculate
+              return (data.sqFt / 1000) * 0.5
+            }
+            
+            return value
+          }
+        ]
+      }
     },
     {
       name: 'propertyType',
