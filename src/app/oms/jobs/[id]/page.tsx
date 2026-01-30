@@ -122,11 +122,12 @@ export default function JobDetailPage() {
   const [hasCalendarChanges, setHasCalendarChanges] = useState(false)
   const [calendarUpdating, setCalendarUpdating] = useState(false)
   const [lastSavedCalendarState, setLastSavedCalendarState] = useState<any>(null)
+  const [calendarStateInitialized, setCalendarStateInitialized] = useState(false)
   const calendarChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Initialize last saved calendar state when job loads
   useEffect(() => {
-    if (job) {
+    if (job && !calendarStateInitialized) {
       setLastSavedCalendarState({
         tech: job.tech,
         targetDate: job.targetDate,
@@ -146,8 +147,9 @@ export default function JobDetailPage() {
         uploadLink: job.uploadLink,
         mediaUploadLink: job.mediaUploadLink,
       })
+      setCalendarStateInitialized(true)
     }
-  }, [job])
+  }, [job, calendarStateInitialized]) // Only initialize once
   
   // Check for calendar-relevant changes
   useEffect(() => {
@@ -158,31 +160,19 @@ export default function JobDetailPage() {
       clearTimeout(calendarChangeTimeoutRef.current)
     }
     
-    // Helper function to normalize values for comparison
-    const normalizeValue = (value: any) => {
-      if (value === null || value === undefined) return null
-      if (typeof value === 'object' && value.id) return value.id
-      if (Array.isArray(value)) {
-        return value.map(item => 
-          typeof item === 'object' && item.id ? item.id : item
-        ).sort()
-      }
-      return value
-    }
-    
-    // Create normalized comparison objects
-    const currentNormalized = {
-      tech: normalizeValue(job.tech),
+    // Simplified comparison - just check the raw values first
+    const currentRaw = {
+      tech: job.tech,
       targetDate: job.targetDate,
       captureAddress: job.captureAddress,
       city: job.city,
       state: job.state,
       zip: job.zip,
       modelName: job.modelName,
-      client: normalizeValue(job.client),
+      client: job.client,
       techInstructions: job.techInstructions,
-      lineItems: normalizeValue(job.lineItems),
-      customTodoItems: normalizeValue(job.customTodoItems),
+      lineItems: job.lineItems,
+      customTodoItems: job.customTodoItems,
       schedulingNotes: job.schedulingNotes,
       sitePOCName: job.sitePOCName,
       sitePOCPhone: job.sitePOCPhone,
@@ -191,39 +181,7 @@ export default function JobDetailPage() {
       mediaUploadLink: job.mediaUploadLink,
     }
     
-    const lastSavedNormalized = {
-      tech: normalizeValue(lastSavedCalendarState.tech),
-      targetDate: lastSavedCalendarState.targetDate,
-      captureAddress: lastSavedCalendarState.captureAddress,
-      city: lastSavedCalendarState.city,
-      state: lastSavedCalendarState.state,
-      zip: lastSavedCalendarState.zip,
-      modelName: lastSavedCalendarState.modelName,
-      client: normalizeValue(lastSavedCalendarState.client),
-      techInstructions: lastSavedCalendarState.techInstructions,
-      lineItems: normalizeValue(lastSavedCalendarState.lineItems),
-      customTodoItems: normalizeValue(lastSavedCalendarState.customTodoItems),
-      schedulingNotes: lastSavedCalendarState.schedulingNotes,
-      sitePOCName: lastSavedCalendarState.sitePOCName,
-      sitePOCPhone: lastSavedCalendarState.sitePOCPhone,
-      sitePOCEmail: lastSavedCalendarState.sitePOCEmail,
-      uploadLink: lastSavedCalendarState.uploadLink,
-      mediaUploadLink: lastSavedCalendarState.mediaUploadLink,
-    }
-    
-    const hasChanges = JSON.stringify(currentNormalized) !== JSON.stringify(lastSavedNormalized)
-    
-    // Debug logging
-    if (hasChanges) {
-      console.log('🗓️ Calendar changes detected:', {
-        current: currentNormalized,
-        lastSaved: lastSavedNormalized,
-        changed: Object.keys(currentNormalized).filter(key => 
-          JSON.stringify(currentNormalized[key as keyof typeof currentNormalized]) !== 
-          JSON.stringify(lastSavedNormalized[key as keyof typeof lastSavedNormalized])
-        )
-      })
-    }
+    const hasChanges = JSON.stringify(currentRaw) !== JSON.stringify(lastSavedCalendarState)
     
     // Debounce the state update to prevent rapid changes
     calendarChangeTimeoutRef.current = setTimeout(() => {
@@ -250,7 +208,6 @@ export default function JobDetailPage() {
       
       if (response.ok) {
         const result = await response.json()
-        alert(`Calendar ${result.message}`)
         
         // Store current job state before refresh to prevent false positives
         const currentJobState = {
