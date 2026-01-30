@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { label: 'Technicians', href: '/oms/technicians', icon: '🔧', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Products', href: '/oms/products', icon: '📦', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Equipment', href: '/oms/equipment', icon: '🎥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
+  { label: 'Job Templates', href: '/oms/job-templates', icon: '📝', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   // { label: 'Reports', href: '/oms/reports', icon: '📈', roles: ['super-admin', 'sales-admin', 'ops-manager'] }, // TODO: Build Reports page
 ]
 

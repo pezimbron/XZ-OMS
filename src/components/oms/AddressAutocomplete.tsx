@@ -66,7 +66,6 @@ export const AddressAutocomplete: React.FC<{
 
   const handlePlaceSelect = useCallback(
     async (event: any) => {
-      console.log('AddressAutocomplete place select event:', event)
       const prediction =
         event?.placePrediction || event?.detail?.placePrediction || event?.detail?.place_prediction
 

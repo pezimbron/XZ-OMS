@@ -532,6 +532,41 @@
 
 ##  Update History
 
+### January 29, 2026 - Job Detail Page Refinements & Templating System
+- **Job Templating System**:
+  - Created `JobTemplates` collection with workflow, products, pricing, required fields
+  - Template management pages: `/oms/job-templates`, `/oms/job-templates/create`, `/oms/job-templates/[id]`
+  - Job creation form integrates templates (auto-populate fields, pre-fill products, non-blocking warnings)
+  - Template dropdown filters by client-specific and general templates
+  - Products from templates auto-added silently after job creation
+  - Default job status changed to 'request' (removed Status field from creation form)
+  - Added Job Templates link to OMS navigation (Sales/Ops access)
+- **Estimated Duration Field**:
+  - Auto-calculated from square footage (30 min per 1000 sqft)
+  - Editable on job detail page with autosave
+  - Recalculates when sqFt changes (unless manually overridden)
+  - Hook logic: preserves manual edits, auto-updates on sqFt changes
+- **Job ID Field Enhancements**:
+  - Made editable for outsourcing partners with custom IDs
+  - Added to job creation form (optional)
+  - Autosave on job detail page
+  - Generate button for random ID when empty
+- **Job Detail Page Reorganization**:
+  - Removed duplicate Status field from Basic Information (already shown at top)
+  - Moved Client to Basic Information as first field
+  - Added "View Client" button next to client field (navigates to `/oms/clients/{id}`)
+  - Removed standalone Client Information section
+  - Reorganized Location section:
+    - Row 1: City, State, ZIP
+    - Row 2: Region, Property Type
+    - Row 3: Square Feet, Estimated Duration
+  - All location and property details now grouped together
+- **Workflow Field Consistency**:
+  - Removed "Assign Workflow" and "Change Template" buttons
+  - Workflow now uses autosave pattern (saves on selection)
+  - Consistent with all other fields on job detail page
+  - Helpful text: "Workflow will be assigned/updated automatically when you select a template"
+
 ### January 28, 2026 - Session 4 - Post-Processing Workflow Integration
 - **Renamed "QC" to "Post-Processing"**:
   - Tab renamed from "QC" to "Post-Processing" for accurate terminology
@@ -636,6 +671,6 @@
 
 ---
 
-**Last Updated**: January 28, 2026
+**Last Updated**: January 29, 2026
 **Maintained By**: Development Team
 **Purpose**: Quick reference for AI assistants and developers

@@ -135,18 +135,24 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
 
       {existingRequest && !isOpen && (
         <div className="space-y-3 text-sm">
-          <div>
-            <span className="font-medium text-gray-700 dark:text-gray-300">Type: </span>
-            <span className="text-gray-900 dark:text-white capitalize">{existingRequest.requestType?.replace('-', ' ')}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700 dark:text-gray-300">Sent: </span>
-            <span className="text-gray-900 dark:text-white">{new Date(existingRequest.sentAt).toLocaleString()}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700 dark:text-gray-300">Deadline: </span>
-            <span className="text-gray-900 dark:text-white">{new Date(existingRequest.deadline).toLocaleString()}</span>
-          </div>
+          {existingRequest.requestType && (
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Type: </span>
+              <span className="text-gray-900 dark:text-white capitalize">{existingRequest.requestType?.replace('-', ' ')}</span>
+            </div>
+          )}
+          {existingRequest.sentAt && (
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Sent: </span>
+              <span className="text-gray-900 dark:text-white">{new Date(existingRequest.sentAt).toLocaleString()}</span>
+            </div>
+          )}
+          {existingRequest.deadline && (
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Deadline: </span>
+              <span className="text-gray-900 dark:text-white">{new Date(existingRequest.deadline).toLocaleString()}</span>
+            </div>
+          )}
           {existingRequest.reminderSent && (
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Reminder Sent: </span>
@@ -185,7 +191,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
                   <div key={index} className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-medium text-gray-900 dark:text-white">Option {option.optionNumber}</span>
-                      {timeOptions.length > 1 && (
+                      {timeOptions.length > 1 && (requestType === 'time-windows' || requestType === 'specific-time') && (
                         <button
                           type="button"
                           onClick={() => removeTimeOption(index)}
@@ -271,7 +277,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
                   </div>
                 ))}
               </div>
-              {requestType === 'time-windows' && timeOptions.length < 5 && (
+              {(requestType === 'time-windows' || requestType === 'specific-time') && timeOptions.length < 5 && (
                 <button
                   type="button"
                   onClick={addTimeOption}

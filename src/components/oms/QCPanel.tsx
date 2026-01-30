@@ -25,7 +25,6 @@ export default function QCPanel({ job, user, onUpdate }: QCPanelProps) {
         const postProducers = (data.docs || []).filter((user: any) => 
           ['super-admin', 'ops-manager', 'post-producer'].includes(user.role)
         )
-        console.log('Fetched users for QC assignment:', postProducers)
         setUsers(postProducers)
       })
       .catch(err => console.error('Error fetching users:', err))
