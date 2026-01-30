@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { NotifyClientButton } from '@/components/oms/NotifyClientButton'
@@ -117,6 +117,185 @@ export default function JobDetailPage() {
   const [showCustomItemForm, setShowCustomItemForm] = useState(false)
   const [newCustomTask, setNewCustomTask] = useState('')
   const [newCustomNotes, setNewCustomNotes] = useState('')
+  
+  // Calendar update state
+  const [hasCalendarChanges, setHasCalendarChanges] = useState(false)
+  const [calendarUpdating, setCalendarUpdating] = useState(false)
+  const [lastSavedCalendarState, setLastSavedCalendarState] = useState<any>(null)
+  const calendarChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Initialize last saved calendar state when job loads
+  useEffect(() => {
+    if (job) {
+      setLastSavedCalendarState({
+        tech: job.tech,
+        targetDate: job.targetDate,
+        captureAddress: job.captureAddress,
+        city: job.city,
+        state: job.state,
+        zip: job.zip,
+        modelName: job.modelName,
+        client: job.client,
+        techInstructions: job.techInstructions,
+        lineItems: job.lineItems,
+        customTodoItems: job.customTodoItems,
+        schedulingNotes: job.schedulingNotes,
+        sitePOCName: job.sitePOCName,
+        sitePOCPhone: job.sitePOCPhone,
+        sitePOCEmail: job.sitePOCEmail,
+        uploadLink: job.uploadLink,
+        mediaUploadLink: job.mediaUploadLink,
+      })
+    }
+  }, [job])
+  
+  // Check for calendar-relevant changes
+  useEffect(() => {
+    if (!lastSavedCalendarState || !job) return
+    
+    // Clear any existing timeout
+    if (calendarChangeTimeoutRef.current) {
+      clearTimeout(calendarChangeTimeoutRef.current)
+    }
+    
+    // Helper function to normalize values for comparison
+    const normalizeValue = (value: any) => {
+      if (value === null || value === undefined) return null
+      if (typeof value === 'object' && value.id) return value.id
+      if (Array.isArray(value)) {
+        return value.map(item => 
+          typeof item === 'object' && item.id ? item.id : item
+        ).sort()
+      }
+      return value
+    }
+    
+    // Create normalized comparison objects
+    const currentNormalized = {
+      tech: normalizeValue(job.tech),
+      targetDate: job.targetDate,
+      captureAddress: job.captureAddress,
+      city: job.city,
+      state: job.state,
+      zip: job.zip,
+      modelName: job.modelName,
+      client: normalizeValue(job.client),
+      techInstructions: job.techInstructions,
+      lineItems: normalizeValue(job.lineItems),
+      customTodoItems: normalizeValue(job.customTodoItems),
+      schedulingNotes: job.schedulingNotes,
+      sitePOCName: job.sitePOCName,
+      sitePOCPhone: job.sitePOCPhone,
+      sitePOCEmail: job.sitePOCEmail,
+      uploadLink: job.uploadLink,
+      mediaUploadLink: job.mediaUploadLink,
+    }
+    
+    const lastSavedNormalized = {
+      tech: normalizeValue(lastSavedCalendarState.tech),
+      targetDate: lastSavedCalendarState.targetDate,
+      captureAddress: lastSavedCalendarState.captureAddress,
+      city: lastSavedCalendarState.city,
+      state: lastSavedCalendarState.state,
+      zip: lastSavedCalendarState.zip,
+      modelName: lastSavedCalendarState.modelName,
+      client: normalizeValue(lastSavedCalendarState.client),
+      techInstructions: lastSavedCalendarState.techInstructions,
+      lineItems: normalizeValue(lastSavedCalendarState.lineItems),
+      customTodoItems: normalizeValue(lastSavedCalendarState.customTodoItems),
+      schedulingNotes: lastSavedCalendarState.schedulingNotes,
+      sitePOCName: lastSavedCalendarState.sitePOCName,
+      sitePOCPhone: lastSavedCalendarState.sitePOCPhone,
+      sitePOCEmail: lastSavedCalendarState.sitePOCEmail,
+      uploadLink: lastSavedCalendarState.uploadLink,
+      mediaUploadLink: lastSavedCalendarState.mediaUploadLink,
+    }
+    
+    const hasChanges = JSON.stringify(currentNormalized) !== JSON.stringify(lastSavedNormalized)
+    
+    // Debug logging
+    if (hasChanges) {
+      console.log('🗓️ Calendar changes detected:', {
+        current: currentNormalized,
+        lastSaved: lastSavedNormalized,
+        changed: Object.keys(currentNormalized).filter(key => 
+          JSON.stringify(currentNormalized[key as keyof typeof currentNormalized]) !== 
+          JSON.stringify(lastSavedNormalized[key as keyof typeof lastSavedNormalized])
+        )
+      })
+    }
+    
+    // Debounce the state update to prevent rapid changes
+    calendarChangeTimeoutRef.current = setTimeout(() => {
+      setHasCalendarChanges(hasChanges)
+    }, 300) // 300ms debounce
+    
+    return () => {
+      if (calendarChangeTimeoutRef.current) {
+        clearTimeout(calendarChangeTimeoutRef.current)
+      }
+    }
+  }, [job, lastSavedCalendarState])
+  
+  // Handle manual calendar update
+  const updateCalendar = async () => {
+    if (!job?.id) return
+    
+    setCalendarUpdating(true)
+    try {
+      const response = await fetch(`/api/jobs/${job.id}/calendar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        alert(`Calendar ${result.message}`)
+        
+        // Store current job state before refresh to prevent false positives
+        const currentJobState = {
+          tech: job.tech,
+          targetDate: job.targetDate,
+          captureAddress: job.captureAddress,
+          city: job.city,
+          state: job.state,
+          zip: job.zip,
+          modelName: job.modelName,
+          client: job.client,
+          techInstructions: job.techInstructions,
+          lineItems: job.lineItems,
+          customTodoItems: job.customTodoItems,
+          schedulingNotes: job.schedulingNotes,
+          sitePOCName: job.sitePOCName,
+          sitePOCPhone: job.sitePOCPhone,
+          sitePOCEmail: job.sitePOCEmail,
+          uploadLink: job.uploadLink,
+          mediaUploadLink: job.mediaUploadLink,
+        }
+        
+        // Update the last saved state to current state
+        setLastSavedCalendarState(currentJobState)
+        setHasCalendarChanges(false)
+        
+        // Refresh job data to get the updated calendar event ID
+        await fetchJob(job.id)
+        
+        // After fetchJob, set the state again to prevent blinking
+        setTimeout(() => {
+          setLastSavedCalendarState(currentJobState)
+          setHasCalendarChanges(false)
+        }, 100)
+      } else {
+        const error = await response.json()
+        alert(`Failed to update calendar: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Calendar update error:', error)
+      alert('Failed to update calendar. Please try again.')
+    } finally {
+      setCalendarUpdating(false)
+    }
+  }
   
   // Generate random job ID for direct customers
   const generateJobId = () => {
@@ -877,6 +1056,34 @@ export default function JobDetailPage() {
                     clientName={job.client?.name}
                     clientEmail={job.client?.email}
                   />
+                  
+                  {/* Calendar Update Button */}
+                  {job?.tech && (
+                    <button
+                      onClick={updateCalendar}
+                      disabled={calendarUpdating}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                        hasCalendarChanges 
+                          ? 'bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white' 
+                          : 'bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white'
+                      }`}
+                      title={hasCalendarChanges ? "Update Google Calendar with latest changes" : "Update Google Calendar invite"}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      {calendarUpdating ? 'Updating...' : (
+                        <>
+                          📅 Update Calendar
+                          {hasCalendarChanges && (
+                            <span className="ml-1 px-2 py-0.5 text-xs bg-white/20 rounded-full">
+                              Changes
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  )}
                   {(job as any).completionToken ? (
                     <button
                       onClick={() => {

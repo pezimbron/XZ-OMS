@@ -3,7 +3,6 @@ import type { Access } from 'payload'
 
 import { isAdmin } from '../access/isAdmin'
 import { populateLineItemInstructions, populateTechInstructions } from './Jobs/hooks/populateInstructions'
-import { createCalendarInvite } from './Jobs/hooks/createCalendarInvite'
 import { afterWorkflowStepUpdate } from './Jobs/hooks/afterWorkflowStepUpdate'
 import { autoGenerateExpenses } from './Jobs/hooks/autoGenerateExpenses'
 import { workflowStepCompletion } from './Jobs/hooks/workflowStepCompletion'
@@ -16,7 +15,7 @@ export const Jobs: CollectionConfig = {
   slug: 'jobs',
   hooks: {
     beforeChange: [applyClientDefaultWorkflow, populateWorkflowSteps, validateTechAssignment, autoGenerateExpenses, workflowStepCompletion, updateInvoiceStatus, populateTechInstructions],
-    afterChange: [createCalendarInvite, afterWorkflowStepUpdate],
+    afterChange: [afterWorkflowStepUpdate],
   },
   access: {
     create: isAdmin,
