@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayload } from 'payload'
 import { google } from 'googleapis'
+import config from '@/payload.config'
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const payload = await getPayload()
+    const payload = await getPayload({ config })
     const { id: jobId } = await context.params
 
     // Fetch the job with related data
