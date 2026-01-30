@@ -147,7 +147,7 @@ export default function FinancialsTab({
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Products / Services</h2>
-          {!isTech && !productsEditOpen && (
+          {!isTech && (
             <div className="flex gap-2">
               {productsEditOpen ? (
                 <>
