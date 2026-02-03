@@ -92,6 +92,7 @@ export default function JobDetailPage() {
   const [clients, setClients] = useState<any[]>([])
   const [techs, setTechs] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
+  const [vendors, setVendors] = useState<any[]>([])
   const [user, setUser] = useState<any>(null)
 
   const toISOWithTimezoneOffset = (datetimeLocalValue: string, timezone: string) => {
@@ -685,6 +686,7 @@ export default function JobDetailPage() {
     fetchClients()
     fetchTechs()
     fetchProducts()
+    fetchVendors()
     fetchUser()
   }, [])
   
@@ -725,6 +727,16 @@ export default function JobDetailPage() {
       setProducts(data.docs || [])
     } catch (error) {
       console.error('Error fetching products:', error)
+    }
+  }
+
+  const fetchVendors = async () => {
+    try {
+      const response = await fetch('/api/vendors?limit=1000')
+      const data = await response.json()
+      setVendors(data.docs || [])
+    } catch (error) {
+      console.error('Error fetching vendors:', error)
     }
   }
 
@@ -1447,6 +1459,7 @@ export default function JobDetailPage() {
             user={user}
             clients={clients}
             products={products}
+            vendors={vendors}
             productsEditOpen={productsEditOpen}
             setProductsEditOpen={setProductsEditOpen}
             expensesEditOpen={expensesEditOpen}

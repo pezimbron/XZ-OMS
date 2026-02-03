@@ -58,6 +58,16 @@ export const Technicians: CollectionConfig = {
       ],
     },
     {
+      name: 'vendor',
+      type: 'relationship',
+      relationTo: 'vendors',
+      label: 'Vendor Company',
+      admin: {
+        description: 'For outsourced partners: the vendor company they work for',
+        condition: (data) => data.type === 'partner',
+      },
+    },
+    {
       name: 'baseCommissionRate',
       type: 'number',
       label: 'Commission Rate (decimal, e.g. 0.5)',
