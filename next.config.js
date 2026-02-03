@@ -23,6 +23,17 @@ const nextConfig = {
   },
   reactStrictMode: true,
   redirects,
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Stub image-size since we don't use image uploads
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'image-size/fromFile': false,
+        'image-size': false,
+      }
+    }
+    return config
+  },
 }
 
 export default withPayload(nextConfig)
