@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { SaveIndicator } from '@/components/oms/SaveIndicator'
+import SubInvoiceImportPanel from './SubInvoiceImportPanel'
 
 interface Job {
   id: string
@@ -28,6 +29,10 @@ interface Job {
   offHoursPayout?: number
   sqFt?: number
   client?: any
+  tech?: any
+  subcontractorVendor?: string | { id: string; companyName: string }
+  subInvoiceData?: any
+  subInvoiceImported?: boolean
 }
 
 interface User {
@@ -66,6 +71,7 @@ interface FinancialsTabProps {
   user: User
   clients: Client[]
   products: Product[]
+  vendors: any[]
   // Edit state
   productsEditOpen: boolean
   setProductsEditOpen: (open: boolean) => void
@@ -87,6 +93,7 @@ export default function FinancialsTab({
   user,
   clients,
   products,
+  vendors,
   productsEditOpen,
   setProductsEditOpen,
   expensesEditOpen,
@@ -650,7 +657,7 @@ export default function FinancialsTab({
           <div className="space-y-2 pl-4">
             {expensesEditOpen && !isTech ? (
               <>
-                <div className="flex justify-end">
+                <div className="flex justify-between items-center mb-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -669,6 +676,40 @@ export default function FinancialsTab({
                     + Add Expense
                   </button>
                 </div>
+
+                {/* Subcontractor Invoice Import Panel */}
+                {(() => {
+                  // Check if job has vendor OR if assigned tech has vendor
+                  const hasVendor = job.subcontractorVendor || (job.tech?.type === 'partner' && job.tech?.vendor)
+                  const vendorId = job.subcontractorVendor 
+                    ? (typeof job.subcontractorVendor === 'string' ? job.subcontractorVendor : job.subcontractorVendor?.id)
+                    : (job.tech?.vendor ? (typeof job.tech.vendor === 'string' ? job.tech.vendor : job.tech.vendor?.id) : '')
+                  
+                  return hasVendor ? (
+                    <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Import Subcontractor Invoice</h4>
+                      <SubInvoiceImportPanel
+                        job={job}
+                        vendors={vendors}
+                        selectedVendor={vendorId || ''}
+                        setSelectedVendor={(vendorId) => {
+                          // This would need to be handled via a job update
+                          console.log('Vendor changed to:', vendorId)
+                        }}
+                        subInvoiceData={job.subInvoiceData || {}}
+                        setSubInvoiceData={(data) => {
+                          // This would need to be handled via a job update
+                          console.log('Invoice data updated:', data)
+                        }}
+                        onImportSuccess={(newExpense) => {
+                          const next = [...(externalExpensesField.value || []), newExpense]
+                          externalExpensesField.setValue(next)
+                          // Don't commit immediately - let user click "Done" to save
+                        }}
+                      />
+                    </div>
+                  ) : null
+                })()}
                 {(externalExpensesField.value || []).map((expense: any, index: number) => (
                   <div key={index} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-2">
                     <div className="flex gap-2">
