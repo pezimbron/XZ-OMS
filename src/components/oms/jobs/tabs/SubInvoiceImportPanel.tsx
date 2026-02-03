@@ -130,13 +130,25 @@ export default function SubInvoiceImportPanel({
       const billsToImport = availableBills.filter(b => selectedBills.includes(b.Id))
 
       for (const bill of billsToImport) {
+        // Determine payment status from bill balance
+        let paymentStatus: 'unpaid' | 'pending' | 'paid' = 'unpaid'
+        if (bill.Balance === 0) {
+          paymentStatus = 'paid'
+        } else if (bill.Balance < bill.TotalAmt) {
+          paymentStatus = 'pending'
+        }
+
         const newExpense = {
           description: bill.Line[0]?.Description || `Bill ${bill.DocNumber}`,
           supplier: selectedVendorData?.companyName || '',
           contactInfo: selectedVendorData?.billingEmail || '',
           amount: bill.TotalAmt,
-          paymentStatus: 'unpaid',
+          paymentStatus,
           notes: `Imported from QuickBooks - Bill #${bill.DocNumber}`,
+          // Store QuickBooks tracking info
+          quickbooksId: bill.Id,
+          quickbooksDocNumber: bill.DocNumber,
+          quickbooksSyncedAt: new Date().toISOString(),
         }
 
         onImportSuccess(newExpense)
@@ -169,6 +181,9 @@ export default function SubInvoiceImportPanel({
     setError(null)
 
     try {
+      let qbBillId: string | undefined
+      let qbDocNumber: string | undefined
+
       // If vendor has QB integration, create bill in QuickBooks
       if (hasQBVendorId) {
         const response = await fetch('/api/quickbooks/bills', {
@@ -186,10 +201,16 @@ export default function SubInvoiceImportPanel({
         if (!response.ok) {
           throw new Error(data.error || 'Failed to create bill in QuickBooks')
         }
+
+        // Capture the bill ID and doc number from QB response
+        if (data.bill) {
+          qbBillId = data.bill.Id
+          qbDocNumber = data.bill.DocNumber
+        }
       }
 
       // Add to external expenses
-      const newExpense = {
+      const newExpense: Record<string, any> = {
         description: formData.description || 'Subcontractor services',
         supplier: selectedVendorData?.companyName || '',
         contactInfo: selectedVendorData?.billingEmail || '',
@@ -198,8 +219,15 @@ export default function SubInvoiceImportPanel({
         notes: formData.invoiceNumber ? `Invoice #${formData.invoiceNumber}` : '',
       }
 
+      // Add QuickBooks tracking info if bill was created
+      if (qbBillId) {
+        newExpense.quickbooksId = qbBillId
+        newExpense.quickbooksDocNumber = qbDocNumber
+        newExpense.quickbooksSyncedAt = new Date().toISOString()
+      }
+
       onImportSuccess(newExpense)
-      setSuccess('Invoice imported successfully')
+      setSuccess(qbBillId ? 'Invoice imported and bill created in QuickBooks' : 'Invoice imported successfully')
 
       // Reset form
       setFormData({

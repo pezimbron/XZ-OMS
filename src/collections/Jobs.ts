@@ -698,7 +698,39 @@ export const Jobs: CollectionConfig = {
             description: 'Indicates this expense was automatically created based on product settings',
           },
         },
-            {
+        {
+          name: 'quickbooksId',
+          type: 'text',
+          label: 'QuickBooks Bill ID',
+          admin: {
+            readOnly: true,
+            description: 'ID of the corresponding bill in QuickBooks',
+          },
+        },
+        {
+          name: 'quickbooksDocNumber',
+          type: 'text',
+          label: 'QuickBooks Doc Number',
+          admin: {
+            readOnly: true,
+            description: 'Document number of the bill in QuickBooks',
+          },
+        },
+        {
+          name: 'quickbooksSyncedAt',
+          type: 'date',
+          label: 'Last QB Sync',
+          admin: {
+            readOnly: true,
+            description: 'When this expense was last synced with QuickBooks',
+            date: {
+              pickerAppearance: 'dayAndTime',
+            },
+          },
+        },
+      ],
+    },
+    {
       name: 'subcontractorVendor',
       type: 'relationship',
       relationTo: 'vendors',
@@ -809,8 +841,6 @@ export const Jobs: CollectionConfig = {
           return ['super-admin', 'ops-manager', 'sales-admin'].includes(user.role)
         },
       },
-    },
-      ],
     },
     {
       name: 'discount',

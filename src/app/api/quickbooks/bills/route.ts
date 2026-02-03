@@ -73,6 +73,12 @@ export async function POST(request: NextRequest) {
       billId: qbBill.Id,
       docNumber: qbBill.DocNumber,
       totalAmount: qbBill.TotalAmt,
+      bill: {
+        Id: qbBill.Id,
+        DocNumber: qbBill.DocNumber,
+        TotalAmt: qbBill.TotalAmt,
+        Balance: qbBill.Balance,
+      },
     })
 
   } catch (error: any) {

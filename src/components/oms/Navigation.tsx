@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { label: 'Commissions', href: '/oms/commissions', icon: '💵', roles: ['super-admin', 'ops-manager', 'tech'] },
   { label: 'Invoicing', href: '/oms/invoicing', icon: '💰', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Invoices', href: '/oms/invoices', icon: '🧾', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
+  { label: 'Vendor Invoices', href: '/oms/vendor-invoices', icon: '📑', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Clients', href: '/oms/clients', icon: '👥', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Technicians', href: '/oms/technicians', icon: '🔧', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
   { label: 'Products', href: '/oms/products', icon: '📦', roles: ['super-admin', 'sales-admin', 'ops-manager'] },

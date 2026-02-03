@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\" /B /AD)",
+      "Bash(findstr:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
