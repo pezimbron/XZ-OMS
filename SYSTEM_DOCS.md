@@ -465,6 +465,33 @@
   - Dates converted to YYYY-MM-DD format for HTML date inputs
   - Local form state prevents autosave interference
   - QuickBooks Bill created automatically if vendor has `quickbooks.vendorId`
+- **Status**: ✅ FULLY FUNCTIONAL (Feb 3, 2026)
+  - End-to-end workflow tested and deployed
+  - PDF upload → parse → edit → save → QuickBooks sync working
+  - Railway production deployment successful
+- **Known Issues & Resolutions**:
+  - ⚠️ **Payload CMS 3.74.0 Bug**: ESM import error with `image-size/fromFile`
+    - **Fix**: Downgraded to Payload 3.73.0
+    - **Root Cause**: image-size package changed exports, Payload hasn't updated
+    - **Impact**: None (we don't use image uploads)
+  - ⚠️ **Array.prototype Pollution**: Unknown source adding `Array.prototype.random`
+    - **Workaround**: Cleaned in parse-pdf route before PDF.js execution
+    - **TODO**: Find and remove pollution source permanently
+  - ⚠️ **TypeScript Error**: `serialize.tsx` accessing `children` on nodes without it
+    - **Fix**: Added type guard `if (!('children' in node) || node.children == null)`
+- **Missing Features / Next Steps**:
+  - ❌ **Vendor Invoice Dashboard** - No centralized view of all vendor invoices
+    - Currently: Invoices only visible per-job in Financials tab
+    - Needed: `/oms/vendor-invoices` page showing all invoices across all jobs
+    - Features: Filter by vendor, date range, payment status; link to source job
+  - ❌ **Payment Status Sync** - One-way sync only (OMS → QuickBooks)
+    - Currently: Bills created in QB, but no sync back for payment status
+    - Needed: Poll QB API to update `paymentStatus` field on expenses
+    - Fields needed: `quickbooksId`, `paymentStatus`, `lastSyncedAt`
+    - API: `/api/quickbooks/bills/sync-status` endpoint
+  - ❌ **QuickBooks Bill ID Tracking** - Not stored on imported expenses
+    - Currently: Bill created but ID not saved to expense record
+    - Needed: Store QB Bill ID to enable status sync and avoid duplicates
 
 **4. Invoicing Queue** - ✅ REDESIGNED (Jan 28, 2026)
 - **Location**: `/oms/invoicing`
