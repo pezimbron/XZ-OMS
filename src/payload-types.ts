@@ -6,10 +6,66 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * Supported timezones in IANA format.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supportedTimezones".
+ */
+export type SupportedTimezones =
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
+
 export interface Config {
   auth: {
     users: UserAuthOperations;
   };
+  blocks: {};
   collections: {
     pages: Page;
     posts: Post;
@@ -19,6 +75,7 @@ export interface Config {
     comments: Comment;
     clients: Client;
     technicians: Technician;
+    vendors: Vendor;
     products: Product;
     equipment: Equipment;
     jobs: Job;
@@ -32,6 +89,7 @@ export interface Config {
     forms: Form;
     'form-submissions': FormSubmission;
     search: Search;
+    'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -46,6 +104,7 @@ export interface Config {
     comments: CommentsSelect<false> | CommentsSelect<true>;
     clients: ClientsSelect<false> | ClientsSelect<true>;
     technicians: TechniciansSelect<false> | TechniciansSelect<true>;
+    vendors: VendorsSelect<false> | VendorsSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     jobs: JobsSelect<false> | JobsSelect<true>;
@@ -59,6 +118,7 @@ export interface Config {
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -66,6 +126,7 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
+  fallbackLocale: null;
   globals: {
     header: Header;
     footer: Footer;
@@ -114,7 +175,7 @@ export interface Page {
       root: {
         type: string;
         children: {
-          type: string;
+          type: any;
           version: number;
           [k: string]: unknown;
         }[];
@@ -136,6 +197,9 @@ export interface Page {
             } | null;
             url?: string | null;
             label: string;
+            /**
+             * Choose how the link should be rendered.
+             */
             appearance?: ('default' | 'outline') | null;
           };
           id?: string | null;
@@ -146,6 +210,9 @@ export interface Page {
   layout: (CallToActionBlock | ContentBlock | MediaBlock | ArchiveBlock | FormBlock)[];
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -167,7 +234,7 @@ export interface Media {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -249,7 +316,7 @@ export interface CallToActionBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -271,6 +338,9 @@ export interface CallToActionBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -292,7 +362,7 @@ export interface ContentBlock {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -313,6 +383,9 @@ export interface ContentBlock {
           } | null;
           url?: string | null;
           label: string;
+          /**
+           * Choose how the link should be rendered.
+           */
           appearance?: ('default' | 'outline') | null;
         };
         id?: string | null;
@@ -341,7 +414,7 @@ export interface ArchiveBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -396,7 +469,7 @@ export interface Post {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -411,6 +484,9 @@ export interface Post {
   categories?: (number | Category)[] | null;
   meta?: {
     title?: string | null;
+    /**
+     * Maximum upload file size: 12MB. Recommended file size for images is <500KB.
+     */
     image?: (number | null) | Media;
     description?: string | null;
   };
@@ -445,6 +521,13 @@ export interface User {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
@@ -458,7 +541,7 @@ export interface FormBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -515,7 +598,7 @@ export interface Form {
               root: {
                 type: string;
                 children: {
-                  type: string;
+                  type: any;
                   version: number;
                   [k: string]: unknown;
                 }[];
@@ -545,6 +628,7 @@ export interface Form {
             label?: string | null;
             width?: number | null;
             defaultValue?: string | null;
+            placeholder?: string | null;
             options?:
               | {
                   label: string;
@@ -589,12 +673,15 @@ export interface Form {
       )[]
     | null;
   submitButtonLabel?: string | null;
+  /**
+   * Choose whether to display an on-page message or redirect to a different page after they submit the form.
+   */
   confirmationType?: ('message' | 'redirect') | null;
   confirmationMessage?: {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];
@@ -608,6 +695,9 @@ export interface Form {
   redirect?: {
     url: string;
   };
+  /**
+   * Send custom emails when the form submits. Use comma separated lists to send the same email to multiple recipients. To reference a value from this form, wrap that field's name with double curly brackets, i.e. {{firstName}}. You can use a wildcard {{*}} to output all data and {{*:table}} to format it as an HTML table in the email.
+   */
   emails?:
     | {
         emailTo?: string | null;
@@ -616,11 +706,14 @@ export interface Form {
         replyTo?: string | null;
         emailFrom?: string | null;
         subject: string;
+        /**
+         * Enter the message that should be sent in this email.
+         */
         message?: {
           root: {
             type: string;
             children: {
-              type: string;
+              type: any;
               version: number;
               [k: string]: unknown;
             }[];
@@ -638,6 +731,8 @@ export interface Form {
   createdAt: string;
 }
 /**
+ * Comments submitted by visitors on blog posts
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "comments".
  */
@@ -649,6 +744,9 @@ export interface Comment {
     email: string;
   };
   post: number | Post;
+  /**
+   * Comments must be approved before they appear publicly
+   */
   isApproved?: boolean | null;
   publishedAt?: string | null;
   updatedAt: string;
@@ -661,6 +759,9 @@ export interface Comment {
 export interface Client {
   id: number;
   name: string;
+  /**
+   * Name of the person who receives communications at this company
+   */
   primaryContact?: string | null;
   clientType: 'retail' | 'outsourcing-partner';
   billingPreference: 'immediate' | 'weekly-batch' | 'monthly-batch' | 'payment-first';
@@ -669,26 +770,62 @@ export interface Client {
   companyName?: string | null;
   billingAddress?: string | null;
   notes?: string | null;
+  /**
+   * Client-specific instructions that will auto-populate in the "General Instructions for Tech" field when this client is selected for a job. Use for recurring client requirements (e.g., "Always call POC 30 min before arrival").
+   */
   instructionTemplate?: string | null;
+  /**
+   * User responsible for managing this client relationship
+   */
   accountManager?: (number | null) | User;
+  /**
+   * Default workflow template that will be assigned to new jobs for this client. Can be overridden per job.
+   */
   defaultWorkflow?: (number | null) | WorkflowTemplate;
   invoicingPreferences?: {
+    /**
+     * Default payment terms for invoices
+     */
     terms?: ('due-on-receipt' | 'net-15' | 'net-30' | 'net-45' | 'net-60') | null;
+    /**
+     * For weekly batch: 1=Monday, 7=Sunday. For monthly batch: day of month (1-31)
+     */
     batchDay?: number | null;
+    /**
+     * Notes that will appear on all invoices for this client
+     */
     invoiceNotes?: string | null;
+    /**
+     * Skip manual approval and automatically create draft invoices in QuickBooks
+     */
     autoApprove?: boolean | null;
+    /**
+     * Client is exempt from sales tax
+     */
     taxExempt?: boolean | null;
+    /**
+     * Sales tax percentage based on client location (e.g., 8.25 for 8.25%)
+     */
     taxRate?: number | null;
+    /**
+     * Location determining tax rate
+     */
     taxJurisdiction?: string | null;
   };
   integrations?: {
     quickbooks?: {
+      /**
+       * Auto-populated when synced with QuickBooks
+       */
       customerId?: string | null;
       syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
       lastSyncedAt?: string | null;
       syncError?: string | null;
     };
     hubspot?: {
+      /**
+       * Auto-populated when synced with HubSpot
+       */
       contactId?: string | null;
       syncStatus?: ('not-synced' | 'synced' | 'error' | 'pending') | null;
       lastSyncedAt?: string | null;
@@ -696,8 +833,17 @@ export interface Client {
     };
   };
   notificationPreferences?: {
+    /**
+     * Send automatic notifications to client when job status changes
+     */
     enableNotifications?: boolean | null;
+    /**
+     * Email address for job notifications (defaults to main email if empty)
+     */
     notificationEmail?: string | null;
+    /**
+     * Phone number for SMS notifications (optional)
+     */
     notificationPhone?: string | null;
     notifyOnScheduled?: boolean | null;
     notifyOnCompleted?: boolean | null;
@@ -709,6 +855,9 @@ export interface Client {
     notifyOnFloorplanCompleted?: boolean | null;
     notifyOnPhotosCompleted?: boolean | null;
     notifyOnAsbuiltsCompleted?: boolean | null;
+    /**
+     * Optional custom message to include in all notifications to this client
+     */
     customMessage?: string | null;
   };
   updatedAt: string;
@@ -720,27 +869,84 @@ export interface Client {
  */
 export interface WorkflowTemplate {
   id: number;
+  /**
+   * e.g., "Outsourced Scan Only", "Direct Scan + Hosting"
+   */
   name: string;
+  /**
+   * Type of job this workflow applies to
+   */
   jobType: 'outsourced-scan-only' | 'direct-scan-hosted' | 'direct-scan-floorplan' | 'custom';
+  /**
+   * Only active templates can be assigned to new jobs
+   */
   isActive?: boolean | null;
+  /**
+   * Brief description of this workflow
+   */
   description?: string | null;
+  /**
+   * Define the workflow steps in order
+   */
   steps: {
+    /**
+     * e.g., "Scan Complete", "Upload to Client Account"
+     */
     name: string;
+    /**
+     * What needs to be done in this step
+     */
     description?: string | null;
+    /**
+     * Order of this step (1, 2, 3...)
+     */
     order: number;
+    /**
+     * What job status this step represents
+     */
     statusMapping: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+    /**
+     * Which role can mark this step as complete
+     */
     requiredRole?: ('tech' | 'post-producer' | 'qc' | 'ops-manager' | 'sales-admin' | 'admin') | null;
+    /**
+     * Text for the action button (e.g., "Mark Scan Complete")
+     */
     actionLabel?: string | null;
+    /**
+     * Does this step require adding deliverable URLs?
+     */
     requiresDeliverables?: boolean | null;
+    /**
+     * What happens automatically when this step is completed
+     */
     triggers?: {
       sendNotification?: boolean | null;
       notificationRecipients?: ('tech' | 'post-production' | 'qc' | 'ops-manager' | 'sales')[] | null;
+      /**
+       * Use {{jobId}}, {{modelName}}, {{clientName}} as placeholders
+       */
       notificationMessage?: string | null;
+      /**
+       * Send email to client when this step completes
+       */
       sendClientEmail?: boolean | null;
       emailTemplate?: ('job-complete' | 'qc-approved' | 'custom') | null;
+      /**
+       * Automatically create invoice when this step completes
+       */
       createInvoice?: boolean | null;
+      /**
+       * Create recurring invoice (e.g., yearly hosting)
+       */
       createRecurringInvoice?: boolean | null;
+      /**
+       * Days after step completion to create recurring invoice (e.g., 365 for 1 year)
+       */
       recurringInvoiceDelay?: number | null;
+      /**
+       * Amount for recurring invoice (e.g., 50 for $50 hosting)
+       */
       recurringInvoiceAmount?: number | null;
     };
     id?: string | null;
@@ -756,11 +962,47 @@ export interface Technician {
   id: number;
   name: string;
   email: string;
+  /**
+   * Link this technician to a user account for portal access
+   */
   user?: (number | null) | User;
   type: 'commission' | 'w2' | 'partner';
+  /**
+   * For outsourced partners: the vendor company they work for
+   */
+  vendor?: (number | null) | Vendor;
   baseCommissionRate?: number | null;
   phone?: string | null;
   active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Subcontractor vendor companies for outsourced work
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendors".
+ */
+export interface Vendor {
+  id: number;
+  companyName: string;
+  contactPerson?: string | null;
+  billingEmail: string;
+  billingPhone?: string | null;
+  taxID?: string | null;
+  paymentTerms?: string | null;
+  notes?: string | null;
+  active?: boolean | null;
+  integrations?: {
+    quickbooks?: {
+      /**
+       * The vendor ID from QuickBooks for API queries
+       */
+      vendorId?: string | null;
+      syncStatus?: ('not-synced' | 'synced' | 'error') | null;
+      lastSyncedAt?: string | null;
+    };
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -777,11 +1019,29 @@ export interface Product {
   isRecurring?: boolean | null;
   requiresVendor?: boolean | null;
   description?: string | null;
+  /**
+   * Default instructions that will auto-populate when this product is added to a job. Can be customized per-job.
+   */
   defaultInstructions?: string | null;
+  /**
+   * Whether this product is subject to sales tax
+   */
   taxable?: boolean | null;
+  /**
+   * Automatically add an external expense when this product is added to a job (e.g., floor plans, photo editing)
+   */
   hasDefaultExpense?: boolean | null;
+  /**
+   * Default cost for the auto-generated expense (can be edited per job)
+   */
   defaultExpenseCost?: number | null;
+  /**
+   * Description for the auto-generated expense
+   */
   expenseDescription?: string | null;
+  /**
+   * Hide this product from technician calendar invites by default (e.g., for post-production tasks like floor plans, QC, hosting). Can be overridden per-job.
+   */
   excludeFromCalendar?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -807,15 +1067,36 @@ export interface Equipment {
  */
 export interface Job {
   id: number;
+  /**
+   * Unique job identifier. Can be manually set for outsourcing partners who use their own IDs.
+   */
   jobId?: string | null;
   modelName: string;
   priority?: ('low' | 'normal' | 'high' | 'rush') | null;
   status: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
+  /**
+   * Track invoicing status of completed jobs
+   */
   invoiceStatus?: ('not-invoiced' | 'ready' | 'invoiced' | 'paid') | null;
+  /**
+   * Invoice this job is included in
+   */
   invoice?: (number | null) | Invoice;
+  /**
+   * Date this job was invoiced
+   */
   invoicedAt?: string | null;
+  /**
+   * For outsourced jobs, this is the partner (e.g., Matterport). For direct jobs, this is the actual client.
+   */
   client: number | Client;
+  /**
+   * The actual end client when job is outsourced (e.g., "Spencer Technologies (4)")
+   */
   endClientName?: string | null;
+  /**
+   * Company name only, for filtering and reporting
+   */
   endClientCompany?: string | null;
   tech?: (number | null) | Technician;
   sitePOCName?: string | null;
@@ -826,23 +1107,41 @@ export interface Job {
   state?: string | null;
   zip?: string | null;
   sqFt?: number | null;
+  /**
+   * Estimated time to complete this job. Auto-calculated from square footage (30 min per 1000 sqft) or manually entered.
+   */
   estimatedDuration?: number | null;
   propertyType?: ('commercial' | 'residential' | 'industrial' | 'other') | null;
   schedulingNotes?: string | null;
+  /**
+   * Geographic region for calendar color-coding
+   */
   region?: ('austin' | 'san-antonio' | 'outsourced' | 'other') | null;
   captureType?: ('matterport' | 'lidar' | 'drone' | 'other') | null;
   equipment?: (number | null) | Equipment;
   purposeOfScan?: string | null;
+  /**
+   * Overall instructions/notes for the technician assigned to this job
+   */
   techInstructions?: string | null;
   lineItems?:
     | {
         product: number | Product;
         quantity: number;
+        /**
+         * Detailed instructions for completing this specific item
+         */
         instructions?: string | null;
+        /**
+         * Hide this item from the technician's calendar invite to-do list (e.g., for post-production only tasks)
+         */
         excludeFromCalendar?: boolean | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Add custom to-do items that are not products (e.g., specific tasks, reminders)
+   */
   customTodoItems?:
     | {
         task: string;
@@ -851,12 +1150,24 @@ export interface Job {
       }[]
     | null;
   targetDate?: string | null;
+  /**
+   * Timezone for the job location
+   */
   timezone?:
     | ('America/Chicago' | 'America/New_York' | 'America/Denver' | 'America/Los_Angeles' | 'America/Phoenix')
     | null;
   scannedDate?: string | null;
+  /**
+   * Google Calendar event ID for updating existing events
+   */
   googleCalendarEventId?: string | null;
+  /**
+   * Where to upload the main project files (e.g., Matterport scans)
+   */
   uploadLink?: string | null;
+  /**
+   * Where to upload additional media (photos, videos, etc.)
+   */
   mediaUploadLink?: string | null;
   gasExpense?: number | null;
   isOutsourced?: boolean | null;
@@ -866,7 +1177,13 @@ export interface Job {
   commissionPayoutDate?: string | null;
   commissionPaymentStatus?: ('pending' | 'paid') | null;
   commissionPaidAt?: string | null;
+  /**
+   * The workflow template that defines steps and automation for this job
+   */
   workflowTemplate?: (number | null) | WorkflowTemplate;
+  /**
+   * Track completion of workflow steps
+   */
   workflowSteps?:
     | {
         stepName: string;
@@ -883,10 +1200,25 @@ export interface Job {
     fileNamingOk?: boolean | null;
   };
   qcStatus?: ('pending' | 'in-review' | 'passed' | 'needs-revision' | 'rejected') | null;
+  /**
+   * Post-producer assigned to review this job
+   */
   qcAssignedTo?: (number | null) | User;
+  /**
+   * Notes from QC review process
+   */
   qcNotes?: string | null;
+  /**
+   * When QC review started
+   */
   qcStartTime?: string | null;
+  /**
+   * When QC review was completed
+   */
   qcEndTime?: string | null;
+  /**
+   * Track revision requests during QC
+   */
   revisionRequests?:
     | {
         requestedBy?: string | null;
@@ -900,6 +1232,9 @@ export interface Job {
   totalPrice?: number | null;
   vendorCost?: number | null;
   margin?: number | null;
+  /**
+   * Track costs for floor plans, as-builts, photo editing, etc.
+   */
   externalExpenses?:
     | {
         description: string;
@@ -909,54 +1244,159 @@ export interface Job {
         paymentStatus?: ('unpaid' | 'paid' | 'pending') | null;
         paidDate?: string | null;
         notes?: string | null;
+        /**
+         * Indicates this expense was automatically created based on product settings
+         */
         autoGenerated?: boolean | null;
+        /**
+         * Auto-populated when outsourced tech is assigned, or manually set
+         */
+        subcontractorVendor?: (number | null) | Vendor;
+        /**
+         * PDF or CSV invoice from subcontractor
+         */
+        subcontractorInvoiceAttachment?: (number | null) | Media;
+        /**
+         * Parsed or manually entered invoice details
+         */
+        subInvoiceData?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        /**
+         * Indicates invoice has been imported to QuickBooks and added to expenses
+         */
+        subInvoiceImported?: boolean | null;
         id?: string | null;
       }[]
     | null;
   discount?: {
     type?: ('none' | 'fixed' | 'percentage') | null;
+    /**
+     * Enter dollar amount for fixed or percentage for percentage discount
+     */
     value?: number | null;
+    /**
+     * Automatically calculated discount in dollars
+     */
     amount?: number | null;
   };
+  /**
+   * Auto-calculated from line items
+   */
   subtotal?: number | null;
+  /**
+   * Auto-calculated based on client tax rate and taxable products
+   */
   taxAmount?: number | null;
+  /**
+   * Subtotal + Tax - Discount
+   */
   totalWithTax?: number | null;
+  /**
+   * Unique token for tech portal access
+   */
   completionToken?: string | null;
+  /**
+   * Links to final deliverables for client access
+   */
   deliverables?: {
+    /**
+     * Link to the 3D model (e.g., Matterport, CloudPano)
+     */
     model3dLink?: string | null;
+    /**
+     * Link or zip file URL for floor plans
+     */
     floorPlansLink?: string | null;
+    /**
+     * Link or zip file URL for photos and videos
+     */
     photosVideosLink?: string | null;
+    /**
+     * Link or zip file URL for as-built documentation
+     */
     asBuiltsLink?: string | null;
+    /**
+     * Link for any additional deliverables
+     */
     otherAssetsLink?: string | null;
+    /**
+     * Internal notes about the deliverables
+     */
     deliveryNotes?: string | null;
+    /**
+     * When the deliverables were provided to the client
+     */
     deliveredDate?: string | null;
   };
+  /**
+   * Secure token for subcontractor message access
+   */
   messageToken?: string | null;
+  /**
+   * Scheduling request sent to technician
+   */
   schedulingRequest?: {
     requestType?: ('time-windows' | 'specific-time' | 'tech-proposes') | null;
     sentAt?: string | null;
+    /**
+     * When the tech must respond by (typically 24 hours)
+     */
     deadline?: string | null;
     reminderSent?: boolean | null;
     reminderSentAt?: string | null;
+    /**
+     * For time-windows and specific-time request types
+     */
     timeOptions?:
       | {
           optionNumber: number;
           date: string;
           timeWindow?: ('morning' | 'afternoon' | 'evening' | 'custom') | null;
+          /**
+           * e.g., 9:00am
+           */
           startTime?: string | null;
+          /**
+           * e.g., 12:00pm
+           */
           endTime?: string | null;
+          /**
+           * For specific-time requests (e.g., 2:00pm)
+           */
           specificTime?: string | null;
           id?: string | null;
         }[]
       | null;
+    /**
+     * For tech-proposes request type
+     */
     requestMessage?: string | null;
     specialInstructions?: string | null;
   };
+  /**
+   * Technician response to scheduling request
+   */
   techResponse?: {
     respondedAt?: string | null;
     interested?: boolean | null;
+    /**
+     * Which option number the tech selected
+     */
     selectedOption?: number | null;
+    /**
+     * Tech's preferred start time within the selected window
+     */
     preferredStartTime?: string | null;
+    /**
+     * For tech-proposes request type
+     */
     proposedOptions?:
       | {
           date: string;
@@ -977,38 +1417,116 @@ export interface Job {
  */
 export interface Invoice {
   id: number;
+  /**
+   * Auto-generated by QuickBooks upon sync
+   */
   invoiceNumber?: string | null;
+  /**
+   * Current status of the invoice
+   */
   status: 'draft' | 'pending-approval' | 'approved' | 'sent' | 'paid' | 'partial-payment' | 'overdue' | 'void';
+  /**
+   * Client this invoice is for
+   */
   client: number | Client;
+  /**
+   * Jobs included in this invoice (can be multiple)
+   */
   jobs?: (number | Job)[] | null;
   lineItems: {
+    /**
+     * Service description (e.g., "3D Scan - Job #123")
+     */
     description: string;
     quantity: number;
+    /**
+     * Price per unit
+     */
     rate: number;
+    /**
+     * Total amount (quantity × rate)
+     */
     amount: number;
+    /**
+     * Whether this line item is subject to tax
+     */
     taxable?: boolean | null;
+    /**
+     * Reference to job ID/number for this line item
+     */
     jobReference?: string | null;
     id?: string | null;
   }[];
+  /**
+   * Sum of all line items before tax
+   */
   subtotal: number;
+  /**
+   * Tax rate percentage (e.g., 8.25 for 8.25%)
+   */
   taxRate?: number | null;
+  /**
+   * Calculated tax amount
+   */
   taxAmount?: number | null;
+  /**
+   * Total amount including tax
+   */
   total: number;
+  /**
+   * Date the invoice was created
+   */
   invoiceDate: string;
+  /**
+   * Payment due date
+   */
   dueDate: string;
+  /**
+   * Date the invoice was fully paid
+   */
   paidDate?: string | null;
+  /**
+   * Amount paid (for partial payments)
+   */
   paidAmount?: number | null;
+  /**
+   * Payment terms (copied from client preferences)
+   */
   terms?: ('due-on-receipt' | 'net-15' | 'net-30' | 'net-45' | 'net-60') | null;
+  /**
+   * Customer-facing notes (appears on invoice)
+   */
   notes?: string | null;
+  /**
+   * Internal notes (not visible to customer)
+   */
   internalNotes?: string | null;
   quickbooks?: {
+    /**
+     * QuickBooks Invoice ID
+     */
     invoiceId?: string | null;
     syncStatus?: ('not-synced' | 'synced' | 'error') | null;
+    /**
+     * Last successful sync timestamp
+     */
     lastSyncedAt?: string | null;
+    /**
+     * Error message if sync failed
+     */
     syncError?: string | null;
   };
+  /**
+   * User who approved this invoice
+   */
   approvedBy?: (number | null) | User;
+  /**
+   * When the invoice was approved
+   */
   approvedAt?: string | null;
+  /**
+   * User who created this invoice
+   */
   createdBy?: (number | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -1024,7 +1542,13 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   read?: boolean | null;
+  /**
+   * Link to related job if applicable
+   */
   relatedJob?: (number | null) | Job;
+  /**
+   * URL to navigate to when notification is clicked
+   */
   actionUrl?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -1035,7 +1559,13 @@ export interface Notification {
  */
 export interface NotificationTemplate {
   id: number;
+  /**
+   * Internal name for this template
+   */
   name: string;
+  /**
+   * When this notification should be sent
+   */
   type:
     | 'scheduled'
     | 'completed'
@@ -1047,9 +1577,21 @@ export interface NotificationTemplate {
     | 'floorplan-completed'
     | 'photos-completed'
     | 'asbuilts-completed';
+  /**
+   * Only active templates will be used
+   */
   active?: boolean | null;
+  /**
+   * Email subject line. Available variables: {{jobNumber}}, {{clientName}}, {{location}}
+   */
   subject: string;
+  /**
+   * Email body. Available variables: {{jobNumber}}, {{clientName}}, {{location}}, {{targetDate}}, {{scannedDate}}, {{uploadLink}}, {{customMessage}}
+   */
   body: string;
+  /**
+   * Use this as the default template for this notification type
+   */
   defaultTemplate?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1060,13 +1602,34 @@ export interface NotificationTemplate {
  */
 export interface JobTemplate {
   id: number;
+  /**
+   * e.g., "Standard 3D Scan", "Scan + As-Builts + Hosting"
+   */
   name: string;
+  /**
+   * Leave empty for general template, or select client for client-specific template
+   */
   client?: (number | null) | Client;
+  /**
+   * Only active templates appear in job creation
+   */
   isActive?: boolean | null;
   defaultWorkflow: number | WorkflowTemplate;
+  /**
+   * Products will be automatically added to jobs created with this template
+   */
   defaultProducts?: (number | Product)[] | null;
+  /**
+   * Pre-filled instructions (will be combined with client template + product instructions)
+   */
   defaultInstructions?: string | null;
+  /**
+   * Suggested price (user can override)
+   */
   defaultPricing?: number | null;
+  /**
+   * Show warning if these fields are empty (non-blocking)
+   */
   requiredFields?: ('captureAddress' | 'city' | 'state' | 'zip' | 'targetDate' | 'sqFt' | 'propertyType')[] | null;
   updatedAt: string;
   createdAt: string;
@@ -1077,7 +1640,13 @@ export interface JobTemplate {
  */
 export interface JobMessage {
   id: number;
+  /**
+   * The job this message belongs to
+   */
   job: number | Job;
+  /**
+   * Who sent this message
+   */
   author:
     | {
         relationTo: 'users';
@@ -1088,6 +1657,9 @@ export interface JobMessage {
         value: number | Technician;
       };
   message: string;
+  /**
+   * Type of message for categorization
+   */
   messageType: 'message' | 'question' | 'answer' | 'update' | 'issue' | 'qc-feedback';
   attachments?:
     | {
@@ -1096,9 +1668,21 @@ export interface JobMessage {
         id?: string | null;
       }[]
     | null;
+  /**
+   * Has this message been read by the recipient
+   */
   isRead?: boolean | null;
+  /**
+   * How this message was sent
+   */
   sentVia?: ('app' | 'email' | 'sms') | null;
+  /**
+   * Whether email notification was sent
+   */
   emailSent?: boolean | null;
+  /**
+   * Whether SMS notification was sent
+   */
   smsSent?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -1109,6 +1693,9 @@ export interface JobMessage {
  */
 export interface Redirect {
   id: number;
+  /**
+   * You will need to rebuild the website when changing this field.
+   */
   from: string;
   to?: {
     type?: ('reference' | 'custom') | null;
@@ -1144,6 +1731,8 @@ export interface FormSubmission {
   createdAt: string;
 }
 /**
+ * This is a collection of automatically created search results. These results are used by the global site search and will be updated automatically as documents in the CMS are created or updated.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "search".
  */
@@ -1170,6 +1759,23 @@ export interface Search {
     | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv".
+ */
+export interface PayloadKv {
+  id: number;
+  key: string;
+  data:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1209,6 +1815,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'technicians';
         value: number | Technician;
+      } | null)
+    | ({
+        relationTo: 'vendors';
+        value: number | Vendor;
       } | null)
     | ({
         relationTo: 'products';
@@ -1335,80 +1945,11 @@ export interface PagesSelect<T extends boolean = true> {
   layout?:
     | T
     | {
-        cta?:
-          | T
-          | {
-              richText?: T;
-              links?:
-                | T
-                | {
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        content?:
-          | T
-          | {
-              columns?:
-                | T
-                | {
-                    size?: T;
-                    richText?: T;
-                    enableLink?: T;
-                    link?:
-                      | T
-                      | {
-                          type?: T;
-                          newTab?: T;
-                          reference?: T;
-                          url?: T;
-                          label?: T;
-                          appearance?: T;
-                        };
-                    id?: T;
-                  };
-              id?: T;
-              blockName?: T;
-            };
-        mediaBlock?:
-          | T
-          | {
-              media?: T;
-              id?: T;
-              blockName?: T;
-            };
-        archive?:
-          | T
-          | {
-              introContent?: T;
-              populateBy?: T;
-              relationTo?: T;
-              categories?: T;
-              limit?: T;
-              selectedDocs?: T;
-              id?: T;
-              blockName?: T;
-            };
-        formBlock?:
-          | T
-          | {
-              form?: T;
-              enableIntro?: T;
-              introContent?: T;
-              id?: T;
-              blockName?: T;
-            };
+        cta?: T | CallToActionBlockSelect<T>;
+        content?: T | ContentBlockSelect<T>;
+        mediaBlock?: T | MediaBlockSelect<T>;
+        archive?: T | ArchiveBlockSelect<T>;
+        formBlock?: T | FormBlockSelect<T>;
       };
   meta?:
     | T
@@ -1423,6 +1964,90 @@ export interface PagesSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "CallToActionBlock_select".
+ */
+export interface CallToActionBlockSelect<T extends boolean = true> {
+  richText?: T;
+  links?:
+    | T
+    | {
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ContentBlock_select".
+ */
+export interface ContentBlockSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        size?: T;
+        richText?: T;
+        enableLink?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              newTab?: T;
+              reference?: T;
+              url?: T;
+              label?: T;
+              appearance?: T;
+            };
+        id?: T;
+      };
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "MediaBlock_select".
+ */
+export interface MediaBlockSelect<T extends boolean = true> {
+  media?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ArchiveBlock_select".
+ */
+export interface ArchiveBlockSelect<T extends boolean = true> {
+  introContent?: T;
+  populateBy?: T;
+  relationTo?: T;
+  categories?: T;
+  limit?: T;
+  selectedDocs?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormBlock_select".
+ */
+export interface FormBlockSelect<T extends boolean = true> {
+  form?: T;
+  enableIntro?: T;
+  introContent?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1571,6 +2196,13 @@ export interface UsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1668,9 +2300,37 @@ export interface TechniciansSelect<T extends boolean = true> {
   email?: T;
   user?: T;
   type?: T;
+  vendor?: T;
   baseCommissionRate?: T;
   phone?: T;
   active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "vendors_select".
+ */
+export interface VendorsSelect<T extends boolean = true> {
+  companyName?: T;
+  contactPerson?: T;
+  billingEmail?: T;
+  billingPhone?: T;
+  taxID?: T;
+  paymentTerms?: T;
+  notes?: T;
+  active?: T;
+  integrations?:
+    | T
+    | {
+        quickbooks?:
+          | T
+          | {
+              vendorId?: T;
+              syncStatus?: T;
+              lastSyncedAt?: T;
+            };
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1818,6 +2478,10 @@ export interface JobsSelect<T extends boolean = true> {
         paidDate?: T;
         notes?: T;
         autoGenerated?: T;
+        subcontractorVendor?: T;
+        subcontractorInvoiceAttachment?: T;
+        subInvoiceData?: T;
+        subInvoiceImported?: T;
         id?: T;
       };
   discount?:
@@ -2117,6 +2781,7 @@ export interface FormsSelect<T extends boolean = true> {
               label?: T;
               width?: T;
               defaultValue?: T;
+              placeholder?: T;
               options?:
                 | T
                 | {
@@ -2225,6 +2890,14 @@ export interface SearchSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-kv_select".
+ */
+export interface PayloadKvSelect<T extends boolean = true> {
+  key?: T;
+  data?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2362,7 +3035,7 @@ export interface BannerBlock {
     root: {
       type: string;
       children: {
-        type: string;
+        type: any;
         version: number;
         [k: string]: unknown;
       }[];

@@ -698,6 +698,118 @@ export const Jobs: CollectionConfig = {
             description: 'Indicates this expense was automatically created based on product settings',
           },
         },
+            {
+      name: 'subcontractorVendor',
+      type: 'relationship',
+      relationTo: 'vendors',
+      label: 'Subcontractor Vendor',
+      admin: {
+        description: 'Auto-populated when outsourced tech is assigned, or manually set',
+        readOnly: false,
+        position: 'sidebar',
+      },
+      access: {
+        read: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin', 'post-producer'].includes(user.role)
+        },
+        update: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin'].includes(user.role)
+        },
+      },
+      hooks: {
+        beforeChange: [
+          async ({ data, req, operation, value, siblingData }) => {
+            if (siblingData?.tech) {
+              const techId = typeof siblingData.tech === 'string' 
+                ? siblingData.tech 
+                : siblingData.tech.id
+
+              try {
+                const tech = await req.payload.findByID({
+                  collection: 'technicians',
+                  id: techId,
+                })
+
+                if (tech?.type === 'partner' && tech?.vendor) {
+                  // tech.vendor can be a number (ID), string (ID), or the full vendor object
+                  const vendorId = typeof tech.vendor === 'object' && tech.vendor !== null
+                    ? tech.vendor.id
+                    : tech.vendor
+                  
+                  console.log(`[Auto-populate] Setting vendor ${vendorId} from tech ${techId}`)
+                  return vendorId
+                }
+              } catch (error) {
+                console.error('[Auto-populate vendor] Error fetching tech:', error)
+              }
+            }
+
+            return value
+          }
+        ]
+      }
+    },
+    {
+      name: 'subcontractorInvoiceAttachment',
+      type: 'relationship',
+      relationTo: 'media',
+      label: 'Subcontractor Invoice Attachment',
+      admin: {
+        description: 'PDF or CSV invoice from subcontractor',
+        position: 'sidebar',
+      },
+      access: {
+        read: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin', 'post-producer'].includes(user.role)
+        },
+        update: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin'].includes(user.role)
+        },
+      },
+    },
+    {
+      name: 'subInvoiceData',
+      type: 'json',
+      label: 'Subcontractor Invoice Data',
+      admin: {
+        description: 'Parsed or manually entered invoice details',
+        position: 'sidebar',
+      },
+      access: {
+        read: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin', 'post-producer'].includes(user.role)
+        },
+        update: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin'].includes(user.role)
+        },
+      },
+    },
+    {
+      name: 'subInvoiceImported',
+      type: 'checkbox',
+      label: 'Subcontractor Invoice Imported',
+      defaultValue: false,
+      admin: {
+        description: 'Indicates invoice has been imported to QuickBooks and added to expenses',
+        position: 'sidebar',
+      },
+      access: {
+        read: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin', 'post-producer'].includes(user.role)
+        },
+        update: ({ req: { user } }) => {
+          if (!user) return false
+          return ['super-admin', 'ops-manager', 'sales-admin'].includes(user.role)
+        },
+      },
+    },
       ],
     },
     {
