@@ -169,6 +169,19 @@ class QuickBooksClient {
     return this.makeApiCall('invoice?operation=void', 'POST', voidData)
   }
 
+  async queryBills(vendorId: string, fromDate: string, toDate: string) {
+    const query = `SELECT * FROM Bill WHERE VendorRef = '${vendorId}' AND TxnDate >= '${fromDate}' AND TxnDate <= '${toDate}' ORDER BY TxnDate DESC`
+    return this.makeApiCall(`query?query=${encodeURIComponent(query)}`, 'GET')
+  }
+
+  async createBill(billData: any) {
+    return this.makeApiCall('bill', 'POST', billData)
+  }
+
+  async getBill(billId: string) {
+    return this.makeApiCall(`bill/${billId}`, 'GET')
+  }
+
   isConnected() {
     const token = this.oauthClient.getToken()
     return token && token.access_token && !this.oauthClient.isAccessTokenValid()

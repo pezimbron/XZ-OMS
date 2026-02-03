@@ -14,6 +14,7 @@ import { Posts } from './collections/Posts'
 import { Users } from './collections/Users'
 import { Clients } from './collections/Clients'
 import { Technicians } from './collections/Technicians'
+import { Vendors } from './collections/Vendors'
 import { Products } from './collections/Products'
 import { Equipment } from './collections/Equipment'
 import { Jobs } from './collections/Jobs'
@@ -43,6 +44,9 @@ export default buildConfig({
       beforeDashboard: ['@/components/BeforeDashboard'],
       // Custom unauthorized page with link back to OMS
       views: {
+        Dashboard: {
+          Component: '@/components/CustomDashboard',
+        },
         Unauthorized: {
           Component: '@/components/Unauthorized',
         },
@@ -99,6 +103,7 @@ export default buildConfig({
     // OMS collections
     Clients,
     Technicians,
+    Vendors,
     Products,
     Equipment,
     Jobs,
