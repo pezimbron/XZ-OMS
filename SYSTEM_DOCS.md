@@ -37,13 +37,16 @@
 5. **Products** - Service catalog with pricing and workflow templates
 6. **Invoices** - Billing records with QuickBooks sync
 7. **Notifications** - In-app notification system
-8. **JobMessages** - Per-job messaging system (NEW)
+8. **JobMessages** - Per-job messaging system
 9. **Equipment** - Asset tracking
 10. **WorkflowTemplates** - Reusable workflow definitions
+11. **Vendors** - Subcontractor vendor companies (NEW)
 
 ### Key Relationships
 - **Technicians → Users**: Optional `user` field links tech to user account for portal access
+- **Technicians → Vendors**: `vendor` field links outsourced partners to their vendor company
 - **Jobs → Technicians**: `tech` field (technician assignment)
+- **Jobs → Vendors**: `subcontractorVendor` field (auto-populated from tech's vendor)
 - **Jobs → Users**: `qcAssignedTo` field (QC assignment)
 - **JobMessages → Jobs**: Polymorphic `author` (can be User or Technician)
 
@@ -415,6 +418,53 @@
   - Commission payout date tracking
   - Payment status tracking (pending/paid)
 - **Note**: Subcontractors paid separately from their invoice (varies by contractor)
+
+**3.1 Subcontractor Invoice Import System** - ✅ IMPLEMENTED (Feb 2, 2026)
+- **Location**: Job Financials Tab → External Supplier Expenses section
+- **Purpose**: Hybrid system for importing subcontractor invoices via QuickBooks or manual entry
+- **Collections**:
+  - `Vendors` - Subcontractor vendor companies with QuickBooks integration
+  - `Technicians.vendor` - Links outsourced partners to their vendor company
+  - `Jobs.subcontractorVendor` - Auto-populated from assigned tech's vendor
+  - `Jobs.subcontractorInvoiceAttachment` - PDF/CSV invoice upload
+  - `Jobs.subInvoiceData` - Parsed invoice details (JSON)
+  - `Jobs.subInvoiceImported` - Import status flag
+- **Features**:
+  - **Auto-Population**: Vendor auto-populated when outsourced tech assigned to job
+  - **QuickBooks Pull**: Fetch existing bills from QuickBooks by vendor
+  - **Manual Entry**: Enter invoice details manually or upload PDF/CSV
+  - **PDF Parsing**: AI-powered text extraction from PDF invoices (unpdf library)
+  - **CSV Parsing**: Parse invoice data from CSV files
+  - **Auto-Fill Forms**: Extracted data auto-populates invoice fields (editable before save)
+  - **QuickBooks Bill Creation**: Create bills in QuickBooks for manual entries
+  - **Expense Integration**: Imported invoices automatically added to External Supplier Expenses
+  - **Privacy**: All subcontractor invoice data restricted to admin/ops/sales roles
+- **API Endpoints**:
+  - `/api/quickbooks/bills/query` - Query bills from QuickBooks by vendor
+  - `/api/quickbooks/bills` - Create bills in QuickBooks
+  - `/api/sub-invoice/parse-pdf` - Parse PDF invoice files with text extraction
+  - `/api/sub-invoice/parse` - Parse CSV invoice files
+- **QuickBooks Client Methods**:
+  - `queryBills(vendorId, fromDate, toDate)` - Query bills by vendor and date range
+  - `createBill(billData)` - Create a new bill in QuickBooks
+  - `getBill(billId)` - Retrieve a specific bill
+- **UI Component**: `SubInvoiceImportPanel.tsx` - Integrated into FinancialsTab
+- **Workflow**:
+  1. Assign outsourced tech to job → Vendor auto-populated
+  2. Navigate to Financials tab → Import panel appears
+  3. Choose import method (QuickBooks or Manual)
+  4. QuickBooks: Fetch bills, select, import
+  5. Manual: Upload PDF/CSV or enter manually
+  6. PDF uploaded → Text extracted → Fields auto-populate (editable)
+  7. Click "Import Invoice" → Added to expenses (not saved yet)
+  8. Review/edit expenses → Click "Done" → Saved to database
+- **Technical Details**:
+  - PDF parsing uses `unpdf` library (Next.js compatible)
+  - Regex patterns extract: invoice number, date, amount, description
+  - Array.prototype pollution cleaned before parsing (PDF.js compatibility)
+  - Dates converted to YYYY-MM-DD format for HTML date inputs
+  - Local form state prevents autosave interference
+  - QuickBooks Bill created automatically if vendor has `quickbooks.vendorId`
 
 **4. Invoicing Queue** - ✅ REDESIGNED (Jan 28, 2026)
 - **Location**: `/oms/invoicing`
