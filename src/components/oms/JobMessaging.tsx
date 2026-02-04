@@ -2,19 +2,33 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 
+interface Author {
+  id?: string
+  relationTo?: string
+  value?: { id: string; name?: string; email?: string }
+  name?: string
+  email?: string
+}
+
+interface Attachment {
+  id?: string
+  description?: string
+  url?: string
+}
+
 interface Message {
   id: string
-  author: any
+  author: Author
   message: string
   messageType: string
-  attachments?: any[]
+  attachments?: Attachment[]
   createdAt: string
   isRead: boolean
 }
 
 interface JobMessagingProps {
   jobId: string
-  currentUser: any
+  currentUser: { id: string; name?: string; email?: string }
 }
 
 export function JobMessaging({ jobId, currentUser }: JobMessagingProps) {
@@ -108,23 +122,16 @@ export function JobMessaging({ jobId, currentUser }: JobMessagingProps) {
     }
   }
 
-  const getAuthorName = (author: any) => {
+  const getAuthorName = (author: Author) => {
     if (!author) return 'Unknown'
-    
-    // Handle polymorphic relationship structure
-    if (typeof author === 'object') {
-      // If it's a polymorphic relationship with value property
-      if ('value' in author && typeof author.value === 'object') {
-        return author.value.name || author.value.email || 'Unknown'
-      }
-      // If it's a direct populated object
-      return author.name || author.email || 'Unknown'
+    if (author.value && typeof author.value === 'object') {
+      return author.value.name || author.value.email || 'Unknown'
     }
-    return 'Unknown'
+    return author.name || author.email || 'Unknown'
   }
 
-  const isCurrentUser = (author: any) => {
-    const authorId = typeof author === 'object' ? author.id : author
+  const isCurrentUser = (author: Author) => {
+    const authorId = author.value?.id || author.id
     return authorId === currentUser?.id
   }
 
@@ -180,7 +187,7 @@ export function JobMessaging({ jobId, currentUser }: JobMessagingProps) {
                     {msg.attachments && msg.attachments.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
                         <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Attachments:</p>
-                        {msg.attachments.map((att: any, idx: number) => (
+                        {msg.attachments.map((att, idx) => (
                           <div key={idx} className="text-xs text-blue-600 dark:text-blue-400">
                             📎 {att.description || 'Attachment'}
                           </div>

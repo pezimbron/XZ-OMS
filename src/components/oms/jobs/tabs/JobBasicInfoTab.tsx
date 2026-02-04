@@ -7,6 +7,42 @@ import SchedulingRequestPanel from '@/components/oms/SchedulingRequestPanel'
 import { SaveIndicator } from '@/components/oms/SaveIndicator'
 import { patchJob } from '@/lib/oms/patchJob'
 
+interface TimeOption {
+  optionNumber?: number
+  date: string
+  timeWindow?: string
+  startTime?: string
+  endTime?: string
+  specificTime?: string
+}
+
+interface SchedulingRequest {
+  requestType?: 'time-windows' | 'specific-time' | 'tech-proposes'
+  sentAt?: string
+  deadline?: string
+  reminderSent?: boolean
+  reminderSentAt?: string
+  requestMessage?: string
+  specialInstructions?: string
+  timeOptions?: TimeOption[]
+}
+
+interface ProposedOption {
+  date: string
+  startTime: string
+  notes?: string
+}
+
+interface TechResponse {
+  respondedAt?: string
+  interested?: boolean
+  selectedOption?: number
+  preferredStartTime?: string
+  declineReason?: string
+  notes?: string
+  proposedOptions?: ProposedOption[]
+}
+
 interface Job {
   id: string
   jobId: string
@@ -15,15 +51,19 @@ interface Job {
   timezone?: string
   status: string
   region?: string
-  client?: any
-  endClient?: any
-  tech?: any
+  client?: { id: string; name: string }
+  endClient?: { id: string; name: string }
+  tech?: { id: string; name: string; email?: string }
   captureAddress?: string
   city?: string
   state?: string
   zip?: string
-  lineItems?: any[]
-  customTodoItems?: any[]
+  purposeOfScan?: string
+  propertyType?: string
+  sqFt?: number
+  estimatedDuration?: number
+  lineItems?: { id?: string; product?: { id: string; name: string }; [key: string]: unknown }[]
+  customTodoItems?: { description: string; completed?: boolean }[]
   techInstructions?: string
   schedulingNotes?: string
   uploadLink?: string
@@ -34,7 +74,7 @@ interface Job {
   qcStatus?: string
   qcNotes?: string
   totalPayout?: number
-  externalExpenses?: any[]
+  externalExpenses?: { id?: string; [key: string]: unknown }[]
   discount?: {
     type?: string
     value?: number
@@ -43,8 +83,8 @@ interface Job {
   subtotal?: number
   taxAmount?: number
   totalWithTax?: number
-  workflowTemplate?: any
-  workflowSteps?: any[]
+  workflowTemplate?: { id: string; name: string }
+  workflowSteps?: { stepName: string; completed?: boolean; completedAt?: string; completedBy?: string; notes?: string }[]
   invoiceStatus?: string
   invoice?: {
     id: string
@@ -53,6 +93,8 @@ interface Job {
     total: number
   }
   invoicedAt?: string
+  schedulingRequest?: SchedulingRequest
+  techResponse?: TechResponse
   createdAt: string
   updatedAt: string
 }
@@ -66,6 +108,7 @@ interface AutosaveField<T> {
   status: 'idle' | 'saving' | 'saved' | 'error'
   error?: string | null
   setValue: (value: T) => void
+  setLocal?: (value: T) => void
   commit?: (value: T) => void
   onBlur?: () => void
 }
@@ -73,8 +116,8 @@ interface AutosaveField<T> {
 interface JobBasicInfoTabProps {
   job: Job
   user: User
-  clients: any[]
-  techs: any[]
+  clients: { id: string; name: string }[]
+  techs: { id: string; name: string }[]
   // Autosave fields
   clientField: AutosaveField<string>
   jobIdField: AutosaveField<string>
@@ -143,12 +186,12 @@ export default function JobBasicInfoTab({
 
   // Compute selected option for specific-time display
   const selectedSpecificTimeOption = (() => {
-    if ((job as any).schedulingRequest?.requestType !== 'specific-time') return null
-    const opts = (job as any).schedulingRequest.timeOptions
+    if (job.schedulingRequest?.requestType !== 'specific-time') return null
+    const opts = job.schedulingRequest.timeOptions
     if (!opts?.length) return null
     if (opts.length === 1) return opts[0]
-    const selNum = (job as any).techResponse?.selectedOption
-    return selNum ? opts.find((o: any) => Number(o.optionNumber) === Number(selNum)) || opts[0] : opts[0]
+    const selNum = job.techResponse?.selectedOption
+    return selNum ? opts.find((o) => Number(o.optionNumber) === Number(selNum)) || opts[0] : opts[0]
   })()
 
   return (
@@ -324,14 +367,14 @@ export default function JobBasicInfoTab({
           <div>
             <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Purpose of Scan</label>
             {isTech ? (
-              <p className="text-gray-900 dark:text-white capitalize">{(job as any).purposeOfScan?.replace(/-/g, ' ') || 'N/A'}</p>
+              <p className="text-gray-900 dark:text-white capitalize">{job.purposeOfScan?.replace(/-/g, ' ') || 'N/A'}</p>
             ) : (
               <div className="space-y-1">
                 <select
                   value={purposeOfScanField.value || ''}
                   onChange={(e) => {
                     const next = e.target.value
-                    const commit = (purposeOfScanField as any).commit
+                    const commit = purposeOfScanField.commit
                     if (typeof commit === 'function') {
                       commit(next)
                       return
@@ -371,7 +414,7 @@ export default function JobBasicInfoTab({
                 <div className="space-y-1">
                   <AddressAutocomplete
                     value={captureAddressField.value || ''}
-                    onChange={(next) => (captureAddressField as any).setLocal?.(next)}
+                    onChange={(next) => captureAddressField.setLocal?.(next)}
                     onSelect={async (parsed) => {
                       if (!job?.id) return
                       try {
@@ -382,10 +425,10 @@ export default function JobBasicInfoTab({
                           zip: parsed.zip || null,
                         })
 
-                        ;(captureAddressField as any).setLocal?.(parsed.addressLine1 || '')
-                        ;(cityField as any).setLocal?.(parsed.city || '')
-                        ;(stateField as any).setLocal?.(parsed.state || '')
-                        ;(zipField as any).setLocal?.(parsed.zip || '')
+                        ;captureAddressField.setLocal?.(parsed.addressLine1 || '')
+                        ;cityField.setLocal?.(parsed.city || '')
+                        ;stateField.setLocal?.(parsed.state || '')
+                        ;zipField.setLocal?.(parsed.zip || '')
 
                         await fetchJob(job.id)
                       } catch (e) {
@@ -465,7 +508,7 @@ export default function JobBasicInfoTab({
                       value={regionField.value || ''}
                       onChange={(e) => {
                         const next = e.target.value
-                        const commit = (regionField as any).commit
+                        const commit = regionField.commit
                         if (typeof commit === 'function') {
                           commit(next)
                           return
@@ -487,14 +530,14 @@ export default function JobBasicInfoTab({
               <div>
                 <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Property Type</label>
                 {isTech ? (
-                  <p className="text-gray-900 dark:text-white capitalize">{(job as any).propertyType?.replace('-', ' ') || 'N/A'}</p>
+                  <p className="text-gray-900 dark:text-white capitalize">{job.propertyType?.replace('-', ' ') || 'N/A'}</p>
                 ) : (
                   <div className="space-y-1">
                     <select
                       value={propertyTypeField.value || ''}
                       onChange={(e) => {
                         const next = e.target.value
-                        const commit = (propertyTypeField as any).commit
+                        const commit = propertyTypeField.commit
                         if (typeof commit === 'function') {
                           commit(next)
                           return
@@ -518,7 +561,7 @@ export default function JobBasicInfoTab({
               <div>
                 <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Square Feet</label>
                 {isTech ? (
-                  <p className="text-gray-900 dark:text-white">{(job as any).sqFt?.toLocaleString() || 'N/A'} sq ft</p>
+                  <p className="text-gray-900 dark:text-white">{job.sqFt?.toLocaleString() || 'N/A'} sq ft</p>
                 ) : (
                   <div className="space-y-1">
                     <input
@@ -536,7 +579,7 @@ export default function JobBasicInfoTab({
               <div>
                 <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Estimated Duration (hours)</label>
                 {isTech ? (
-                  <p className="text-gray-900 dark:text-white">{(job as any).estimatedDuration ? `${(job as any).estimatedDuration} hours` : 'N/A'}</p>
+                  <p className="text-gray-900 dark:text-white">{job.estimatedDuration ? `${job.estimatedDuration} hours` : 'N/A'}</p>
                 ) : (
                   <div className="space-y-1">
                     <input
@@ -572,7 +615,7 @@ export default function JobBasicInfoTab({
                     value={techField.value || ''}
                     onChange={(e) => {
                       const next = e.target.value
-                      const commit = (techField as any).commit
+                      const commit = techField.commit
                       if (typeof commit === 'function') {
                         commit(next)
                         return
@@ -599,23 +642,23 @@ export default function JobBasicInfoTab({
       {!isTech && (
         <SchedulingRequestPanel
           jobId={job.id}
-          existingRequest={(job as any).schedulingRequest}
+          existingRequest={job.schedulingRequest}
           onSave={() => fetchJob(job.id)}
         />
       )}
 
       {/* Tech Scheduling Response */}
-      {!isTech && (job as any).techResponse?.respondedAt && (
+      {!isTech && job.techResponse?.respondedAt && (
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Tech Scheduling Response</h2>
 
           <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 rounded">
             <p className="text-sm text-green-800 dark:text-green-300">
-              <strong>Responded:</strong> {new Date((job as any).techResponse.respondedAt).toLocaleString()}
+              <strong>Responded:</strong> {new Date(job.techResponse.respondedAt).toLocaleString()}
             </p>
           </div>
 
-          {(job as any).techResponse.interested ? (
+          {job.techResponse.interested ? (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -624,31 +667,31 @@ export default function JobBasicInfoTab({
                 <span className="font-semibold">Tech Accepted</span>
               </div>
 
-              {(job as any).schedulingRequest?.requestType === 'time-windows' && (job as any).techResponse.selectedOption != null && (
+              {job.schedulingRequest?.requestType === 'time-windows' && job.techResponse.selectedOption != null && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Selected Time Window:</p>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        Option {(job as any).techResponse.selectedOption}
-                        {(job as any).schedulingRequest.timeOptions?.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption)) && (
+                        Option {job.techResponse.selectedOption}
+                        {job.schedulingRequest.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption)) && (
                           <span className="ml-2">
-                            - {new Date((job as any).schedulingRequest.timeOptions.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption)).date).toLocaleDateString()}
+                            - {new Date(job.schedulingRequest.timeOptions.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption)).date).toLocaleDateString()}
                           </span>
                         )}
                       </p>
-                      {(job as any).techResponse.preferredStartTime && (
+                      {job.techResponse.preferredStartTime && (
                         <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                          Preferred start time: {(job as any).techResponse.preferredStartTime}
+                          Preferred start time: {job.techResponse.preferredStartTime}
                         </p>
                       )}
                     </div>
                     {!job.targetDate && (
                       <button
                         onClick={async () => {
-                          const selectedOption = (job as any).schedulingRequest.timeOptions?.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption))
+                          const selectedOption = job.schedulingRequest.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption))
                           if (!selectedOption) return
-                          const startTime = (job as any).techResponse.preferredStartTime || '09:00'
+                          const startTime = job.techResponse.preferredStartTime || '09:00'
                           if (!confirm(`Confirm this time slot: ${new Date(selectedOption.date).toLocaleDateString()} at ${startTime}?`)) return
                           try {
                             const timezone = job.timezone || 'America/Chicago'
@@ -704,20 +747,20 @@ export default function JobBasicInfoTab({
               )}
 
               {/* specific-time: show the time the tech agreed to */}
-              {(job as any).schedulingRequest?.requestType === 'specific-time' && selectedSpecificTimeOption && (
+              {job.schedulingRequest?.requestType === 'specific-time' && selectedSpecificTimeOption && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {(job as any).schedulingRequest.timeOptions?.length > 1 ? 'Selected Time:' : 'Proposed Time:'}
+                        {job.schedulingRequest.timeOptions?.length > 1 ? 'Selected Time:' : 'Proposed Time:'}
                       </p>
                       <p className="font-medium text-gray-900 dark:text-white">
                         {new Date(selectedSpecificTimeOption.date).toLocaleDateString()}
                         {selectedSpecificTimeOption.specificTime && <span className="ml-2">at {selectedSpecificTimeOption.specificTime}</span>}
                       </p>
-                      {(job as any).techResponse.preferredStartTime && (
+                      {job.techResponse.preferredStartTime && (
                         <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                          Tech preferred start time: {(job as any).techResponse.preferredStartTime}
+                          Tech preferred start time: {job.techResponse.preferredStartTime}
                         </p>
                       )}
                     </div>
@@ -782,10 +825,10 @@ export default function JobBasicInfoTab({
               )}
 
               {/* tech-proposes: show which of the tech's proposed options was accepted */}
-              {(job as any).schedulingRequest?.requestType === 'tech-proposes' && (job as any).techResponse.proposedOptions?.length > 0 && (
+              {job.schedulingRequest?.requestType === 'tech-proposes' && job.techResponse.proposedOptions?.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Tech Proposed Times:</p>
-                  {(job as any).techResponse.proposedOptions.map((option: any, index: number) => {
+                  {job.techResponse.proposedOptions.map((option, index: number) => {
                     const isConfirmed = job.targetDate && new Date(option.date).toLocaleDateString() === new Date(job.targetDate).toLocaleDateString()
                     return (
                       <div key={index} className={`p-3 rounded-lg ${isConfirmed ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
@@ -865,7 +908,7 @@ export default function JobBasicInfoTab({
               )}
 
               {/* tech-proposes fallback: tech responded but no valid options provided */}
-              {(job as any).schedulingRequest?.requestType === 'tech-proposes' && !((job as any).techResponse.proposedOptions?.length > 0) && (
+              {job.schedulingRequest?.requestType === 'tech-proposes' && !(job.techResponse.proposedOptions?.length > 0) && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">No valid time options were provided by the tech.</p>
               )}
 
@@ -893,9 +936,9 @@ export default function JobBasicInfoTab({
           ) : (
             <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
               <p className="text-red-800 dark:text-red-300 font-medium">Tech Declined</p>
-              {(job as any).techResponse.declineReason && (
+              {job.techResponse.declineReason && (
                 <p className="text-sm text-red-700 dark:text-red-400 mt-2">
-                  Reason: {(job as any).techResponse.declineReason}
+                  Reason: {job.techResponse.declineReason}
                 </p>
               )}
             </div>

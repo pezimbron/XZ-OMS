@@ -1,5 +1,13 @@
 'use client'
 
+interface WorkflowStep {
+  stepName: string
+  completed?: boolean
+  completedAt?: string
+  completedBy?: string
+  notes?: string
+}
+
 interface Job {
   id: string
   tech?: {
@@ -9,7 +17,7 @@ interface Job {
   }
   uploadLink?: string
   mediaUploadLink?: string
-  workflowSteps?: any[]
+  workflowSteps?: WorkflowStep[]
 }
 
 interface User {
@@ -62,7 +70,7 @@ export default function TechFeedbackTab({ job, user }: TechFeedbackTabProps) {
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Workflow Completion Timeline</h2>
 
         {(() => {
-          const techSteps = job.workflowSteps?.filter((step: any) =>
+          const techSteps = job.workflowSteps?.filter((step) =>
             step.completed &&
             step.completedBy &&
             step.completedBy !== 'system' &&
@@ -72,7 +80,7 @@ export default function TechFeedbackTab({ job, user }: TechFeedbackTabProps) {
           if (techSteps.length > 0) {
             return (
               <div className="space-y-3">
-                {techSteps.map((step: any, index: number) => (
+                {techSteps.map((step, index: number) => (
                   <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border-l-4 border-green-500">
                     <div className="flex-shrink-0 mt-1">
                       <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

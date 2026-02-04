@@ -2,9 +2,28 @@
 
 import React, { useState, useEffect } from 'react'
 
+interface TimeOption {
+  optionNumber?: number
+  date: string
+  timeWindow?: string
+  startTime?: string
+  endTime?: string
+  specificTime?: string
+}
+
+interface SchedulingRequest {
+  requestType?: string
+  sentAt?: string
+  deadline?: string
+  reminderSent?: boolean
+  requestMessage?: string
+  specialInstructions?: string
+  timeOptions?: TimeOption[]
+}
+
 interface SchedulingRequestPanelProps {
   jobId: string
-  existingRequest?: any
+  existingRequest?: SchedulingRequest
   onSave: () => void
 }
 
@@ -61,7 +80,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
       const sentAt = new Date()
       const deadline = new Date(sentAt.getTime() + deadlineHours * 60 * 60 * 1000)
 
-      const schedulingRequest: any = {
+      const schedulingRequest: SchedulingRequest = {
         requestType,
         sentAt: sentAt.toISOString(),
         deadline: deadline.toISOString(),
@@ -164,7 +183,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
             <div className="mt-2">
               <span className="font-medium text-gray-700 dark:text-gray-300">Time Options:</span>
               <div className="mt-1 space-y-1">
-                {existingRequest.timeOptions.map((opt: any, i: number) => (
+                {existingRequest.timeOptions.map((opt, i: number) => (
                   <div key={i} className="text-gray-900 dark:text-white text-sm pl-3 border-l-2 border-blue-400">
                     Option {opt.optionNumber || i + 1}: {new Date(opt.date).toLocaleDateString()}
                     {opt.specificTime && <span className="ml-1">at {opt.specificTime}</span>}
@@ -202,7 +221,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
             </label>
             <select
               value={requestType}
-              onChange={(e) => setRequestType(e.target.value as any)}
+              onChange={(e) => setRequestType(e.target.value as 'time-windows' | 'specific-time' | 'tech-proposes')}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             >
               <option value="time-windows">Time Windows (You provide options)</option>

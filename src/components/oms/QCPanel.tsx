@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, AlertCircle, Clock, User, MessageSquare, Plus } from 'lucide-react'
+import { CheckCircle, XCircle, AlertCircle, Clock, User, MessageSquare } from 'lucide-react'
 
 interface QCPanelProps {
   job: any

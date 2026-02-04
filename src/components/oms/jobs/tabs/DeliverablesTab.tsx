@@ -10,17 +10,31 @@ interface AutosaveField<T> {
   onBlur?: () => void
 }
 
+interface Deliverables {
+  model3dLink?: string
+  floorPlansLink?: string
+  asBuiltsLink?: string
+  otherAssetsLink?: string
+  deliveryNotes?: string
+  deliveredDate?: string
+}
+
+interface JobWithDeliverables {
+  id: string
+  deliverables?: Deliverables
+}
+
 interface User {
   role: string
 }
 
 interface DeliverablesTabProps {
-  job: any
+  job: JobWithDeliverables
   user: User
-  deliverablesField: AutosaveField<any>
+  deliverablesField: AutosaveField<Deliverables>
   editMode: boolean
-  editedJob: any
-  setEditedJob: (job: any) => void
+  editedJob: JobWithDeliverables
+  setEditedJob: (job: JobWithDeliverables) => void
 }
 
 export default function DeliverablesTab({
