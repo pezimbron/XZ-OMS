@@ -330,12 +330,13 @@ src/
 
 10. **TS narrowing lost in callbacks**: Payload's optional fields (`schedulingRequest`, `techResponse`) get narrowed by outer JSX guards, but TS loses that narrowing inside `.find()` callbacks and `async` handlers. Use `?.` explicitly inside closures even when the outer condition guarantees the value exists.
 
-11. **Payload Migration Raw SQL API**: In custom migration files, do NOT use `payload.db.execute({ raw: ... })`. The correct API is:
+11. **Payload Migration Raw SQL API**: In custom migration files, do NOT use `payload.db.execute({ raw: ... })` — that API doesn't exist. Also avoid importing from `drizzle-orm` directly as it has module resolution issues in Railway's tsx runtime. Use the pg pool instead:
     ```typescript
-    import { sql } from 'drizzle-orm'
-    await payload.db.drizzle.execute(sql.raw(`YOUR SQL HERE`))
-    // or for simple statements:
-    await payload.db.drizzle.execute(sql`YOUR SQL HERE`)
+    // Helper to execute raw SQL
+    async function exec(payload: any, sql: string) {
+      await payload.db.pool.query(sql)
+    }
+    await exec(payload, `YOUR SQL HERE`)
     ```
 
 12. **Railway deploy hangs on `payload migrate` prompt**: The `prebuild` script runs `payload migrate` which shows an interactive y/N prompt. CI/Railway has no stdin → hangs indefinitely. Fixed by piping: `echo y | cross-env ... pnpm payload migrate` in package.json. Do NOT remove this pipe or revert to the non-piped version.
