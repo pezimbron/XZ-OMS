@@ -99,12 +99,12 @@ export function JobsMapView({ selectedDate, jobs }: JobsMapViewProps) {
   useEffect(() => {
     if (!selectedDate || !isMapLoaded) return
 
-    // Filter jobs for selected date
-    const dateStr = selectedDate.toISOString().split('T')[0]
+    // Filter jobs for selected date (use local date methods — Payload dates are midnight UTC, which shifts across timezone boundaries)
+    const toLocalDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const dateStr = toLocalDateStr(selectedDate)
     const dayJobs = jobs.filter(job => {
       if (!job.targetDate) return false
-      const jobDate = new Date(job.targetDate).toISOString().split('T')[0]
-      return jobDate === dateStr
+      return toLocalDateStr(new Date(job.targetDate)) === dateStr
     })
 
     // Geocode addresses

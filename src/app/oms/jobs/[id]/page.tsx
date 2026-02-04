@@ -14,7 +14,6 @@ import { patchJob } from '@/lib/oms/patchJob'
 import { useAutosaveField } from '@/lib/oms/useAutosaveField'
 import { normalizeRelationId } from '@/lib/oms/normalizeRelationId'
 import JobBasicInfoTab from '@/components/oms/jobs/tabs/JobBasicInfoTab'
-import SchedulingTab from '@/components/oms/jobs/tabs/SchedulingTab'
 import InstructionsTab from '@/components/oms/jobs/tabs/InstructionsTab'
 import TechFeedbackTab from '@/components/oms/jobs/tabs/TechFeedbackTab'
 import FinancialsTab from '@/components/oms/jobs/tabs/FinancialsTab'
@@ -1319,19 +1318,6 @@ export default function JobDetailPage() {
             >
               Instructions
             </button>
-            {/* Schedule tab - only show when schedulingRequest exists AND targetDate is empty */}
-            {job.schedulingRequest && !job.targetDate && (
-              <button
-                onClick={() => setActiveTab('schedule')}
-                className={`pb-3 px-1 font-medium transition-colors ${
-                  activeTab === 'schedule'
-                    ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                📅 Schedule
-              </button>
-            )}
             <button
               onClick={() => setActiveTab('tech-feedback')}
               className={`pb-3 px-1 font-medium transition-colors ${
@@ -1430,14 +1416,6 @@ export default function JobDetailPage() {
             mediaUploadLinkField={mediaUploadLinkField}
             schedulingNotesField={schedulingNotesField}
             techInstructionsField={techInstructionsField}
-            onUpdate={() => fetchJob(params.id as string)}
-          />
-        )}
-
-        {activeTab === 'schedule' && (
-          <SchedulingTab
-            job={job}
-            user={user}
             onUpdate={() => fetchJob(params.id as string)}
           />
         )}

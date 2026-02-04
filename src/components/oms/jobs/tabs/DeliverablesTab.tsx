@@ -378,7 +378,7 @@ export default function DeliverablesTab({
             ) : editMode ? (
               <input
                 type="date"
-                value={editedJob?.deliverables?.deliveredDate?.split('T')[0] || ''}
+                value={editedJob?.deliverables?.deliveredDate ? (() => { const d = new Date(editedJob.deliverables.deliveredDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })() : ''}
                 onChange={(e) => setEditedJob({
                   ...editedJob,
                   deliverables: { ...editedJob?.deliverables, deliveredDate: e.target.value }
@@ -389,7 +389,7 @@ export default function DeliverablesTab({
               <div className="space-y-1">
                 <input
                   type="date"
-                  value={deliverablesField.value?.deliveredDate?.split?.('T')?.[0] || ''}
+                  value={deliverablesField.value?.deliveredDate ? (() => { const d = new Date(deliverablesField.value.deliveredDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })() : ''}
                   onChange={(e) => deliverablesField.setValue({ ...deliverablesField.value, deliveredDate: e.target.value })}
                   onBlur={() => deliverablesField.onBlur?.()}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"

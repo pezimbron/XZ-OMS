@@ -114,6 +114,7 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 | `/oms/clients` | Client management |
 | `/oms/clients/[id]` | Client detail (5 tabs) |
 | `/oms/invoices` | Invoice management |
+| `/oms/vendor-invoices` | Vendor invoice dashboard (subcontractor expenses) |
 | `/oms/invoicing` | Invoicing queue |
 | `/oms/commissions` | Tech payroll/commissions |
 | `/oms/qc-queue` | Post-processing queue |
@@ -157,6 +158,10 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 - `POST /api/quickbooks/sync` - Sync client
 - `GET /api/quickbooks/bills/query` - Query bills
 - `POST /api/quickbooks/bills` - Create bill
+- `POST /api/quickbooks/bills/sync-status` - Sync bill payment status from QB
+
+### Vendor Invoices
+- `GET /api/vendor-invoices` - Aggregated vendor expenses (filterable, paginated). Excludes auto-generated product expenses.
 
 ### Invoice Processing
 - `POST /api/sub-invoice/parse-pdf` - Parse PDF invoice
@@ -306,6 +311,10 @@ src/
 5. **Payload 3.74.0 Bug**: ESM import error with `image-size/fromFile`. Fixed by downgrading to 3.73.0.
 
 6. **Array.prototype Pollution**: Unknown source adds `Array.prototype.random`. Cleaned in parse-pdf route before PDF.js execution.
+
+7. **Payload Group Fields Can't Be `null`**: Setting a `group` type field to `null` in a PATCH crashes Payload's `beforeValidate` traversal (`Cannot read properties of null`). Use `{}` to clear a group — Payload will null out each sub-field individually.
+
+8. **Payload `dayOnly` Dates Are Midnight UTC**: A `date` field with `pickerAppearance: 'dayOnly'` returns values like `"2026-02-26T00:00:00.000Z"`. In negative-offset timezones (e.g. US Central), `toLocaleDateString()` correctly shows Feb 25, but `.split('T')[0]` extracts `"2026-02-26"` (the UTC date). Always use local Date methods (`getFullYear`, `getMonth`, `getDate`) when extracting dates for display-consistent operations.
 
 ---
 

@@ -80,9 +80,10 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           schedulingRequest,
-          targetDate: null // Clear target date when sending scheduling request
+          targetDate: null, // Clear target date when sending scheduling request
+          techResponse: {}, // Clear previous response so tech can respond to the new request (Payload groups can't be set to null)
         }),
       })
 
@@ -157,6 +158,36 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Reminder Sent: </span>
               <span className="text-green-600 dark:text-green-400">Yes</span>
+            </div>
+          )}
+          {(existingRequest.requestType === 'time-windows' || existingRequest.requestType === 'specific-time') && existingRequest.timeOptions?.length > 0 && (
+            <div className="mt-2">
+              <span className="font-medium text-gray-700 dark:text-gray-300">Time Options:</span>
+              <div className="mt-1 space-y-1">
+                {existingRequest.timeOptions.map((opt: any, i: number) => (
+                  <div key={i} className="text-gray-900 dark:text-white text-sm pl-3 border-l-2 border-blue-400">
+                    Option {opt.optionNumber || i + 1}: {new Date(opt.date).toLocaleDateString()}
+                    {opt.specificTime && <span className="ml-1">at {opt.specificTime}</span>}
+                    {opt.timeWindow && (
+                      <span className="ml-1 text-gray-500 dark:text-gray-400">
+                        ({opt.timeWindow}{opt.startTime ? `, ${opt.startTime}` : ''}{opt.endTime ? ` – ${opt.endTime}` : ''})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {existingRequest.requestType === 'tech-proposes' && existingRequest.requestMessage && (
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Message: </span>
+              <span className="text-gray-900 dark:text-white">{existingRequest.requestMessage}</span>
+            </div>
+          )}
+          {existingRequest.specialInstructions && (
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Instructions: </span>
+              <span className="text-gray-900 dark:text-white">{existingRequest.specialInstructions}</span>
             </div>
           )}
         </div>

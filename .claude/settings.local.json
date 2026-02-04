@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\" /B /AD)",
       "Bash(findstr:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\")",
+      "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\\\\src\\\\migrations\")"
     ]
   }
 }

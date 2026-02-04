@@ -141,6 +141,16 @@ export default function JobBasicInfoTab({
     }
   }
 
+  // Compute selected option for specific-time display
+  const selectedSpecificTimeOption = (() => {
+    if ((job as any).schedulingRequest?.requestType !== 'specific-time') return null
+    const opts = (job as any).schedulingRequest.timeOptions
+    if (!opts?.length) return null
+    if (opts.length === 1) return opts[0]
+    const selNum = (job as any).techResponse?.selectedOption
+    return selNum ? opts.find((o: any) => Number(o.optionNumber) === Number(selNum)) || opts[0] : opts[0]
+  })()
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Basic Info */}
@@ -614,16 +624,16 @@ export default function JobBasicInfoTab({
                 <span className="font-semibold">Tech Accepted</span>
               </div>
 
-              {(job as any).schedulingRequest?.requestType === 'time-windows' && (job as any).techResponse.selectedOption && (
+              {(job as any).schedulingRequest?.requestType === 'time-windows' && (job as any).techResponse.selectedOption != null && (
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Selected Time Window:</p>
                       <p className="font-medium text-gray-900 dark:text-white">
                         Option {(job as any).techResponse.selectedOption}
-                        {(job as any).schedulingRequest.timeOptions?.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption) && (
+                        {(job as any).schedulingRequest.timeOptions?.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption)) && (
                           <span className="ml-2">
-                            - {new Date((job as any).schedulingRequest.timeOptions.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption).date).toLocaleDateString()}
+                            - {new Date((job as any).schedulingRequest.timeOptions.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption)).date).toLocaleDateString()}
                           </span>
                         )}
                       </p>
@@ -636,7 +646,7 @@ export default function JobBasicInfoTab({
                     {!job.targetDate && (
                       <button
                         onClick={async () => {
-                          const selectedOption = (job as any).schedulingRequest.timeOptions?.find((opt: any) => opt.optionNumber === (job as any).techResponse.selectedOption)
+                          const selectedOption = (job as any).schedulingRequest.timeOptions?.find((opt: any) => Number(opt.optionNumber) === Number((job as any).techResponse.selectedOption))
                           if (!selectedOption) return
                           const startTime = (job as any).techResponse.preferredStartTime || '09:00'
                           if (!confirm(`Confirm this time slot: ${new Date(selectedOption.date).toLocaleDateString()} at ${startTime}?`)) return
@@ -650,7 +660,8 @@ export default function JobBasicInfoTab({
                               'America/Phoenix': '-07:00',
                             }
                             const offset = timezoneOffsets[timezone] || '-06:00'
-                            const dateOnly = selectedOption.date.split('T')[0]
+                            const dateObj = new Date(selectedOption.date)
+                            const dateOnly = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
                             let hours = 9, minutes = 0
                             const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
                             const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
@@ -689,6 +700,193 @@ export default function JobBasicInfoTab({
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* specific-time: show the time the tech agreed to */}
+              {(job as any).schedulingRequest?.requestType === 'specific-time' && selectedSpecificTimeOption && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {(job as any).schedulingRequest.timeOptions?.length > 1 ? 'Selected Time:' : 'Proposed Time:'}
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {new Date(selectedSpecificTimeOption.date).toLocaleDateString()}
+                        {selectedSpecificTimeOption.specificTime && <span className="ml-2">at {selectedSpecificTimeOption.specificTime}</span>}
+                      </p>
+                      {(job as any).techResponse.preferredStartTime && (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                          Tech preferred start time: {(job as any).techResponse.preferredStartTime}
+                        </p>
+                      )}
+                    </div>
+                    {!job.targetDate && (
+                      <button
+                        onClick={async () => {
+                          const confirmMsg = `Confirm this time: ${new Date(selectedSpecificTimeOption.date).toLocaleDateString()}${selectedSpecificTimeOption.specificTime ? ` at ${selectedSpecificTimeOption.specificTime}` : ''}?`
+                          if (!confirm(confirmMsg)) return
+                          try {
+                            const timezone = job.timezone || 'America/Chicago'
+                            const timezoneOffsets: Record<string, string> = {
+                              'America/Chicago': '-06:00',
+                              'America/New_York': '-05:00',
+                              'America/Denver': '-07:00',
+                              'America/Los_Angeles': '-08:00',
+                              'America/Phoenix': '-07:00',
+                            }
+                            const offset = timezoneOffsets[timezone] || '-06:00'
+                            const dateObj = new Date(selectedSpecificTimeOption.date)
+                            const dateOnly = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+                            let hours = 9, minutes = 0
+                            if (selectedSpecificTimeOption.specificTime) {
+                              const time24Match = selectedSpecificTimeOption.specificTime.match(/^(\d{1,2}):(\d{2})$/)
+                              const time12Match = selectedSpecificTimeOption.specificTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
+                              if (time24Match) {
+                                hours = parseInt(time24Match[1])
+                                minutes = parseInt(time24Match[2])
+                              } else if (time12Match) {
+                                hours = parseInt(time12Match[1])
+                                minutes = parseInt(time12Match[2])
+                                const period = time12Match[3].toLowerCase()
+                                if (period === 'pm' && hours !== 12) hours += 12
+                                if (period === 'am' && hours === 12) hours = 0
+                              }
+                            }
+                            const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+                            const targetDateTime = `${dateOnly}T${timeStr}${offset}`
+                            await patchJob(job.id, { targetDate: targetDateTime })
+                            try {
+                              await fetch('/api/scheduling/notify-confirmation', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ jobId: job.id }),
+                              })
+                            } catch (emailError) {
+                              console.error('Failed to send confirmation email:', emailError)
+                            }
+                            await fetchJob(job.id)
+                            alert('Schedule confirmed!')
+                          } catch (error) {
+                            console.error('Error confirming schedule:', error)
+                            alert('Failed to confirm schedule')
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                      >
+                        Accept This Time
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* tech-proposes: show which of the tech's proposed options was accepted */}
+              {(job as any).schedulingRequest?.requestType === 'tech-proposes' && (job as any).techResponse.proposedOptions?.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Tech Proposed Times:</p>
+                  {(job as any).techResponse.proposedOptions.map((option: any, index: number) => {
+                    const isConfirmed = job.targetDate && new Date(option.date).toLocaleDateString() === new Date(job.targetDate).toLocaleDateString()
+                    return (
+                      <div key={index} className={`p-3 rounded-lg ${isConfirmed ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                Option {index + 1}: {new Date(option.date).toLocaleDateString()} at {option.startTime}
+                              </p>
+                              {isConfirmed && (
+                                <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 px-2 py-0.5 rounded-full font-medium">Confirmed</span>
+                              )}
+                            </div>
+                            {option.notes && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{option.notes}</p>
+                            )}
+                          </div>
+                          {!job.targetDate && (
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Confirm this time slot: ${new Date(option.date).toLocaleDateString()} at ${option.startTime}?`)) return
+                                try {
+                                  const timezone = job.timezone || 'America/Chicago'
+                                  const timezoneOffsets: Record<string, string> = {
+                                    'America/Chicago': '-06:00',
+                                    'America/New_York': '-05:00',
+                                    'America/Denver': '-07:00',
+                                    'America/Los_Angeles': '-08:00',
+                                    'America/Phoenix': '-07:00',
+                                  }
+                                  const offset = timezoneOffsets[timezone] || '-06:00'
+                                  const dateObj = new Date(option.date)
+                                  const dateOnly = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+                                  const startTime = option.startTime
+                                  let hours = 9, minutes = 0
+                                  const time24Match = startTime.match(/^(\d{1,2}):(\d{2})$/)
+                                  const time12Match = startTime.match(/^(\d{1,2}):(\d{2})\s?(am|pm)$/i)
+                                  if (time24Match) {
+                                    hours = parseInt(time24Match[1])
+                                    minutes = parseInt(time24Match[2])
+                                  } else if (time12Match) {
+                                    hours = parseInt(time12Match[1])
+                                    minutes = parseInt(time12Match[2])
+                                    const period = time12Match[3].toLowerCase()
+                                    if (period === 'pm' && hours !== 12) hours += 12
+                                    if (period === 'am' && hours === 12) hours = 0
+                                  }
+                                  const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`
+                                  const targetDateTime = `${dateOnly}T${timeStr}${offset}`
+                                  await patchJob(job.id, { targetDate: targetDateTime })
+                                  try {
+                                    await fetch('/api/scheduling/notify-confirmation', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ jobId: job.id }),
+                                    })
+                                  } catch (emailError) {
+                                    console.error('Failed to send confirmation email:', emailError)
+                                  }
+                                  await fetchJob(job.id)
+                                  alert('Schedule confirmed!')
+                                } catch (error) {
+                                  console.error('Error confirming schedule:', error)
+                                  alert('Failed to confirm schedule')
+                                }
+                              }}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                            >
+                              Accept This Time
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* tech-proposes fallback: tech responded but no valid options provided */}
+              {(job as any).schedulingRequest?.requestType === 'tech-proposes' && !((job as any).techResponse.proposedOptions?.length > 0) && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">No valid time options were provided by the tech.</p>
+              )}
+
+              {/* Reschedule button — visible once a date has been confirmed */}
+              {job.targetDate && (
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Reschedule this job? This will clear the confirmed date and tech response so you can send a new scheduling request.')) return
+                      try {
+                        await patchJob(job.id, { targetDate: null, techResponse: {} })
+                        await fetchJob(job.id)
+                      } catch (error) {
+                        console.error('Error rescheduling:', error)
+                        alert('Failed to reschedule')
+                      }
+                    }}
+                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Reschedule
+                  </button>
                 </div>
               )}
             </div>

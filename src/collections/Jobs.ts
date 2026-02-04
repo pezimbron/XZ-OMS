@@ -773,8 +773,10 @@ export const Jobs: CollectionConfig = {
                   console.log(`[Auto-populate] Setting vendor ${vendorId} from tech ${techId}`)
                   return vendorId
                 }
-              } catch (error) {
-                console.error('[Auto-populate vendor] Error fetching tech:', error)
+              } catch (error: any) {
+                if (error.status !== 404) {
+                  console.error('[Auto-populate vendor] Error fetching tech:', error)
+                }
               }
             }
 

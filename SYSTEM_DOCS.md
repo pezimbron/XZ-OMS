@@ -480,18 +480,17 @@
   - ⚠️ **TypeScript Error**: `serialize.tsx` accessing `children` on nodes without it
     - **Fix**: Added type guard `if (!('children' in node) || node.children == null)`
 - **Missing Features / Next Steps**:
-  - ❌ **Vendor Invoice Dashboard** - No centralized view of all vendor invoices
-    - Currently: Invoices only visible per-job in Financials tab
-    - Needed: `/oms/vendor-invoices` page showing all invoices across all jobs
-    - Features: Filter by vendor, date range, payment status; link to source job
-  - ❌ **Payment Status Sync** - One-way sync only (OMS → QuickBooks)
-    - Currently: Bills created in QB, but no sync back for payment status
-    - Needed: Poll QB API to update `paymentStatus` field on expenses
-    - Fields needed: `quickbooksId`, `paymentStatus`, `lastSyncedAt`
-    - API: `/api/quickbooks/bills/sync-status` endpoint
-  - ❌ **QuickBooks Bill ID Tracking** - Not stored on imported expenses
-    - Currently: Bill created but ID not saved to expense record
-    - Needed: Store QB Bill ID to enable status sync and avoid duplicates
+  - ✅ **Vendor Invoice Dashboard** - `/oms/vendor-invoices` (Feb 3, 2026)
+    - Stats cards, filters (vendor, status, date range), paginated table
+    - Links back to source job. Excludes auto-generated product expenses.
+    - Bulk "Sync All QB Status" action
+  - ✅ **Payment Status Sync** - `/api/quickbooks/bills/sync-status` (Feb 3, 2026)
+    - POST with `{ jobId, expenseId? }` syncs bill balance from QB
+    - Updates `paymentStatus` (paid/pending/unpaid) and `quickbooksSyncedAt`
+  - ✅ **QuickBooks Bill ID Tracking** - stored on `externalExpenses` (Feb 3, 2026)
+    - Fields: `quickbooksId`, `quickbooksDocNumber`, `quickbooksSyncedAt`
+    - Captured on both manual import (QB bill creation) and QB bill pull
+    - Auto-generated expenses (from products) are excluded from invoice tracking
 
 **4. Invoicing Queue** - ✅ REDESIGNED (Jan 28, 2026)
 - **Location**: `/oms/invoicing`
