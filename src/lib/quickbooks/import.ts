@@ -1,6 +1,119 @@
 import { quickbooksClient } from './client'
 import type { Payload } from 'payload'
 
+export async function importVendorsFromQuickBooks(payload: Payload) {
+  try {
+    console.log('Starting QuickBooks vendor import...')
+
+    const query = "SELECT * FROM Vendor MAXRESULTS 1000"
+    const result = await quickbooksClient.queryCustomers(query)
+
+    console.log('QuickBooks vendor query result:', JSON.stringify(result, null, 2))
+
+    const vendors = result?.QueryResponse?.Vendor || []
+    console.log(`Found ${vendors.length} vendors in QuickBooks`)
+
+    const results = {
+      total: vendors.length,
+      imported: 0,
+      updated: 0,
+      skipped: 0,
+      errors: 0,
+      details: [] as any[],
+    }
+
+    for (const qbVendor of vendors) {
+      try {
+        const qbId = qbVendor.Id
+
+        // Skip vendors without a billing email (required field)
+        if (!qbVendor.PrimaryEmailAddr?.Address) {
+          results.skipped++
+          results.details.push({
+            qbId,
+            name: qbVendor.DisplayName,
+            action: 'skipped',
+            reason: 'No email address',
+          })
+          console.log(`Skipped vendor (no email): ${qbVendor.DisplayName} (QB ID: ${qbId})`)
+          continue
+        }
+
+        // Check if vendor already exists with this QuickBooks ID
+        const existing = await payload.find({
+          collection: 'vendors',
+          where: {
+            'integrations.quickbooks.vendorId': {
+              equals: qbId,
+            },
+          },
+          limit: 1,
+        })
+
+        const vendorData: any = {
+          companyName: qbVendor.DisplayName || 'Unknown',
+          billingEmail: qbVendor.PrimaryEmailAddr.Address,
+          integrations: {
+            quickbooks: {
+              vendorId: qbId,
+              syncStatus: 'synced',
+              lastSyncedAt: new Date().toISOString(),
+            },
+          },
+        }
+
+        if (qbVendor.PrimaryPhone?.FreeFormNumber) {
+          vendorData.billingPhone = qbVendor.PrimaryPhone.FreeFormNumber
+        }
+
+        if (existing.docs.length > 0) {
+          // Update existing vendor
+          await payload.update({
+            collection: 'vendors',
+            id: existing.docs[0].id,
+            data: vendorData as any,
+          })
+          results.updated++
+          results.details.push({
+            qbId,
+            name: vendorData.companyName,
+            action: 'updated',
+          })
+          console.log(`Updated vendor: ${vendorData.companyName} (QB ID: ${qbId})`)
+        } else {
+          // Create new vendor
+          await payload.create({
+            collection: 'vendors',
+            data: vendorData as any,
+          })
+          results.imported++
+          results.details.push({
+            qbId,
+            name: vendorData.companyName,
+            action: 'imported',
+          })
+          console.log(`Imported vendor: ${vendorData.companyName} (QB ID: ${qbId})`)
+        }
+      } catch (error: any) {
+        results.errors++
+        results.details.push({
+          qbId: qbVendor.Id,
+          name: qbVendor.DisplayName,
+          action: 'error',
+          error: error.message,
+        })
+        console.error(`Error importing vendor ${qbVendor.DisplayName}:`, error.message)
+      }
+    }
+
+    console.log('Vendor import complete:', results)
+    return results
+  } catch (error: any) {
+    console.error('Error importing vendors from QuickBooks:', error)
+    throw error
+  }
+}
+
 export async function importCustomersFromQuickBooks(payload: Payload) {
   try {
     console.log('Starting QuickBooks customer import...')

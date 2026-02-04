@@ -179,7 +179,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
               <span className="text-green-600 dark:text-green-400">Yes</span>
             </div>
           )}
-          {(existingRequest.requestType === 'time-windows' || existingRequest.requestType === 'specific-time') && existingRequest.timeOptions?.length > 0 && (
+          {(existingRequest.requestType === 'time-windows' || existingRequest.requestType === 'specific-time') && (existingRequest.timeOptions?.length ?? 0) > 0 && (
             <div className="mt-2">
               <span className="font-medium text-gray-700 dark:text-gray-300">Time Options:</span>
               <div className="mt-1 space-y-1">
