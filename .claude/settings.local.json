@@ -5,7 +5,12 @@
       "Bash(findstr:*)",
       "Bash(npx tsc:*)",
       "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\")",
-      "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\\\\src\\\\migrations\")"
+      "Bash(dir \"C:\\\\Users\\\\Pablo\\\\source\\\\repos\\\\XZ-OMS\\\\XZ-OMS\\\\src\\\\migrations\")",
+      "Bash(yes:*)",
+      "Bash(pnpm payload migrate:create:*)",
+      "Bash(NODE_OPTIONS=--no-deprecation pnpm payload migrate:create:*)",
+      "Bash(node:*)",
+      "Bash(pnpm lint:*)"
     ]
   }
 }
