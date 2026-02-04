@@ -674,9 +674,9 @@ export default function JobBasicInfoTab({
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Selected Time Window:</p>
                       <p className="font-medium text-gray-900 dark:text-white">
                         Option {job.techResponse.selectedOption}
-                        {job.schedulingRequest.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption)) && (
+                        {job.schedulingRequest.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse?.selectedOption)) && (
                           <span className="ml-2">
-                            - {new Date(job.schedulingRequest.timeOptions.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption)).date).toLocaleDateString()}
+                            - {new Date(job.schedulingRequest.timeOptions.find((opt) => Number(opt.optionNumber) === Number(job.techResponse?.selectedOption))!.date).toLocaleDateString()}
                           </span>
                         )}
                       </p>
@@ -689,9 +689,9 @@ export default function JobBasicInfoTab({
                     {!job.targetDate && (
                       <button
                         onClick={async () => {
-                          const selectedOption = job.schedulingRequest.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse.selectedOption))
+                          const selectedOption = job.schedulingRequest?.timeOptions?.find((opt) => Number(opt.optionNumber) === Number(job.techResponse?.selectedOption))
                           if (!selectedOption) return
-                          const startTime = job.techResponse.preferredStartTime || '09:00'
+                          const startTime = job.techResponse?.preferredStartTime || '09:00'
                           if (!confirm(`Confirm this time slot: ${new Date(selectedOption.date).toLocaleDateString()} at ${startTime}?`)) return
                           try {
                             const timezone = job.timezone || 'America/Chicago'
@@ -752,13 +752,13 @@ export default function JobBasicInfoTab({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {job.schedulingRequest.timeOptions?.length > 1 ? 'Selected Time:' : 'Proposed Time:'}
+                        {(job.schedulingRequest?.timeOptions?.length ?? 0) > 1 ? 'Selected Time:' : 'Proposed Time:'}
                       </p>
                       <p className="font-medium text-gray-900 dark:text-white">
                         {new Date(selectedSpecificTimeOption.date).toLocaleDateString()}
                         {selectedSpecificTimeOption.specificTime && <span className="ml-2">at {selectedSpecificTimeOption.specificTime}</span>}
                       </p>
-                      {job.techResponse.preferredStartTime && (
+                      {job.techResponse?.preferredStartTime && (
                         <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                           Tech preferred start time: {job.techResponse.preferredStartTime}
                         </p>
@@ -825,10 +825,10 @@ export default function JobBasicInfoTab({
               )}
 
               {/* tech-proposes: show which of the tech's proposed options was accepted */}
-              {job.schedulingRequest?.requestType === 'tech-proposes' && job.techResponse.proposedOptions?.length > 0 && (
+              {job.schedulingRequest?.requestType === 'tech-proposes' && (job.techResponse?.proposedOptions?.length ?? 0) > 0 && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 dark:text-gray-400">Tech Proposed Times:</p>
-                  {job.techResponse.proposedOptions.map((option, index: number) => {
+                  {job.techResponse?.proposedOptions?.map((option, index: number) => {
                     const isConfirmed = job.targetDate && new Date(option.date).toLocaleDateString() === new Date(job.targetDate).toLocaleDateString()
                     return (
                       <div key={index} className={`p-3 rounded-lg ${isConfirmed ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-blue-50 dark:bg-blue-900/20'}`}>
@@ -908,7 +908,7 @@ export default function JobBasicInfoTab({
               )}
 
               {/* tech-proposes fallback: tech responded but no valid options provided */}
-              {job.schedulingRequest?.requestType === 'tech-proposes' && !(job.techResponse.proposedOptions?.length > 0) && (
+              {job.schedulingRequest?.requestType === 'tech-proposes' && !((job.techResponse?.proposedOptions?.length ?? 0) > 0) && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 italic">No valid time options were provided by the tech.</p>
               )}
 

@@ -183,7 +183,7 @@ export default function SchedulingRequestPanel({ jobId, existingRequest, onSave 
             <div className="mt-2">
               <span className="font-medium text-gray-700 dark:text-gray-300">Time Options:</span>
               <div className="mt-1 space-y-1">
-                {existingRequest.timeOptions.map((opt, i: number) => (
+                {existingRequest.timeOptions?.map((opt, i: number) => (
                   <div key={i} className="text-gray-900 dark:text-white text-sm pl-3 border-l-2 border-blue-400">
                     Option {opt.optionNumber || i + 1}: {new Date(opt.date).toLocaleDateString()}
                     {opt.specificTime && <span className="ml-1">at {opt.specificTime}</span>}
