@@ -52,8 +52,8 @@
 - **Purpose**: Invoice sync, bill management
 - **Auth**: OAuth 2.0 via `intuit-oauth`
 - **Config**: `QUICKBOOKS_CLIENT_ID`, `QUICKBOOKS_CLIENT_SECRET`, `QUICKBOOKS_ENVIRONMENT`
-- **Features**: Client sync, invoice creation, bill queries
-- **Files**: `src/lib/quickbooks/client.ts`, `src/lib/quickbooks/sync.ts`
+- **Features**: Client sync, vendor sync, invoice creation, bill queries
+- **Files**: `src/lib/quickbooks/client.ts`, `src/lib/quickbooks/sync.ts`, `src/lib/quickbooks/import.ts`
 
 ### 3. Google Calendar
 - **Purpose**: Automatic calendar invites when tech assigned
@@ -113,6 +113,12 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 | `/oms/jobs/[id]` | Job detail (8 tabs) |
 | `/oms/clients` | Client management |
 | `/oms/clients/[id]` | Client detail (5 tabs) |
+| `/oms/technicians` | Technician list (table) |
+| `/oms/technicians/create` | Create technician |
+| `/oms/technicians/[id]` | Technician detail/edit + job stats |
+| `/oms/vendors` | Vendor list + QB import |
+| `/oms/vendors/create` | Create vendor |
+| `/oms/vendors/[id]` | Vendor detail/edit + QB status |
 | `/oms/invoices` | Invoice management |
 | `/oms/vendor-invoices` | Vendor invoice dashboard (subcontractor expenses) |
 | `/oms/invoicing` | Invoicing queue |
@@ -159,6 +165,8 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 - `GET /api/quickbooks/bills/query` - Query bills
 - `POST /api/quickbooks/bills` - Create bill
 - `POST /api/quickbooks/bills/sync-status` - Sync bill payment status from QB
+- `POST /api/quickbooks/import` - Import clients from QB
+- `POST /api/quickbooks/import-vendors` - Import vendors from QB (skips vendors without email)
 
 ### Vendor Invoices
 - `GET /api/vendor-invoices` - Aggregated vendor expenses (filterable, paginated). Excludes auto-generated product expenses.
@@ -273,6 +281,8 @@ src/
 │       ├── calendar/
 │       ├── jobs/[id]/
 │       ├── clients/[id]/
+│       ├── technicians/          # list, create, [id] (editable)
+│       ├── vendors/              # list, create, [id] (editable + QB badges)
 │       ├── invoices/
 │       ├── commissions/
 │       └── qc-queue/
@@ -316,6 +326,10 @@ src/
 
 8. **Payload `dayOnly` Dates Are Midnight UTC**: A `date` field with `pickerAppearance: 'dayOnly'` returns values like `"2026-02-26T00:00:00.000Z"`. In negative-offset timezones (e.g. US Central), `toLocaleDateString()` correctly shows Feb 25, but `.split('T')[0]` extracts `"2026-02-26"` (the UTC date). Always use local Date methods (`getFullYear`, `getMonth`, `getDate`) when extracting dates for display-consistent operations.
 
+9. **Relationship IDs in PATCH payloads**: Payload returns expanded relationship objects (`{ id, companyName, ... }`) at `depth=1`, but PATCH expects a plain ID. Always run relationship fields through `normalizeRelationId()` from `src/lib/oms/normalizeRelationId.ts` before sending. Handles objects, strings, and numbers uniformly.
+
+10. **TS narrowing lost in callbacks**: Payload's optional fields (`schedulingRequest`, `techResponse`) get narrowed by outer JSX guards, but TS loses that narrowing inside `.find()` callbacks and `async` handlers. Use `?.` explicitly inside closures even when the outer condition guarantees the value exists.
+
 ---
 
 ## Development Commands
@@ -335,9 +349,11 @@ pnpm payload generate:types  # Regenerate types
 ## Project Status
 
 ### Phase 1: Core Operations - COMPLETE
-- Dashboard, Calendar, Jobs, Clients, Technicians
+- Dashboard, Calendar, Jobs, Clients, Technicians, Vendors
 - Workflow System, Messaging, QC Queue
 - Invoicing, Commissions, Subcontractor Invoice Import
+- OMS-native CRUD for Clients, Products, Technicians, Vendors
+- QuickBooks client + vendor import
 
 ### Phase 2: Business Integrations - NOT STARTED
 - HubSpot integration
@@ -351,4 +367,4 @@ pnpm payload generate:types  # Regenerate types
 
 ---
 
-**Last Updated**: February 3, 2026
+**Last Updated**: February 4, 2026
