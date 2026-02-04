@@ -12,7 +12,7 @@ interface TimeOption {
 }
 
 interface SchedulingRequest {
-  requestType?: string
+  requestType?: 'time-windows' | 'specific-time' | 'tech-proposes'
   sentAt?: string
   deadline?: string
   reminderSent?: boolean
