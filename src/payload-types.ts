@@ -80,6 +80,7 @@ export interface Config {
     equipment: Equipment;
     jobs: Job;
     invoices: Invoice;
+    payments: Payment;
     notifications: Notification;
     'notification-templates': NotificationTemplate;
     'workflow-templates': WorkflowTemplate;
@@ -109,6 +110,7 @@ export interface Config {
     equipment: EquipmentSelect<false> | EquipmentSelect<true>;
     jobs: JobsSelect<false> | JobsSelect<true>;
     invoices: InvoicesSelect<false> | InvoicesSelect<true>;
+    payments: PaymentsSelect<false> | PaymentsSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
     'notification-templates': NotificationTemplatesSelect<false> | NotificationTemplatesSelect<true>;
     'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
@@ -1545,6 +1547,25 @@ export interface Invoice {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments".
+ */
+export interface Payment {
+  id: number;
+  client: number | Client;
+  amount: number;
+  paymentDate: string;
+  referenceNumber?: string | null;
+  source?: ('csv-import' | 'manual') | null;
+  status: 'unmatched' | 'matched';
+  matchedJob?: (number | null) | Job;
+  matchedInvoice?: (number | null) | Invoice;
+  notes?: string | null;
+  importedBy?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "notifications".
  */
 export interface Notification {
@@ -1847,6 +1868,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'invoices';
         value: number | Invoice;
+      } | null)
+    | ({
+        relationTo: 'payments';
+        value: number | Payment;
       } | null)
     | ({
         relationTo: 'notifications';
@@ -2607,6 +2632,24 @@ export interface InvoicesSelect<T extends boolean = true> {
   approvedBy?: T;
   approvedAt?: T;
   createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payments_select".
+ */
+export interface PaymentsSelect<T extends boolean = true> {
+  client?: T;
+  amount?: T;
+  paymentDate?: T;
+  referenceNumber?: T;
+  source?: T;
+  status?: T;
+  matchedJob?: T;
+  matchedInvoice?: T;
+  notes?: T;
+  importedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
