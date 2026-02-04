@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ThemeContext } from '@/contexts/ThemeContext'
+import { NotificationBell } from '@/components/oms/NotificationBell'
 
 // ---------------------------------------------------------------------------
 // Data
@@ -327,6 +328,15 @@ export function Navigation() {
 
         {/* ------------------------------------------------------- bottom bar */}
         <div className={`border-t border-gray-200 dark:border-gray-700 ${effectivelyCollapsed ? 'p-2' : 'p-3'}`}>
+
+          {/* notifications */}
+          <div
+            className={effectivelyCollapsed ? 'flex justify-center' : ''}
+            onMouseEnter={effectivelyCollapsed ? (e) => handleTooltipEnter(e, 'Notifications') : undefined}
+            onMouseLeave={effectivelyCollapsed ? handleTooltipLeave : undefined}
+          >
+            <NotificationBell expanded={!effectivelyCollapsed} />
+          </div>
 
           {/* user trigger + popover wrapper */}
           <div ref={userMenuRef} className="relative">
