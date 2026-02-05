@@ -36,7 +36,7 @@ http://localhost:3001/api/quickbooks/callback
 
 **Production:**
 ```
-https://yourdomain.com/api/quickbooks/callback
+https://oms.xzrealitycapture.com/api/quickbooks/callback
 ```
 
 ## Step 4: Add Environment Variables
@@ -139,11 +139,40 @@ Check the client's "Sync Error Message" field in Payload admin for details
 5. Connect to QuickBooks via `/api/quickbooks/auth`
 6. Test sync with a single client
 
+## Production Setup
+
+To go live with QuickBooks production, you need to complete Intuit's production approval process:
+
+### Required Pages
+- **Privacy Policy**: `/legal/privacy`
+- **Terms of Service**: `/legal/terms`
+
+### Intuit Developer Form Values
+
+| Field | Value |
+|-------|-------|
+| Host domain | `oms.xzrealitycapture.com` |
+| Launch URL | `https://oms.xzrealitycapture.com/oms` |
+| Disconnect URL | `https://oms.xzrealitycapture.com/oms` |
+| Redirect URI | `https://oms.xzrealitycapture.com/api/quickbooks/callback` |
+
+### Production Environment Variables
+
+```env
+QUICKBOOKS_CLIENT_ID=<production_client_id>
+QUICKBOOKS_CLIENT_SECRET=<production_client_secret>
+QUICKBOOKS_ENVIRONMENT=production
+QUICKBOOKS_REDIRECT_URI=https://oms.xzrealitycapture.com/api/quickbooks/callback
+```
+
+### IP Address Note
+The app is hosted on Railway/Vercel which uses dynamic IPs. If Intuit requires IP addresses, explain it's cloud-hosted or contact Intuit support.
+
+---
+
 ## Future Enhancements
 
-- [ ] Token storage in database (currently in memory)
+- [ ] Token storage in database (currently file-based)
 - [ ] Automatic token refresh
 - [ ] Sync status dashboard in OMS
 - [ ] Webhook support for bi-directional sync
-- [ ] Invoice creation in QuickBooks
-- [ ] Payment tracking

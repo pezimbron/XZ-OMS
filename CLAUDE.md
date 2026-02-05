@@ -35,7 +35,7 @@
 | **Database** | PostgreSQL (Railway) |
 | **Language** | TypeScript |
 | **Styling** | Tailwind CSS + Radix UI |
-| **Deployment** | Vercel (app) + Railway (database) |
+| **Deployment** | Railway (app + database) |
 
 ---
 
@@ -140,6 +140,15 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 
 ---
 
+## Public Pages
+
+| Route | Purpose |
+|-------|---------|
+| `/legal/privacy` | Privacy policy (required for QuickBooks production) |
+| `/legal/terms` | End-user license agreement (required for QuickBooks production) |
+
+---
+
 ## API Endpoints
 
 ### Job Management
@@ -228,6 +237,25 @@ await req.payload.create({
 
 ---
 
+## Deployment
+
+### Production
+- **URL**: `https://oms.xzrealitycapture.com`
+- **Host**: Railway (app + PostgreSQL database)
+- **Schema Management**: Push mode (`push: true`) - schema synced on build
+
+### Legal Pages (QuickBooks Production Requirements)
+- **Privacy Policy**: `/legal/privacy`
+- **Terms of Service**: `/legal/terms`
+
+### Environment Setup
+Each Railway environment needs its own set of variables. Production uses:
+- `QUICKBOOKS_ENVIRONMENT=production`
+- Production QuickBooks credentials
+- Production database URL
+
+---
+
 ## Environment Variables
 
 ```env
@@ -268,6 +296,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...
 ```
 src/
 ├── app/
+│   ├── (frontend)/legal/    # Public legal pages (privacy, terms)
 │   ├── (payload)/admin/     # Payload admin panel
 │   ├── api/                 # API routes
 │   │   ├── forms/           # Public form endpoints
@@ -339,7 +368,7 @@ src/
     await exec(payload, `YOUR SQL HERE`)
     ```
 
-12. **Railway deploy hangs on `payload migrate` prompt**: The `prebuild` script runs `payload migrate` which shows an interactive y/N prompt. CI/Railway has no stdin → hangs indefinitely. Fixed by piping: `echo y | cross-env ... pnpm payload migrate` in package.json. Do NOT remove this pipe or revert to the non-piped version.
+12. **Database Schema Management**: Project uses `push: true` mode in `payload.config.ts` instead of migrations. This pushes schema changes directly to the database on build/startup without migration files. Safer for this setup - avoids migration sync issues and Railway deploy hangs. Custom migrations in `src/migrations/` still exist for reference but are skipped via `prebuild` script.
 
 ---
 
