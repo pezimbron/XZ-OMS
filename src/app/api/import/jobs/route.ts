@@ -121,7 +121,6 @@ export async function POST(request: NextRequest) {
         }
 
         const jobData: any = {
-          jobId: job.jobId,
           modelName: job.modelName,
           captureAddress: job.address,
           state: job.state,
@@ -129,7 +128,12 @@ export async function POST(request: NextRequest) {
           sqFt: job.sqFt ? Number(job.sqFt) : undefined,
           notes: job.comments,
           status: mapStatus(job.status),
-          invoiceStatus: job.invoiced ? 'invoiced' : 'not-ready',
+          invoiceStatus: job.invoiced ? 'invoiced' : 'not-invoiced',
+        }
+
+        // Only set jobId if not empty (it's unique so empty strings cause conflicts)
+        if (job.jobId && job.jobId.trim()) {
+          jobData.jobId = job.jobId.trim()
         }
 
         if (clientId) jobData.client = clientId
