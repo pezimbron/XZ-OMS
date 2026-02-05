@@ -92,12 +92,6 @@ class QuickBooksClient {
       const separator = endpoint.includes('?') ? '&' : '?'
       const url = `${baseUrl}/v3/company/${companyId}/${endpoint}${separator}minorversion=65`
 
-      console.log('QuickBooks API Request:', {
-        url,
-        method,
-        body: body
-      })
-
       // Use axios directly for better control
       const axios = require('axios')
       const response = await axios({
@@ -111,11 +105,9 @@ class QuickBooksClient {
         data: body,
       })
 
-      console.log('QuickBooks API Response:', JSON.stringify(response.data, null, 2))
       return response.data
     } catch (error: any) {
-      const errorDetail = error.response?.data || error.message
-      console.error('QuickBooks API call error:', JSON.stringify(errorDetail, null, 2))
+      console.error('QuickBooks API error:', error.response?.status, error.message)
       throw error
     }
   }
