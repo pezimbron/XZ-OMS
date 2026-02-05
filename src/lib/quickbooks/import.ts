@@ -1,17 +1,39 @@
 import { quickbooksClient } from './client'
 import type { Payload } from 'payload'
 
-export async function importVendorsFromQuickBooks(payload: Payload) {
+export async function importVendorsFromQuickBooks(payload: Payload, options?: { daysActive?: number, includeWithoutEmail?: boolean }) {
   try {
     console.log('Starting QuickBooks vendor import...')
+
+    let vendorIds: Set<string> | null = null
+
+    // If daysActive is specified, first get vendors with recent bills
+    if (options?.daysActive) {
+      const fromDate = new Date()
+      fromDate.setDate(fromDate.getDate() - options.daysActive)
+      const fromDateStr = fromDate.toISOString().split('T')[0]
+
+      console.log(`Filtering vendors with bills since ${fromDateStr}...`)
+
+      const billQuery = `SELECT VendorRef FROM Bill WHERE TxnDate >= '${fromDateStr}' MAXRESULTS 1000`
+      const billResult = await quickbooksClient.queryCustomers(billQuery)
+      const bills = billResult?.QueryResponse?.Bill || []
+
+      vendorIds = new Set(bills.map((bill: any) => bill.VendorRef?.value).filter(Boolean))
+      console.log(`Found ${vendorIds.size} unique vendors with recent bills`)
+    }
 
     const query = "SELECT * FROM Vendor MAXRESULTS 1000"
     const result = await quickbooksClient.queryCustomers(query)
 
-    console.log('QuickBooks vendor query result:', JSON.stringify(result, null, 2))
+    let vendors = result?.QueryResponse?.Vendor || []
 
-    const vendors = result?.QueryResponse?.Vendor || []
-    console.log(`Found ${vendors.length} vendors in QuickBooks`)
+    // Filter to only active vendors if we have the list
+    if (vendorIds) {
+      vendors = vendors.filter((v: any) => vendorIds!.has(v.Id))
+    }
+
+    console.log(`Processing ${vendors.length} vendors`)
 
     const results = {
       total: vendors.length,
@@ -26,8 +48,8 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
       try {
         const qbId = qbVendor.Id
 
-        // Skip vendors without a billing email (required field)
-        if (!qbVendor.PrimaryEmailAddr?.Address) {
+        // Skip vendors without email unless includeWithoutEmail is true
+        if (!qbVendor.PrimaryEmailAddr?.Address && !options?.includeWithoutEmail) {
           results.skipped++
           results.details.push({
             qbId,
@@ -35,7 +57,6 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
             action: 'skipped',
             reason: 'No email address',
           })
-          console.log(`Skipped vendor (no email): ${qbVendor.DisplayName} (QB ID: ${qbId})`)
           continue
         }
 
@@ -52,7 +73,6 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
 
         const vendorData: any = {
           companyName: qbVendor.DisplayName || 'Unknown',
-          billingEmail: qbVendor.PrimaryEmailAddr.Address,
           integrations: {
             quickbooks: {
               vendorId: qbId,
@@ -60,6 +80,10 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
               lastSyncedAt: new Date().toISOString(),
             },
           },
+        }
+
+        if (qbVendor.PrimaryEmailAddr?.Address) {
+          vendorData.billingEmail = qbVendor.PrimaryEmailAddr.Address
         }
 
         if (qbVendor.PrimaryPhone?.FreeFormNumber) {
@@ -79,7 +103,6 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
             name: vendorData.companyName,
             action: 'updated',
           })
-          console.log(`Updated vendor: ${vendorData.companyName} (QB ID: ${qbId})`)
         } else {
           // Create new vendor
           await payload.create({
@@ -92,7 +115,6 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
             name: vendorData.companyName,
             action: 'imported',
           })
-          console.log(`Imported vendor: ${vendorData.companyName} (QB ID: ${qbId})`)
         }
       } catch (error: any) {
         results.errors++
@@ -102,11 +124,10 @@ export async function importVendorsFromQuickBooks(payload: Payload) {
           action: 'error',
           error: error.message,
         })
-        console.error(`Error importing vendor ${qbVendor.DisplayName}:`, error.message)
       }
     }
 
-    console.log('Vendor import complete:', results)
+    console.log(`Vendor import complete: ${results.imported} imported, ${results.updated} updated, ${results.skipped} skipped, ${results.errors} errors`)
     return results
   } catch (error: any) {
     console.error('Error importing vendors from QuickBooks:', error)
@@ -121,8 +142,6 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
     // Query all customers from QuickBooks
     const query = "SELECT * FROM Customer MAXRESULTS 1000"
     const result = await quickbooksClient.queryCustomers(query)
-
-    console.log('QuickBooks query result:', JSON.stringify(result, null, 2))
 
     const customers = result?.QueryResponse?.Customer || []
     console.log(`Found ${customers.length} customers in QuickBooks`)
@@ -195,7 +214,6 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
             name: clientData.name,
             action: 'updated',
           })
-          console.log(`Updated client: ${clientData.name} (QB ID: ${qbId})`)
         } else {
           // Create new client
           await payload.create({
@@ -208,7 +226,6 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
             name: clientData.name,
             action: 'imported',
           })
-          console.log(`Imported client: ${clientData.name} (QB ID: ${qbId})`)
         }
       } catch (error: any) {
         results.errors++
@@ -218,11 +235,10 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
           action: 'error',
           error: error.message,
         })
-        console.error(`Error importing customer ${qbCustomer.DisplayName}:`, error.message)
       }
     }
 
-    console.log('Import complete:', results)
+    console.log(`Import complete: ${results.imported} imported, ${results.updated} updated, ${results.errors} errors`)
     return results
   } catch (error: any) {
     console.error('Error importing customers from QuickBooks:', error)

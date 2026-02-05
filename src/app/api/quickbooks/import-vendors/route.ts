@@ -7,8 +7,19 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await getPayload({ config })
 
-    console.log('Starting QuickBooks vendor import...')
-    const results = await importVendorsFromQuickBooks(payload)
+    // Parse optional parameters
+    let daysActive: number | undefined = 365
+    let includeWithoutEmail = true // Default to including all vendors
+    try {
+      const body = await request.json()
+      daysActive = body.daysActive ?? 365
+      includeWithoutEmail = body.includeWithoutEmail ?? true
+    } catch {
+      // Use defaults if no body
+    }
+
+    console.log(`Starting QuickBooks vendor import (last ${daysActive} days, includeWithoutEmail: ${includeWithoutEmail})...`)
+    const results = await importVendorsFromQuickBooks(payload, { daysActive, includeWithoutEmail })
 
     return NextResponse.json({
       success: true,
