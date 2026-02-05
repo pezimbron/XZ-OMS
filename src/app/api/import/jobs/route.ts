@@ -22,44 +22,62 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Cache for client and tech lookups
-    const clientCache: Record<string, number | null> = {}
-    const techCache: Record<string, number | null> = {}
+    // Pre-fetch all clients and techs for faster, case-insensitive matching
+    const allClients = await payload.find({ collection: 'clients', limit: 500 })
+    const allTechs = await payload.find({ collection: 'technicians', limit: 100 })
 
-    // Helper to find client by name
-    async function findClientId(clientName: string): Promise<number | null> {
-      if (!clientName) return null
-      const normalized = clientName.trim().toLowerCase()
-      if (normalized in clientCache) return clientCache[normalized]
-
-      const result = await payload.find({
-        collection: 'clients',
-        where: {
-          name: { contains: clientName.trim() },
-        },
-        limit: 1,
-      })
-      const id = result.docs[0]?.id ?? null
-      clientCache[normalized] = id
-      return id
+    // Build lookup maps (lowercase name -> id)
+    const clientMap = new Map<string, number>()
+    for (const c of allClients.docs) {
+      clientMap.set(c.name.toLowerCase(), c.id)
+      // Also add partial matches for common abbreviations
+      if (c.name.toLowerCase().includes(',')) {
+        clientMap.set(c.name.split(',')[0].toLowerCase().trim(), c.id)
+      }
     }
 
-    // Helper to find tech by name
-    async function findTechId(techName: string): Promise<number | null> {
+    const techMap = new Map<string, number>()
+    for (const t of allTechs.docs) {
+      techMap.set(t.name.toLowerCase(), t.id)
+      // Also match first name only
+      const firstName = t.name.split(' ')[0].toLowerCase()
+      if (!techMap.has(firstName)) {
+        techMap.set(firstName, t.id)
+      }
+    }
+
+    // Helper to find client by name (case-insensitive, partial match)
+    function findClientId(clientName: string): number | null {
+      if (!clientName) return null
+      const normalized = clientName.trim().toLowerCase()
+
+      // Exact match
+      if (clientMap.has(normalized)) return clientMap.get(normalized)!
+
+      // Partial match - find any client name containing search term
+      for (const [name, id] of clientMap) {
+        if (name.includes(normalized) || normalized.includes(name)) {
+          return id
+        }
+      }
+      return null
+    }
+
+    // Helper to find tech by name (case-insensitive, partial match)
+    function findTechId(techName: string): number | null {
       if (!techName) return null
       const normalized = techName.trim().toLowerCase()
-      if (normalized in techCache) return techCache[normalized]
 
-      const result = await payload.find({
-        collection: 'technicians',
-        where: {
-          name: { contains: techName.trim() },
-        },
-        limit: 1,
-      })
-      const id = result.docs[0]?.id ?? null
-      techCache[normalized] = id
-      return id
+      // Exact match
+      if (techMap.has(normalized)) return techMap.get(normalized)!
+
+      // Partial match
+      for (const [name, id] of techMap) {
+        if (name.includes(normalized) || normalized.includes(name)) {
+          return id
+        }
+      }
+      return null
     }
 
     // Map status values
@@ -85,7 +103,7 @@ export async function POST(request: NextRequest) {
         let techId = job.tech
 
         if (typeof job.clientName === 'string') {
-          clientId = await findClientId(job.clientName)
+          clientId = findClientId(job.clientName)
           if (!clientId) {
             results.errors++
             results.details.push({
@@ -98,7 +116,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (typeof job.techName === 'string') {
-          techId = await findTechId(job.techName)
+          techId = findTechId(job.techName)
           // Tech is optional, don't fail if not found
         }
 
