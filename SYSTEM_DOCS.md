@@ -519,9 +519,9 @@
   - Works with scheduling request workflow
   - Flexible for both direct assignment and scheduling
 
-### Phase 2: Business Integrations ❌ **NOT STARTED**
+### Phase 2: Business Integrations 🚧 **IN PROGRESS**
 
-**4. HubSpot Integration**
+**4. HubSpot Integration** ❌ NOT STARTED
 - Goal: Sync CRM data between XZ-OMS and HubSpot
 - Features:
   - Bi-directional client sync
@@ -531,17 +531,42 @@
   - Activity timeline sync
   - Lead source tracking
 
-**5. Payment Matching System**
-- Goal: Match bulk payments to jobs and auto-generate internal invoices
-- Features:
-  - Payment import (CSV/manual entry)
-  - Smart matching algorithm (by client, date range, amount)
-  - Suggest job matches with manual override
-  - Auto-generate internal invoices (batch invoice with job per line item)
-  - Payment allocation tracking
-  - Unmatched payment queue
+**5. Payment Matching System** 📋 PLANNED
+- Goal: Match incoming client payments to jobs and auto-generate invoices
+- **Key Concept**: Payment is always 1:1 to a single job. Amount may differ from original quote — tracked via `paidAmount`, not by mutating the invoice total.
+- **Plan File**: `C:\Users\Pablo\.claude\plans\lovely-riding-hearth.md`
+- **New Collection**: `Payments`
+  - Fields: client, amount, paymentDate, referenceNumber, source (csv-import/manual), status (unmatched/matched), matchedJob, matchedInvoice, notes, importedBy
+- **API Routes**:
+  - `GET /api/payments/candidates` - Find candidate jobs to match against a payment (same client, status=done, invoiceStatus=ready, sorted by date proximity)
+  - `POST /api/payments/confirm` - Confirm match, generate invoice, link payment to job/invoice
+  - `POST /api/payments/import-csv` - Parse CSV file of payments and create records
+- **UI Page**: `/oms/payments`
+  - List view with unmatched payments highlighted
+  - Click payment → inline match panel with suggested jobs
+  - Import modal (manual entry or CSV upload)
+  - Filter by status (All/Unmatched/Matched), client
+- **Workflow**:
+  1. Import payments via CSV or manual entry
+  2. Click unmatched payment → see candidate jobs (sorted by date proximity)
+  3. Select job → confirm match
+  4. Invoice auto-generated with `paidAmount` = payment amount, `paidDate` = payment date
+  5. Payment marked as matched with linked job/invoice
+- **Reuses Existing**:
+  - `generateInvoiceFromJobs()` from `src/lib/invoices/generate.ts`
+  - CSV parsing pattern from `src/app/api/sub-invoice/parse/route.ts`
+  - Invoice `paidAmount`/`paidDate`/`status` fields
 
-**6. Twilio SMS Notifications**
+**6. Public Scheduling Page** ❌ NOT STARTED
+- Goal: Public page for clients to see availability and request scheduling
+- Features:
+  - Regional availability based on calendar/tech coverage
+  - Tech count per region
+  - Date/time slot availability
+  - Self-service scheduling requests
+  - Integration with existing scheduling system
+
+**7. Twilio SMS Notifications** ❌ NOT STARTED
 - Goal: Add SMS notifications alongside email
 - Features:
   - SMS notification preferences per client
@@ -552,7 +577,7 @@
 
 ### Phase 3: Client Experience & Analytics ❌ **NOT STARTED**
 
-**7. Client Portal**
+**8. Client Portal**
 - Goal: Self-service portal for clients
 - Features:
   - Client authentication
@@ -564,7 +589,7 @@
   - Communication history
   - Manage 3D model hosting
 
-**8. Enhanced Reporting & Analytics**
+**9. Enhanced Reporting & Analytics**
 - Goal: Business intelligence and performance tracking
 - Features:
   - Revenue reports (by client, period, service)
@@ -747,6 +772,31 @@
 
 ---
 
-**Last Updated**: January 29, 2026
+### February 4, 2026 - Production Deployment & Data Migration
+- **Production Environment**:
+  - Branch-based Railway deployment: `main` → dev, `production` → prod
+  - Production database separated from development
+  - Environment variables configured for production
+- **QuickBooks Production Approval**:
+  - Created legal pages: `/legal/privacy`, `/legal/terms`
+  - Completed production questionnaire
+  - Status: Pending Intuit review
+- **Historical Data Migration**:
+  - Imported vendors from QuickBooks (filtered by 365-day activity)
+  - Imported clients from QuickBooks (notifications disabled for imports)
+  - Imported 13 technicians via bulk API
+  - Imported 75 historical jobs via bulk API
+  - Migration endpoints created (to be deleted after migration):
+    - `POST /api/import/jobs` - Bulk job import with name-based client/tech lookup
+    - `POST /api/import/technicians` - Bulk technician import
+  - Context flags for suppressing hooks: `skipCalendarHook`, `skipNotifications`, `bulkImport`
+- **QuickBooks Import Enhancements**:
+  - Added `daysActive` filter for vendor import (default 365 days)
+  - Removed verbose logging to prevent Railway rate limit (500 logs/sec)
+  - Auto-disable notifications for imported clients
+
+---
+
+**Last Updated**: February 4, 2026
 **Maintained By**: Development Team
 **Purpose**: Quick reference for AI assistants and developers

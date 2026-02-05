@@ -142,16 +142,19 @@ export async function POST(request: NextRequest) {
         if (clientId) jobData.client = clientId
         if (techId) jobData.tech = techId
 
-        // Parse target date
+        // Parse target date - use noon UTC to prevent timezone display issues
         if (job.targetDate) {
-          const d = new Date(job.targetDate)
-          if (!isNaN(d.getTime())) {
-            jobData.targetDate = d.toISOString()
+          // If already has time component, use as-is; otherwise add T12:00:00.000Z
+          if (job.targetDate.includes('T')) {
+            jobData.targetDate = job.targetDate
+          } else {
+            // dayOnly dates: noon UTC displays correctly in any timezone within +/- 12 hours
+            jobData.targetDate = `${job.targetDate}T12:00:00.000Z`
           }
         }
 
-        // If status is done, set completedAt
-        if (jobData.status === 'done' && job.targetDate) {
+        // If status is done, set completedAt (already has correct noon UTC format from above)
+        if (jobData.status === 'done' && jobData.targetDate) {
           jobData.completedAt = jobData.targetDate
           jobData.completionStatus = 'completed'
         }

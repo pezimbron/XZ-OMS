@@ -425,15 +425,22 @@ pnpm payload generate:types  # Regenerate types
 - Invoicing, Commissions, Subcontractor Invoice Import
 - OMS-native CRUD for Clients, Products, Technicians, Vendors
 - QuickBooks client + vendor import
+- Production deployment with branch-based deploys (main → dev, production → prod)
+- Historical data migration (75 jobs, 13 techs, clients/vendors from QB)
 
-### Phase 2: Business Integrations - NOT STARTED
-- HubSpot integration
-- Payment matching system
-- SMS notifications (Twilio)
+### Phase 2: Business Integrations - IN PROGRESS
+- **Payment Matching System** - PLANNED (see plan file)
+  - New `Payments` collection
+  - Import payments via CSV or manual entry
+  - Match payments to completed jobs
+  - Auto-generate invoices with paidAmount tracking
+- **HubSpot Integration** - NOT STARTED
+- **Public Scheduling Page** - NOT STARTED (regional availability)
+- **SMS notifications (Twilio)** - NOT STARTED
 
 ### Phase 3: Client Experience - NOT STARTED
 - Client portal
-- Enhanced reporting
+- Enhanced reporting & analytics
 - Mobile app
 
 ---
