@@ -80,13 +80,16 @@ export async function POST(request: NextRequest) {
       return null
     }
 
-    // Map status values
+    // Map status values to valid enum: request, scheduled, scanned, qc, done, archived
     function mapStatus(status: string): string {
       const s = (status || '').toLowerCase().trim()
       if (s === 'done' || s === 'completed') return 'done'
       if (s === 'scheduled' || s === 'confirmed') return 'scheduled'
-      if (s === 'cancelled' || s === 'canceled') return 'cancelled'
-      return 'pending'
+      if (s === 'scanned') return 'scanned'
+      if (s === 'qc') return 'qc'
+      if (s === 'cancelled' || s === 'canceled' || s === 'no-show') return 'archived'
+      if (s === 'waiting' || s === 'pending' || s === 'pte revisit' || s.includes('revisit')) return 'request'
+      return 'request' // Default to request
     }
 
     const results = {
