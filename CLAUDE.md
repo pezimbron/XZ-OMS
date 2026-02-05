@@ -239,10 +239,41 @@ await req.payload.create({
 
 ## Deployment
 
-### Production
+### Branch Strategy
+| Branch | Environment | Auto-Deploy |
+|--------|-------------|-------------|
+| `main` | Development | Yes |
+| `production` | Production | Yes |
+
+### Environments
+
+**Production**
 - **URL**: `https://oms.xzrealitycapture.com`
+- **Branch**: `production`
 - **Host**: Railway (app + PostgreSQL database)
-- **Schema Management**: Push mode (`push: true`) - schema synced on build
+
+**Development**
+- **URL**: (Railway dev service URL)
+- **Branch**: `main`
+- **Host**: Railway (separate service + database)
+
+### Deployment Workflow
+
+```bash
+# Daily work on main
+git checkout main
+git add . && git commit -m "feature X"
+git push                    # → deploys to DEV
+
+# Promote to production
+git checkout production
+git merge main
+git push                    # → deploys to PRODUCTION
+git checkout main
+```
+
+### Schema Management
+Uses `push: true` mode - schema synced directly on build (no migration files needed).
 
 ### Legal Pages (QuickBooks Production Requirements)
 - **Privacy Policy**: `/legal/privacy`

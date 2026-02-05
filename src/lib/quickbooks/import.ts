@@ -162,6 +162,10 @@ export async function importCustomersFromQuickBooks(payload: Payload) {
               lastSyncedAt: new Date().toISOString(),
             },
           },
+          // Disable notifications for imported clients - enable manually per-client as needed
+          notificationPreferences: {
+            enableNotifications: false,
+          },
         }
 
         // Only add optional fields if they have values

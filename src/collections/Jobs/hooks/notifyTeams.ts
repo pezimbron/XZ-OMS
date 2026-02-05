@@ -5,7 +5,13 @@ export const notifyTeams: CollectionAfterChangeHook = async ({
   previousDoc,
   operation,
   req,
+  context,
 }) => {
+  // Skip if bulk import or notifications disabled via context
+  if (context?.skipNotifications || context?.bulkImport) {
+    return doc
+  }
+
   // Only run on update operations
   if (operation !== 'update' || !previousDoc) {
     return doc
