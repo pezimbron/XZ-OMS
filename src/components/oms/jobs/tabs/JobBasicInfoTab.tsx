@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { AddressAutocomplete } from '@/components/oms/AddressAutocomplete'
 import SchedulingRequestPanel from '@/components/oms/SchedulingRequestPanel'
@@ -46,6 +46,7 @@ interface TechResponse {
 interface Job {
   id: string
   jobId: string
+  apInvoiceNumber?: string
   modelName: string
   targetDate: string
   timezone?: string
@@ -136,6 +137,49 @@ interface JobBasicInfoTabProps {
   techField: AutosaveField<string>
   // Callbacks
   fetchJob: (id: string) => Promise<void>
+}
+
+function ApInvoiceField({ jobId, initialValue, onSaved }: { jobId: string; initialValue: string; onSaved: () => void }) {
+  const [value, setValue] = useState(initialValue)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const handleSave = async () => {
+    if (value === initialValue) return
+    setSaving(true)
+    try {
+      await patchJob(jobId, { apInvoiceNumber: value || null })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      onSaved()
+    } catch (e) {
+      console.error('Failed to save AP Invoice Number:', e)
+      alert('Failed to save AP Invoice Number')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">AP Invoice Number</label>
+      <div className="space-y-1">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={handleSave}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          placeholder="e.g., AP-recXXX"
+        />
+        {saving && <p className="text-xs text-gray-500">Saving...</p>}
+        {saved && <p className="text-xs text-green-600">Saved</p>}
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          Matterport AP Invoice Number for payment matching
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default function JobBasicInfoTab({
@@ -293,6 +337,14 @@ export default function JobBasicInfoTab({
               </div>
             )}
           </div>
+          {/* AP Invoice Number - only for Matterport clients */}
+          {job.client?.name?.toLowerCase().includes('matterport') && !isTech && (
+            <ApInvoiceField
+              jobId={job.id}
+              initialValue={job.apInvoiceNumber || ''}
+              onSaved={() => fetchJob(job.id)}
+            />
+          )}
           <div>
             <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Model Name</label>
             {isTech ? (

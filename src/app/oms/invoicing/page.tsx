@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import MatterportImportModal from '@/components/oms/MatterportImportModal'
 
 interface Job {
   id: string
@@ -40,6 +41,7 @@ export default function InvoicingPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [clientFilter, setClientFilter] = useState('all')
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set())
+  const [showMatterportImport, setShowMatterportImport] = useState(false)
 
   useEffect(() => {
     fetchJobsReadyToInvoice()
@@ -69,9 +71,10 @@ export default function InvoicingPage() {
           job.lineItems.forEach((item: any) => {
             const productId = typeof item.product === 'object' ? item.product?.id : item.product
             const product = products.find((p: any) => p.id === productId)
-            if (product?.basePrice) {
-              const price = product.basePrice
-              const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+            // Use custom amount if set, otherwise fall back to product base price
+            const price = item.amount ?? product?.basePrice ?? 0
+            if (price > 0) {
+              const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
               subtotal += price * multiplier
             }
           })
@@ -86,8 +89,9 @@ export default function InvoicingPage() {
             const productId = typeof item.product === 'object' ? item.product?.id : item.product
             const product = products.find((p: any) => p.id === productId)
             if (product?.taxable) {
-              const price = product.basePrice || 0
-              const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+              // Use custom amount if set, otherwise fall back to product base price
+              const price = item.amount ?? product?.basePrice ?? 0
+              const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
               taxableAmount += price * multiplier
             }
           })
@@ -294,6 +298,15 @@ export default function InvoicingPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowMatterportImport(true)}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Import Matterport CSV
+              </button>
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedJobs.size} selected
               </span>
@@ -500,6 +513,13 @@ export default function InvoicingPage() {
           </div>
         )}
       </div>
+
+      {/* Matterport Import Modal */}
+      <MatterportImportModal
+        isOpen={showMatterportImport}
+        onClose={() => setShowMatterportImport(false)}
+        onImportComplete={() => fetchJobsReadyToInvoice()}
+      />
     </div>
   )
 }

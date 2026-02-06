@@ -1073,6 +1073,10 @@ export interface Job {
    * Unique job identifier. Can be manually set for outsourcing partners who use their own IDs.
    */
   jobId?: string | null;
+  /**
+   * Matterport AP Invoice Number for payment matching (e.g., AP-recXXX)
+   */
+  apInvoiceNumber?: string | null;
   modelName: string;
   priority?: ('low' | 'normal' | 'high' | 'rush') | null;
   status: 'request' | 'scheduled' | 'scanned' | 'qc' | 'done' | 'archived';
@@ -2416,6 +2420,7 @@ export interface EquipmentSelect<T extends boolean = true> {
  */
 export interface JobsSelect<T extends boolean = true> {
   jobId?: T;
+  apInvoiceNumber?: T;
   modelName?: T;
   priority?: T;
   status?: T;

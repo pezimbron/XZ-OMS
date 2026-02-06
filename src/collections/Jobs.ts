@@ -52,6 +52,13 @@ export const Jobs: CollectionConfig = {
       },
     },
     {
+      name: 'apInvoiceNumber',
+      type: 'text',
+      admin: {
+        description: 'Matterport AP Invoice Number for payment matching (e.g., AP-recXXX)',
+      },
+    },
+    {
       name: 'modelName',
       type: 'text',
       required: true,
