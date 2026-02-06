@@ -25,9 +25,13 @@ interface Invoice {
   }
 }
 
+// Map of invoice ID -> count of jobs linked to that invoice
+type JobCountMap = Record<string, number>
+
 export default function InvoicesPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [jobCountByInvoice, setJobCountByInvoice] = useState<JobCountMap>({})
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [clientFilter, setClientFilter] = useState('all')
@@ -44,9 +48,29 @@ export default function InvoicesPage() {
 
   const fetchInvoices = async () => {
     try {
-      const response = await fetch('/api/invoices?limit=1000&depth=1&sort=-createdAt')
-      const data = await response.json()
-      setInvoices(data.docs || [])
+      // Fetch invoices and jobs in parallel
+      const [invoicesResponse, jobsResponse] = await Promise.all([
+        fetch('/api/invoices?limit=1000&depth=1&sort=-createdAt'),
+        // Fetch jobs that have an invoice linked (to count jobs per invoice)
+        fetch('/api/jobs?limit=2000&depth=0&where[invoice][exists]=true')
+      ])
+
+      const invoicesData = await invoicesResponse.json()
+      const jobsData = await jobsResponse.json()
+
+      setInvoices(invoicesData.docs || [])
+
+      // Build job count map from jobs that have invoice relationship set
+      const countMap: JobCountMap = {}
+      for (const job of (jobsData.docs || [])) {
+        // job.invoice can be an ID (number/string) or an object with id
+        const invoiceId = typeof job.invoice === 'object' ? job.invoice?.id : job.invoice
+        if (invoiceId) {
+          const key = String(invoiceId)
+          countMap[key] = (countMap[key] || 0) + 1
+        }
+      }
+      setJobCountByInvoice(countMap)
     } catch (error) {
       console.error('Error fetching invoices:', error)
     } finally {
@@ -534,7 +558,7 @@ export default function InvoicesPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {invoice.jobs?.length || 0} job(s)
+                          {jobCountByInvoice[invoice.id] || invoice.jobs?.length || 0} job(s)
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
