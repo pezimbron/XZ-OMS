@@ -23,9 +23,26 @@ export default function VendorsListPage() {
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('active')
   const [importStatus, setImportStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isImporting, setIsImporting] = useState(false)
+  const [sortBy, setSortBy] = useState<string>('companyName-asc')
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      setSortBy(`${field}-asc`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   useEffect(() => {
     fetchVendors()
@@ -80,6 +97,32 @@ export default function VendorsListPage() {
 
     return matchesSearch && matchesActive
   })
+
+  // Sort vendors
+  const sortedVendors = [...filteredVendors].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'companyName':
+        comparison = (a.companyName || '').localeCompare(b.companyName || '')
+        break
+      case 'contact':
+        comparison = (a.contactPerson || '').localeCompare(b.contactPerson || '')
+        break
+      case 'email':
+        comparison = (a.billingEmail || '').localeCompare(b.billingEmail || '')
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
+  })
+
+  // Stats for tabs
+  const activeVendors = vendors.filter(v => v.active !== false).length
+  const inactiveVendors = vendors.filter(v => v.active === false).length
 
   if (loading) {
     return (
@@ -143,28 +186,51 @@ export default function VendorsListPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
-        <div className="flex gap-4">
-          <div className="flex-1">
+        {/* Compact filter row */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="sm:w-64">
             <input
               type="text"
-              placeholder="Search by company, contact, or email..."
+              placeholder="Search vendors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
           </div>
-          <select
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setActiveFilter('active')
+            }}
+            className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            Clear All
+          </button>
         </div>
+
+        {/* Tabs for Active/Inactive/All */}
+        <div className="flex gap-1 mt-4 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { key: 'active', label: 'Active', count: activeVendors },
+            { key: 'inactive', label: 'Inactive', count: inactiveVendors },
+            { key: 'all', label: 'All', count: vendors.length },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeFilter === tab.key
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
         <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredVendors.length} of {vendors.length} vendors
+          Showing {sortedVendors.length} vendors
         </div>
       </div>
 
@@ -175,23 +241,38 @@ export default function VendorsListPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Company</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contact</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Billing Email</th>
+                  <th
+                    onClick={() => handleSort('companyName')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Company<SortIndicator field="companyName" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('contact')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Contact<SortIndicator field="contact" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('email')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Billing Email<SortIndicator field="email" />
+                  </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active</th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">QB Sync</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredVendors.length === 0 ? (
+                {sortedVendors.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No vendors found matching your filters
                     </td>
                   </tr>
                 ) : (
-                  filteredVendors.map((vendor) => (
+                  sortedVendors.map((vendor) => (
                     <tr
                       key={vendor.id}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"

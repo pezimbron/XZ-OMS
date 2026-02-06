@@ -19,7 +19,25 @@ export default function TechniciansListPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
-  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('active')
+  const [sortBy, setSortBy] = useState<string>('name-asc')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      setSortBy(`${field}-asc`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   useEffect(() => {
     fetchTechnicians()
@@ -53,6 +71,35 @@ export default function TechniciansListPage() {
 
     return matchesSearch && matchesType && matchesActive
   })
+
+  // Sort technicians
+  const sortedTechnicians = [...filteredTechnicians].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'name':
+        comparison = (a.name || '').localeCompare(b.name || '')
+        break
+      case 'email':
+        comparison = (a.email || '').localeCompare(b.email || '')
+        break
+      case 'type':
+        comparison = (a.type || '').localeCompare(b.type || '')
+        break
+      case 'rate':
+        comparison = (a.baseCommissionRate || 0) - (b.baseCommissionRate || 0)
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
+  })
+
+  // Stats for tabs
+  const activeTechs = technicians.filter(t => t.active !== false).length
+  const inactiveTechs = technicians.filter(t => t.active === false).length
 
   const getVendorName = (vendor: Technician['vendor']): string => {
     if (!vendor) return '—'
@@ -108,38 +155,62 @@ export default function TechniciansListPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
-        <div className="flex gap-4">
-          <div className="flex-1">
+        {/* Compact filter row */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="sm:w-64">
             <input
               type="text"
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search technicians..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
           </div>
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="all">All Types</option>
             <option value="commission">Commission</option>
             <option value="w2">W2</option>
             <option value="partner">Partner</option>
           </select>
-          <select
-            value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setTypeFilter('all')
+              setActiveFilter('active')
+            }}
+            className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
           >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            Clear All
+          </button>
         </div>
+
+        {/* Tabs for Active/Inactive/All */}
+        <div className="flex gap-1 mt-4 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { key: 'active', label: 'Active', count: activeTechs },
+            { key: 'inactive', label: 'Inactive', count: inactiveTechs },
+            { key: 'all', label: 'All', count: technicians.length },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeFilter === tab.key
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
         <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          Showing {filteredTechnicians.length} of {technicians.length} technicians
+          Showing {sortedTechnicians.length} technicians
         </div>
       </div>
 
@@ -150,24 +221,44 @@ export default function TechniciansListPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+                  <th
+                    onClick={() => handleSort('name')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Name<SortIndicator field="name" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('email')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Email<SortIndicator field="email" />
+                  </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                  <th
+                    onClick={() => handleSort('type')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Type<SortIndicator field="type" />
+                  </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vendor</th>
-                  <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rate</th>
+                  <th
+                    onClick={() => handleSort('rate')}
+                    className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Rate<SortIndicator field="rate" />
+                  </th>
                   <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredTechnicians.length === 0 ? (
+                {sortedTechnicians.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No technicians found matching your filters
                     </td>
                   </tr>
                 ) : (
-                  filteredTechnicians.map((tech) => (
+                  sortedTechnicians.map((tech) => (
                     <tr
                       key={tech.id}
                       className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition-colors"

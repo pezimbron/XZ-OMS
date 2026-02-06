@@ -42,6 +42,25 @@ export default function InvoicingPage() {
   const [clientFilter, setClientFilter] = useState('all')
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set())
   const [showMatterportImport, setShowMatterportImport] = useState(false)
+  const [sortBy, setSortBy] = useState<string>('completedDate-desc')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      const defaultDir = field === 'completedDate' || field === 'amount' ? 'desc' : 'asc'
+      setSortBy(`${field}-${defaultDir}`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   useEffect(() => {
     fetchJobsReadyToInvoice()
@@ -158,6 +177,36 @@ export default function InvoicingPage() {
     }
     
     return true
+  })
+
+  // Sort jobs
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'jobId':
+        comparison = (a.jobId || '').localeCompare(b.jobId || '')
+        break
+      case 'client':
+        comparison = (a.client?.name || '').localeCompare(b.client?.name || '')
+        break
+      case 'model':
+        comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'completedDate':
+        const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0
+        const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0
+        comparison = dateA - dateB
+        break
+      case 'amount':
+        comparison = (a.totalPrice || 0) - (b.totalPrice || 0)
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
   })
 
   const groupedJobs = {
@@ -324,75 +373,66 @@ export default function InvoicingPage() {
 
       {/* Filters */}
       <div className="px-8 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        {/* Billing Preference Filters */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Billing Preference</label>
-          <div className="flex gap-2 flex-wrap">
-            {[
-              { value: 'all', label: 'All Jobs', count: filteredJobs.length },
-              { value: 'immediate', label: 'Immediate', count: groupedJobs.immediate.length },
-              { value: 'weekly-batch', label: 'Weekly Batch', count: groupedJobs.weeklyBatch.length },
-              { value: 'monthly-batch', label: 'Monthly Batch', count: groupedJobs.monthlyBatch.length },
-              { value: 'payment-first', label: 'Payment First', count: groupedJobs.paymentFirst.length },
-            ].map(({ value, label, count }) => (
-              <button
-                key={value}
-                onClick={() => setFilter(value as any)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  filter === value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                {label} ({count})
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search and Client Filter */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+        {/* Compact filter row */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-4">
+          <div className="sm:w-64">
             <input
               type="text"
-              placeholder="Job ID, Model Name, or Client"
+              placeholder="Search jobs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client</label>
-            <select
-              value={clientFilter}
-              onChange={(e) => setClientFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="all">All Clients</option>
-              {Array.from(new Set(jobs.map(job => job.client?.id))).filter(Boolean).map(clientId => {
-                const client = jobs.find(job => job.client?.id === clientId)?.client
-                return client ? <option key={clientId} value={clientId}>{client.name}</option> : null
-              })}
-            </select>
-          </div>
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            <option value="all">All Clients</option>
+            {Array.from(new Set(jobs.map(job => job.client?.id))).filter(Boolean).map(clientId => {
+              const client = jobs.find(job => job.client?.id === clientId)?.client
+              return client ? <option key={clientId} value={clientId}>{client.name}</option> : null
+            })}
+          </select>
+          <button
+            onClick={() => {
+              setFilter('all')
+              setSearchTerm('')
+              setClientFilter('all')
+            }}
+            className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
+          >
+            Clear All
+          </button>
         </div>
 
-        {/* Clear Filters */}
-        {(filter !== 'all' || searchTerm || clientFilter !== 'all') && (
-          <div className="mt-4">
+        {/* Billing Preference Tabs */}
+        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { value: 'all', label: 'All', count: filteredJobs.length },
+            { value: 'immediate', label: 'Immediate', count: groupedJobs.immediate.length },
+            { value: 'weekly-batch', label: 'Weekly', count: groupedJobs.weeklyBatch.length },
+            { value: 'monthly-batch', label: 'Monthly', count: groupedJobs.monthlyBatch.length },
+            { value: 'payment-first', label: 'Pay First', count: groupedJobs.paymentFirst.length },
+          ].map(({ value, label, count }) => (
             <button
-              onClick={() => {
-                setFilter('all')
-                setSearchTerm('')
-                setClientFilter('all')
-              }}
-              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              key={value}
+              onClick={() => setFilter(value as any)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                filter === value
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
             >
-              Clear all filters
+              {label} ({count})
             </button>
-          </div>
-        )}
+          ))}
+        </div>
+
+        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Showing {sortedJobs.length} jobs ready to invoice
+        </div>
       </div>
 
       {/* Content - Table */}
@@ -405,10 +445,10 @@ export default function InvoicingPage() {
                   <th className="px-6 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedJobs.size === filteredJobs.length && filteredJobs.length > 0}
+                      checked={selectedJobs.size === sortedJobs.length && sortedJobs.length > 0}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedJobs(new Set(filteredJobs.map(j => j.id)))
+                          setSelectedJobs(new Set(sortedJobs.map(j => j.id)))
                         } else {
                           setSelectedJobs(new Set())
                         }
@@ -416,20 +456,32 @@ export default function InvoicingPage() {
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Job ID
+                  <th
+                    onClick={() => handleSort('jobId')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Job ID<SortIndicator field="jobId" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Model / Client
+                  <th
+                    onClick={() => handleSort('model')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Model / Client<SortIndicator field="model" />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Billing Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Completed Date
+                  <th
+                    onClick={() => handleSort('completedDate')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Completed<SortIndicator field="completedDate" />
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Amount
+                  <th
+                    onClick={() => handleSort('amount')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Amount<SortIndicator field="amount" />
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
@@ -437,7 +489,7 @@ export default function InvoicingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredJobs.length === 0 ? (
+                {sortedJobs.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       <p className="text-lg">No jobs ready to invoice</p>
@@ -445,7 +497,7 @@ export default function InvoicingPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredJobs.map((job) => (
+                  sortedJobs.map((job) => (
                     <tr
                       key={job.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -507,9 +559,9 @@ export default function InvoicingPage() {
         </div>
 
         {/* Results Count */}
-        {filteredJobs.length > 0 && (
+        {sortedJobs.length > 0 && (
           <div className="mt-4 text-sm text-gray-600 dark:text-gray-400 text-center">
-            Showing {filteredJobs.length} of {jobs.length} jobs ready to invoice
+            Showing {sortedJobs.length} of {jobs.length} jobs ready to invoice
           </div>
         )}
       </div>

@@ -28,6 +28,9 @@ interface Invoice {
 // Map of invoice ID -> count of jobs linked to that invoice
 type JobCountMap = Record<string, number>
 
+// Sort helper types
+type SortField = 'invoiceNumber' | 'client' | 'jobs' | 'amount' | 'dueDate' | 'status'
+
 export default function InvoicesPage() {
   const router = useRouter()
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -41,6 +44,25 @@ export default function InvoicesPage() {
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set())
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [sortBy, setSortBy] = useState<string>('dueDate-desc')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      const defaultDir = field === 'dueDate' || field === 'amount' ? 'desc' : 'asc'
+      setSortBy(`${field}-${defaultDir}`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   useEffect(() => {
     fetchInvoices()
@@ -100,6 +122,39 @@ export default function InvoicesPage() {
     return true
   })
 
+  // Sort invoices
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'invoiceNumber':
+        comparison = (a.invoiceNumber || '').localeCompare(b.invoiceNumber || '')
+        break
+      case 'client':
+        comparison = (a.client?.name || '').localeCompare(b.client?.name || '')
+        break
+      case 'jobs':
+        const jobsA = jobCountByInvoice[a.id] || a.jobs?.length || 0
+        const jobsB = jobCountByInvoice[b.id] || b.jobs?.length || 0
+        comparison = jobsA - jobsB
+        break
+      case 'amount':
+        comparison = (a.total || 0) - (b.total || 0)
+        break
+      case 'dueDate':
+        comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        break
+      case 'status':
+        comparison = (a.status || '').localeCompare(b.status || '')
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
+  })
+
   const stats = {
     total: invoices.length,
     draft: invoices.filter(i => i.status === 'draft').length,
@@ -157,10 +212,10 @@ export default function InvoicesPage() {
   }
 
   const toggleSelectAll = () => {
-    if (selectedInvoices.size === filteredInvoices.length) {
+    if (selectedInvoices.size === sortedInvoices.length) {
       setSelectedInvoices(new Set())
     } else {
-      setSelectedInvoices(new Set(filteredInvoices.map(inv => inv.id)))
+      setSelectedInvoices(new Set(sortedInvoices.map(inv => inv.id)))
     }
   }
 
@@ -393,96 +448,99 @@ export default function InvoicesPage() {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          {/* Status Filters */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { value: 'all', label: 'All', count: stats.total },
-                { value: 'draft', label: 'Draft', count: stats.draft },
-                { value: 'approved', label: 'Approved', count: stats.approved },
-                { value: 'sent', label: 'Sent', count: stats.sent },
-                { value: 'paid', label: 'Paid', count: stats.paid },
-                { value: 'overdue', label: 'Overdue', count: stats.overdue },
-              ].map(({ value, label, count }) => (
-                <button
-                  key={value}
-                  onClick={() => setStatusFilter(value)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    statusFilter === value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {label} ({count})
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search and Additional Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+          {/* Compact filter row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-4">
+            <div className="sm:w-64">
               <input
                 type="text"
-                placeholder="Invoice # or Client"
+                placeholder="Search invoices..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client</label>
-              <select
-                value={clientFilter}
-                onChange={(e) => setClientFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="all">All Clients</option>
-                {Array.from(new Set(invoices.map(inv => inv.client?.id))).filter(Boolean).map(clientId => {
-                  const client = invoices.find(inv => inv.client?.id === clientId)?.client
-                  return client ? <option key={clientId} value={clientId}>{client.name}</option> : null
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">From Date</label>
-              <input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">To Date</label>
-              <input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-            </div>
+            <select
+              value={clientFilter}
+              onChange={(e) => setClientFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">All Clients</option>
+              {Array.from(new Set(invoices.map(inv => inv.client?.id))).filter(Boolean).map(clientId => {
+                const client = invoices.find(inv => inv.client?.id === clientId)?.client
+                return client ? <option key={clientId} value={clientId}>{client.name}</option> : null
+              })}
+            </select>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium whitespace-nowrap"
+            >
+              {showFilters ? '− Less' : '+ More Filters'}
+            </button>
+            <button
+              onClick={() => {
+                setStatusFilter('all')
+                setClientFilter('all')
+                setSearchTerm('')
+                setDateFrom('')
+                setDateTo('')
+              }}
+              className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
+            >
+              Clear All
+            </button>
           </div>
 
-          {/* Clear Filters */}
-          {(statusFilter !== 'all' || clientFilter !== 'all' || searchTerm || dateFrom || dateTo) && (
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  setStatusFilter('all')
-                  setClientFilter('all')
-                  setSearchTerm('')
-                  setDateFrom('')
-                  setDateTo('')
-                }}
-                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Clear all filters
-              </button>
+          {/* Extended filters */}
+          {showFilters && (
+            <div className="flex flex-wrap gap-3 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
             </div>
           )}
+
+          {/* Status Tabs */}
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+            {[
+              { value: 'all', label: 'All', count: stats.total },
+              { value: 'draft', label: 'Draft', count: stats.draft },
+              { value: 'approved', label: 'Approved', count: stats.approved },
+              { value: 'sent', label: 'Sent', count: stats.sent },
+              { value: 'paid', label: 'Paid', count: stats.paid },
+              { value: 'overdue', label: 'Overdue', count: stats.overdue },
+            ].map(({ value, label, count }) => (
+              <button
+                key={value}
+                onClick={() => setStatusFilter(value)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  statusFilter === value
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+            Showing {sortedInvoices.length} invoices
+          </div>
         </div>
 
         {/* Invoices Table */}
@@ -494,28 +552,46 @@ export default function InvoicesPage() {
                   <th className="px-6 py-3 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedInvoices.size === filteredInvoices.length && filteredInvoices.length > 0}
+                      checked={selectedInvoices.size === sortedInvoices.length && sortedInvoices.length > 0}
                       onChange={toggleSelectAll}
                       className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
                     />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Invoice #
+                  <th
+                    onClick={() => handleSort('invoiceNumber')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Invoice #<SortIndicator field="invoiceNumber" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Client
+                  <th
+                    onClick={() => handleSort('client')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Client<SortIndicator field="client" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Jobs
+                  <th
+                    onClick={() => handleSort('jobs')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Jobs<SortIndicator field="jobs" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Amount
+                  <th
+                    onClick={() => handleSort('amount')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Amount<SortIndicator field="amount" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Due Date
+                  <th
+                    onClick={() => handleSort('dueDate')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Due Date<SortIndicator field="dueDate" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Status
+                  <th
+                    onClick={() => handleSort('status')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                  >
+                    Status<SortIndicator field="status" />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     QB Sync
@@ -526,14 +602,14 @@ export default function InvoicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredInvoices.length === 0 ? (
+                {sortedInvoices.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No invoices found
                     </td>
                   </tr>
                 ) : (
-                  filteredInvoices.map((invoice) => (
+                  sortedInvoices.map((invoice) => (
                     <tr
                       key={invoice.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700"

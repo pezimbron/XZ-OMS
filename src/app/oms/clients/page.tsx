@@ -22,6 +22,24 @@ export default function ClientsListPage() {
   const [clientTypeFilter, setClientTypeFilter] = useState('all')
   const [billingPrefFilter, setBillingPrefFilter] = useState('all')
   const [importing, setImporting] = useState(false)
+  const [sortBy, setSortBy] = useState<string>('name-asc')
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      setSortBy(`${field}-asc`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   useEffect(() => {
     fetchClients()
@@ -43,21 +61,46 @@ export default function ClientsListPage() {
     // Search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
-      const matchesSearch = 
+      const matchesSearch =
         client.name?.toLowerCase().includes(searchLower) ||
         client.email?.toLowerCase().includes(searchLower) ||
         client.companyName?.toLowerCase().includes(searchLower) ||
         client.phone?.toLowerCase().includes(searchLower)
       if (!matchesSearch) return false
     }
-    
+
     // Client type filter
     if (clientTypeFilter !== 'all' && client.clientType !== clientTypeFilter) return false
-    
+
     // Billing preference filter
     if (billingPrefFilter !== 'all' && client.billingPreference !== billingPrefFilter) return false
-    
+
     return true
+  })
+
+  // Sort clients
+  const sortedClients = [...filteredClients].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'name':
+        comparison = (a.name || '').localeCompare(b.name || '')
+        break
+      case 'company':
+        comparison = (a.companyName || '').localeCompare(b.companyName || '')
+        break
+      case 'type':
+        comparison = (a.clientType || '').localeCompare(b.clientType || '')
+        break
+      case 'billing':
+        comparison = (a.billingPreference || '').localeCompare(b.billingPreference || '')
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
   })
 
   const handleImportFromQuickBooks = async () => {
@@ -143,67 +186,70 @@ export default function ClientsListPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+        {/* Compact filter row */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+          <div className="sm:w-64">
             <input
               type="text"
-              placeholder="Name, email, company, or phone"
+              placeholder="Search clients..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Client Type</label>
-            <select
-              value={clientTypeFilter}
-              onChange={(e) => setClientTypeFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="all">All Types</option>
-              <option value="retail">Retail</option>
-              <option value="outsourcing-partner">Outsourcing Partner</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Billing Preference</label>
+          <select
+            value={clientTypeFilter}
+            onChange={(e) => setClientTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+          >
+            <option value="all">All Types</option>
+            <option value="retail">Retail</option>
+            <option value="outsourcing-partner">Outsourcing Partner</option>
+          </select>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-medium whitespace-nowrap"
+          >
+            {showFilters ? '− Less' : '+ More Filters'}
+          </button>
+          <button
+            onClick={() => {
+              setSearchTerm('')
+              setClientTypeFilter('all')
+              setBillingPrefFilter('all')
+            }}
+            className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
+          >
+            Clear All
+          </button>
+        </div>
+
+        {/* Extended filters */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             <select
               value={billingPrefFilter}
               onChange={(e) => setBillingPrefFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             >
-              <option value="all">All Preferences</option>
+              <option value="all">All Billing Prefs</option>
               <option value="immediate">Immediate</option>
               <option value="weekly-batch">Weekly Batch</option>
               <option value="monthly-batch">Monthly Batch</option>
               <option value="payment-first">Payment First</option>
             </select>
           </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {filteredClients.length} of {clients.length} clients
-          </div>
-          {(searchTerm || clientTypeFilter !== 'all' || billingPrefFilter !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchTerm('')
-                setClientTypeFilter('all')
-                setBillingPrefFilter('all')
-              }}
-              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Clear filters
-            </button>
-          )}
+        )}
+
+        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Showing {sortedClients.length} clients
         </div>
       </div>
 
       {/* Clients Table */}
       <div className="p-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {filteredClients.length === 0 ? (
+          {sortedClients.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">No clients found matching your filters</p>
             </div>
@@ -212,20 +258,32 @@ export default function ClientsListPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Name
+                    <th
+                      onClick={() => handleSort('name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                    >
+                      Name<SortIndicator field="name" />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Company
+                    <th
+                      onClick={() => handleSort('company')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                    >
+                      Company<SortIndicator field="company" />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Contact
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Type
+                    <th
+                      onClick={() => handleSort('type')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                    >
+                      Type<SortIndicator field="type" />
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Billing
+                    <th
+                      onClick={() => handleSort('billing')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 select-none"
+                    >
+                      Billing<SortIndicator field="billing" />
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       Actions
@@ -233,7 +291,7 @@ export default function ClientsListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredClients.map((client) => (
+                  {sortedClients.map((client) => (
                     <tr
                       key={client.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
