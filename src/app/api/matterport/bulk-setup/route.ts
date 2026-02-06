@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
         companyName: { contains: clientConfig.clientSearch },
       },
       limit: 1,
+      overrideAccess: true,
     })
 
     if (clientsResult.docs.length === 0) {
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
     const workflowsResult = await payload.find({
       collection: 'workflow-templates',
       limit: 50,
+      overrideAccess: true,
     })
 
     const targetWorkflow = workflowsResult.docs.find(w =>
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest) {
     const productsResult = await payload.find({
       collection: 'products',
       limit: 50,
+      overrideAccess: true,
     })
 
     const targetProducts: Array<{ id: string | number; name: string }> = []
@@ -103,6 +106,7 @@ export async function POST(req: NextRequest) {
       },
       limit: 500,
       depth: 0,
+      overrideAccess: true,
     })
 
     const updates: Array<{ jobId: string; success: boolean; error?: string }> = []
@@ -130,6 +134,7 @@ export async function POST(req: NextRequest) {
           collection: 'jobs',
           id: String(job.id),
           data: updateData,
+          overrideAccess: true,
         })
 
         updates.push({
@@ -174,11 +179,13 @@ export async function GET(req: NextRequest) {
     const workflowsResult = await payload.find({
       collection: 'workflow-templates',
       limit: 50,
+      overrideAccess: true,
     })
 
     const productsResult = await payload.find({
       collection: 'products',
       limit: 50,
+      overrideAccess: true,
     })
 
     // If no client specified, show all available options
@@ -211,6 +218,7 @@ export async function GET(req: NextRequest) {
         companyName: { contains: clientConfig.clientSearch },
       },
       limit: 1,
+      overrideAccess: true,
     })
 
     if (clientsResult.docs.length === 0) {
@@ -227,6 +235,7 @@ export async function GET(req: NextRequest) {
       },
       limit: 500,
       depth: 1,
+      overrideAccess: true,
     })
 
     const jobsWithoutProducts = jobsResult.docs.filter(job => {
