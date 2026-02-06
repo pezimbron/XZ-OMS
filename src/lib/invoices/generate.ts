@@ -57,13 +57,15 @@ export async function generateInvoiceFromJobs({
     }
 
     // Validate all jobs are done and ready to invoice
+    // Accept both 'not-invoiced' and 'ready' as valid states for invoicing
+    const validInvoiceStatuses = ['not-invoiced', 'ready']
     const invalidJobs = jobs.filter(
-      (job: any) => job.status !== 'done' || job.invoiceStatus !== 'ready',
+      (job: any) => job.status !== 'done' || !validInvoiceStatuses.includes(job.invoiceStatus),
     )
     if (invalidJobs.length > 0) {
-      const invalidJobIds = invalidJobs.map((j: any) => j.jobId).join(', ')
+      const invalidJobIds = invalidJobs.map((j: any) => j.jobId || j.id).join(', ')
       throw new Error(
-        `Jobs must have status='done' and invoiceStatus='ready'. Invalid jobs: ${invalidJobIds}`,
+        `Jobs must have status='done' and invoiceStatus='not-invoiced' or 'ready'. Invalid jobs: ${invalidJobIds}`,
       )
     }
 
