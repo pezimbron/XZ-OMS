@@ -174,6 +174,19 @@ class QuickBooksClient {
     return this.makeApiCall(`bill/${billId}`, 'GET')
   }
 
+  async createVendor(vendorData: {
+    DisplayName: string
+    PrimaryEmailAddr?: { Address: string }
+    PrimaryPhone?: { FreeFormNumber: string }
+    CompanyName?: string
+  }) {
+    return this.makeApiCall('vendor', 'POST', vendorData)
+  }
+
+  async getVendor(vendorId: string) {
+    return this.makeApiCall(`vendor/${vendorId}`, 'GET')
+  }
+
   isConnected() {
     const token = this.oauthClient.getToken()
     return token && token.access_token && !this.oauthClient.isAccessTokenValid()

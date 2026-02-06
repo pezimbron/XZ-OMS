@@ -32,6 +32,7 @@ export default function VendorDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [isSyncingQB, setIsSyncingQB] = useState(false)
 
   const [formData, setFormData] = useState({
     companyName: '',
@@ -118,6 +119,31 @@ export default function VendorDetailPage() {
     } catch (err: any) {
       setError(err.message)
       setShowDeleteConfirm(false)
+    }
+  }
+
+  const syncToQuickBooks = async () => {
+    setIsSyncingQB(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/quickbooks/vendors/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vendorId: params.id }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync vendor to QuickBooks')
+      }
+
+      // Refresh vendor data to show the new QB ID
+      await fetchVendor(params.id as string)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsSyncingQB(false)
     }
   }
 
@@ -340,9 +366,35 @@ export default function VendorDetailPage() {
             </div>
           </div>
 
-          {/* QuickBooks Integration (read-only) */}
+          {/* QuickBooks Integration */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">QuickBooks Integration</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">QuickBooks Integration</h2>
+              {!vendor.integrations?.quickbooks?.vendorId && (
+                <button
+                  onClick={syncToQuickBooks}
+                  disabled={isSyncingQB}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  {isSyncingQB ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Create in QuickBooks
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-32">Vendor ID</span>
@@ -354,7 +406,7 @@ export default function VendorDetailPage() {
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400 w-32">Sync Status</span>
                 <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
                   vendor.integrations?.quickbooks?.syncStatus === 'synced'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                     : vendor.integrations?.quickbooks?.syncStatus === 'error'
                     ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400'
