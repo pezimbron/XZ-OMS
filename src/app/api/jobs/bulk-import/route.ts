@@ -39,7 +39,7 @@ interface MatchResult {
   } | null
   matchReason: string
   updates: Record<string, any>
-  productToAdd: { id: string; name: string } | null
+  productToAdd: { id: number; name: string } | null
 }
 
 // Job type to product name mapping (must match exact product names in database)
@@ -177,10 +177,10 @@ export async function POST(req: NextRequest) {
     const products = productsResult.docs
 
     // Build product name lookup (case insensitive)
-    const productNameToObj: Record<string, { id: string; name: string }> = {}
+    const productNameToObj: Record<string, { id: number; name: string }> = {}
     for (const product of products) {
       const name = (product.name as string)?.toLowerCase() || ''
-      productNameToObj[name] = { id: String(product.id), name: product.name as string }
+      productNameToObj[name] = { id: Number(product.id), name: product.name as string }
     }
 
     const matches: MatchResult[] = []
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Determine product to add based on job type
-      let productToAdd: { id: string; name: string } | null = null
+      let productToAdd: { id: number; name: string } | null = null
       if (row.jobType && matchedJob && !matchedJob.hasProducts) {
         const productNames = JOB_TYPE_TO_PRODUCT[row.jobType]
         if (productNames && productNames.length > 0) {
