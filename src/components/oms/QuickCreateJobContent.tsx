@@ -46,6 +46,14 @@ export function QuickCreateJobContent() {
       const data = await response.json()
 
       if (!response.ok) {
+        // Handle duplicate job error - offer to view existing job
+        if (response.status === 409 && data.existingJobId) {
+          const goToExisting = confirm(`${data.error}\n\nWould you like to view the existing job?`)
+          if (goToExisting) {
+            router.push(`/oms/jobs/${data.existingJobId}`)
+          }
+          return
+        }
         throw new Error(data.error || 'Failed to parse email')
       }
 
