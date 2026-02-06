@@ -36,21 +36,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create vendor in QuickBooks
-    const qbVendorData: any = {
-      DisplayName: vendor.companyName,
-    }
+    // First, check if vendor already exists in QuickBooks by name
+    const searchQuery = `SELECT * FROM Vendor WHERE DisplayName = '${vendor.companyName.replace(/'/g, "\\'")}'`
+    const searchResult = await quickbooksClient.queryCustomers(searchQuery)
+    const existingVendors = searchResult?.QueryResponse?.Vendor || []
 
-    if (vendor.billingEmail) {
-      qbVendorData.PrimaryEmailAddr = { Address: vendor.billingEmail }
-    }
+    let qbVendorId: string
+    let action: 'linked' | 'created'
 
-    if (vendor.billingPhone) {
-      qbVendorData.PrimaryPhone = { FreeFormNumber: vendor.billingPhone }
-    }
+    if (existingVendors.length > 0) {
+      // Vendor already exists in QB - link it
+      qbVendorId = existingVendors[0].Id
+      action = 'linked'
+    } else {
+      // Create new vendor in QuickBooks
+      const qbVendorData: any = {
+        DisplayName: vendor.companyName,
+      }
 
-    const qbResult = await quickbooksClient.createVendor(qbVendorData)
-    const qbVendorId = qbResult.Vendor.Id
+      if (vendor.billingEmail) {
+        qbVendorData.PrimaryEmailAddr = { Address: vendor.billingEmail }
+      }
+
+      if (vendor.billingPhone) {
+        qbVendorData.PrimaryPhone = { FreeFormNumber: vendor.billingPhone }
+      }
+
+      const qbResult = await quickbooksClient.createVendor(qbVendorData)
+      qbVendorId = qbResult.Vendor.Id
+      action = 'created'
+    }
 
     // Update OMS vendor with QuickBooks ID
     await payload.update({
@@ -69,13 +84,27 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Vendor "${vendor.companyName}" created in QuickBooks`,
+      message: action === 'linked'
+        ? `Vendor "${vendor.companyName}" linked to existing QuickBooks vendor`
+        : `Vendor "${vendor.companyName}" created in QuickBooks`,
       quickbooksId: qbVendorId,
+      action,
     })
   } catch (error: any) {
     console.error('QuickBooks vendor sync error:', error)
+
+    // Extract more detailed error from QuickBooks response
+    let errorMessage = 'Failed to sync vendor to QuickBooks'
+    if (error.response?.data?.Fault?.Error?.[0]?.Detail) {
+      errorMessage = error.response.data.Fault.Error[0].Detail
+    } else if (error.response?.data?.Fault?.Error?.[0]?.Message) {
+      errorMessage = error.response.data.Fault.Error[0].Message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+
     return NextResponse.json(
-      { error: 'Failed to sync vendor to QuickBooks', details: error.message },
+      { error: errorMessage },
       { status: 500 }
     )
   }
