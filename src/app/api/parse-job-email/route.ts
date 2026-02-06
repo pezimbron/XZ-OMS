@@ -38,6 +38,23 @@ export async function POST(req: NextRequest) {
     const region = detectRegion(parsedJob.city, parsedJob.isOutsourced)
     
     console.log('Parsed data:', JSON.stringify(parsedJob, null, 2))
+
+    // Check for duplicate jobId
+    if (parsedJob.jobId) {
+      const existingJob = await payload.find({
+        collection: 'jobs',
+        where: { jobId: { equals: parsedJob.jobId } },
+        limit: 1,
+      })
+
+      if (existingJob.docs.length > 0) {
+        return NextResponse.json({
+          error: `Job with ID "${parsedJob.jobId}" already exists`,
+          existingJobId: existingJob.docs[0].id,
+        }, { status: 409 })
+      }
+    }
+
     // Create job in Payload
     const job = await payload.create({
       collection: 'jobs',
