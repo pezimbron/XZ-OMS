@@ -145,10 +145,10 @@ export default function JobsListPage() {
     const matchesRegion = regionFilter === 'all' || job.region === regionFilter
     
     const clientId = typeof job.client === 'object' ? job.client?.id : job.client
-    const matchesClient = clientFilter === 'all' || clientId === clientFilter
-    
+    const matchesClient = clientFilter === 'all' || String(clientId) === String(clientFilter)
+
     const techId = typeof job.tech === 'object' ? job.tech?.id : job.tech
-    const matchesTech = techFilter === 'all' || (techFilter === 'unassigned' ? !techId : techId === techFilter)
+    const matchesTech = techFilter === 'all' || (techFilter === 'unassigned' ? !techId : String(techId) === String(techFilter))
 
     const jobDate = job.targetDate ? new Date(job.targetDate) : null
     const matchesDateFrom = !dateFrom || !jobDate || jobDate >= new Date(dateFrom)
@@ -309,7 +309,7 @@ export default function JobsListPage() {
             >
               <option value="all">All Clients</option>
               {clients.map(client => (
-                <option key={client.id} value={client.id}>{client.name}</option>
+                <option key={client.id} value={client.id}>{client.companyName || client.name}</option>
               ))}
             </select>
 
