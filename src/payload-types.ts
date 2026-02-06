@@ -1138,6 +1138,10 @@ export interface Job {
          * Hide this item from the technician's calendar invite to-do list (e.g., for post-production only tasks)
          */
         excludeFromCalendar?: boolean | null;
+        /**
+         * Override the product base price with a custom amount. Leave empty to use product default.
+         */
+        amount?: number | null;
         id?: string | null;
       }[]
     | null;
@@ -2445,6 +2449,7 @@ export interface JobsSelect<T extends boolean = true> {
         quantity?: T;
         instructions?: T;
         excludeFromCalendar?: T;
+        amount?: T;
         id?: T;
       };
   customTodoItems?:

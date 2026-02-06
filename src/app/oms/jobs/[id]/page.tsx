@@ -490,6 +490,7 @@ export default function JobDetailPage() {
               quantity: item?.quantity ?? 1,
               instructions: item?.instructions ?? '',
               excludeFromCalendar: item?.excludeFromCalendar ?? undefined,
+              amount: item?.amount ?? undefined,
             }))
         : []
       await patchJob(job.id, { lineItems: normalized })

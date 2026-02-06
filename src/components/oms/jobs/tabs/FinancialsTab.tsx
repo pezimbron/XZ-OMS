@@ -353,6 +353,27 @@ export default function FinancialsTab({
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
+                <div className="w-32">
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">Amount $</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={item.amount ?? ''}
+                    onChange={(e) => {
+                      const next = [...(lineItemsField.value || [])]
+                      const val = e.target.value === '' ? undefined : parseFloat(e.target.value)
+                      next[index] = { ...next[index], amount: val }
+                      lineItemsField.setValue(next)
+                    }}
+                    placeholder={(() => {
+                      const productId = typeof item.product === 'object' ? item.product?.id : item.product
+                      const product = products.find(p => String(p.id) === String(productId))
+                      return product?.basePrice?.toFixed(2) || '0.00'
+                    })()}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -387,15 +408,18 @@ export default function FinancialsTab({
                   </div>
                   <div className="text-right">
                     <p className="text-gray-900 dark:text-white">Qty: {item.quantity || 1}</p>
-                    {item.product?.basePrice && (
+                    {(item.amount !== undefined || item.product?.basePrice) && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         ${(() => {
-                          const price = item.product.basePrice
+                          const price = item.amount ?? item.product?.basePrice ?? 0
                           const jobSqFt = job.sqFt || 0
-                          const multiplier = item.product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                          const multiplier = item.product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
                           return (price * multiplier).toFixed(2)
                         })()}
-                        {item.product.unitType === 'per-sq-ft' && ` (${job.sqFt || 0} sq ft)`}
+                        {item.product?.unitType === 'per-sq-ft' && ` (${job.sqFt || 0} sq ft)`}
+                        {item.amount !== undefined && item.amount !== item.product?.basePrice && (
+                          <span className="text-xs text-blue-500 ml-1">(custom)</span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -427,9 +451,10 @@ export default function FinancialsTab({
             currentJob.lineItems.forEach((item: any) => {
               const productId = typeof item.product === 'object' ? item.product?.id : item.product
               const product = products.find(p => p.id === productId)
-              if (product?.basePrice) {
-                const price = product.basePrice
-                const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+              // Use custom amount if set, otherwise fall back to product base price
+              const price = item.amount ?? product?.basePrice ?? 0
+              if (price > 0) {
+                const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
                 subtotal += price * multiplier
               }
             })
@@ -453,8 +478,9 @@ export default function FinancialsTab({
               const productId = typeof item.product === 'object' ? item.product?.id : item.product
               const product = products.find(p => p.id === productId)
               if (product?.taxable) {
-                const price = product.basePrice || 0
-                const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                // Use custom amount if set, otherwise fall back to product base price
+                const price = item.amount ?? product?.basePrice ?? 0
+                const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
                 taxableAmount += price * multiplier
               }
             })
@@ -949,9 +975,10 @@ export default function FinancialsTab({
             currentJob.lineItems.forEach((item: any) => {
               const productId = typeof item.product === 'object' ? item.product?.id : item.product
               const product = products.find(p => p.id === productId)
-              if (product?.basePrice) {
-                const price = product.basePrice
-                const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+              // Use custom amount if set, otherwise fall back to product base price
+              const price = item.amount ?? product?.basePrice ?? 0
+              if (price > 0) {
+                const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
                 subtotal += price * multiplier
               }
             })
@@ -973,8 +1000,9 @@ export default function FinancialsTab({
               const productId = typeof item.product === 'object' ? item.product?.id : item.product
               const product = products.find(p => p.id === productId)
               if (product?.taxable) {
-                const price = product.basePrice || 0
-                const multiplier = product.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
+                // Use custom amount if set, otherwise fall back to product base price
+                const price = item.amount ?? product?.basePrice ?? 0
+                const multiplier = product?.unitType === 'per-sq-ft' ? jobSqFt : (item.quantity || 1)
                 taxableAmount += price * multiplier
               }
             })

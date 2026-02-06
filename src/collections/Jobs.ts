@@ -320,6 +320,15 @@ export const Jobs: CollectionConfig = {
             description: 'Hide this item from the technician\'s calendar invite to-do list (e.g., for post-production only tasks)',
           },
         },
+        {
+          name: 'amount',
+          type: 'number',
+          label: 'Custom Amount',
+          min: 0,
+          admin: {
+            description: 'Override the product base price with a custom amount. Leave empty to use product default.',
+          },
+        },
       ],
     },
     {
