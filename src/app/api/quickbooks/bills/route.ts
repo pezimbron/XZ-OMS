@@ -80,7 +80,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Get valid expense account ID
-    const expenseAccountId = await getExpenseAccountId(qbo)
+    let expenseAccountId: string
+    try {
+      expenseAccountId = await getExpenseAccountId(qbo)
+    } catch (err: any) {
+      console.error('Error getting expense account:', err)
+      return NextResponse.json(
+        { error: `Failed to find expense account: ${err.message}` },
+        { status: 500 }
+      )
+    }
 
     // Build QuickBooks bill object
     const billData = {
@@ -131,8 +140,17 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('QuickBooks bill creation error:', error)
+    console.error('Error response data:', error.response?.data)
+    console.error('Error status:', error.response?.status)
+
+    // Extract more detailed error message from QuickBooks
+    const qbError = error.response?.data?.Fault?.Error?.[0]
+    const errorMessage = qbError
+      ? `${qbError.Message}: ${qbError.Detail}`
+      : error.message || 'Failed to create bill in QuickBooks'
+
     return NextResponse.json(
-      { error: error.message || 'Failed to create bill in QuickBooks' },
+      { error: errorMessage, details: error.response?.data },
       { status: 500 }
     )
   }

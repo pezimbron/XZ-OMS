@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
     // Create token from callback URL
     const token = await quickbooksClient.createToken(url)
 
-    // Store token in memory (TODO: Store in database for production)
-    tokenStore.set(token)
-    console.log('QuickBooks token stored successfully')
+    // Store token in database for persistence across deploys
+    await tokenStore.set(token)
+    console.log('QuickBooks token stored successfully in database')
 
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_SERVER_URL}/oms/settings?quickbooks=connected`

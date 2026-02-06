@@ -36,6 +36,15 @@ class QuickBooksClient {
     return token
   }
 
+  // Async version for loading from database
+  async loadTokenAsync() {
+    const token = await tokenStore.load()
+    if (token) {
+      this.oauthClient.setToken(token)
+    }
+    return token
+  }
+
   getAuthUri() {
     return this.oauthClient.authorizeUri({
       scope: [OAuthClient.scopes.Accounting, OAuthClient.scopes.OpenId],
@@ -76,8 +85,8 @@ class QuickBooksClient {
 
   async makeApiCall(endpoint: string, method: string = 'GET', body?: any) {
     try {
-      // Load token from store before making API call
-      const storedToken = this.loadToken()
+      // Load token from store before making API call (async to load from DB if needed)
+      const storedToken = await this.loadTokenAsync()
       if (!storedToken) {
         throw new Error('No QuickBooks token available. Please authenticate first.')
       }
