@@ -167,6 +167,49 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Debug: collect client IDs from jobs and invoices
+    const jobClientIds = new Set(jobsResult.docs.map(j => {
+      const cid = typeof j.client === 'object' ? j.client?.id : j.client
+      return String(cid)
+    }))
+    const invoiceClientIds = new Set(invoicesResult.docs.map(i => {
+      const cid = typeof i.client === 'object' ? i.client?.id : i.client
+      return String(cid)
+    }))
+    const overlappingClients = [...jobClientIds].filter(id => invoiceClientIds.has(id))
+
+    // Sample data for debugging
+    const sampleJobs = jobsResult.docs.slice(0, 3).map(j => {
+      const clientId = typeof j.client === 'object' ? j.client?.id : j.client
+      const clientName = typeof j.client === 'object' ? (j.client as any)?.companyName : 'Unknown'
+      const lineItems = (j.lineItems as any[]) || []
+      const total = lineItems.reduce((sum, item) => {
+        const amount = item.amount ?? (item.product?.basePrice || 0)
+        return sum + (amount * (item.quantity || 1))
+      }, 0)
+      return {
+        id: j.id,
+        name: j.modelName,
+        clientId: String(clientId),
+        clientName,
+        date: j.targetDate,
+        total,
+      }
+    })
+
+    const sampleInvoices = invoicesResult.docs.slice(0, 3).map(i => {
+      const clientId = typeof i.client === 'object' ? i.client?.id : i.client
+      const clientName = typeof i.client === 'object' ? (i.client as any)?.companyName : 'Unknown'
+      return {
+        id: i.id,
+        invoiceNumber: i.invoiceNumber,
+        clientId: String(clientId),
+        clientName,
+        date: i.invoiceDate,
+        total: i.total,
+      }
+    })
+
     const summary = {
       totalJobsWithoutInvoice: jobsResult.docs.length,
       totalUnlinkedInvoices: invoicesResult.docs.length,
@@ -174,6 +217,13 @@ export async function GET(req: NextRequest) {
       medium: matches.filter(m => m.confidence === 'medium').length,
       low: matches.filter(m => m.confidence === 'low').length,
       none: matches.filter(m => m.confidence === 'none').length,
+      debug: {
+        jobClientIds: [...jobClientIds],
+        invoiceClientIds: [...invoiceClientIds],
+        overlappingClients,
+        sampleJobs,
+        sampleInvoices,
+      }
     }
 
     return NextResponse.json({
