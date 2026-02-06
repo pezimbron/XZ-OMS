@@ -11,7 +11,7 @@ async function getExpenseAccountId(qbo: typeof quickbooksClient): Promise<string
 
   try {
     // Query for expense accounts - look for "Subcontractors" or "Cost of Goods Sold" type
-    const query = `SELECT * FROM Account WHERE AccountType = 'Expense' OR AccountType = 'Cost of Goods Sold' MAXRESULTS 50`
+    const query = `SELECT * FROM Account WHERE AccountType IN ('Expense', 'Cost of Goods Sold') MAXRESULTS 50`
     const result = await qbo.makeApiCall(
       `query?query=${encodeURIComponent(query)}`,
       'GET'
@@ -42,9 +42,12 @@ async function getExpenseAccountId(qbo: typeof quickbooksClient): Promise<string
     }
 
     throw new Error('No expense account found in QuickBooks')
-  } catch (error) {
-    console.error('[QB] Error finding expense account:', error)
-    throw error
+  } catch (error: any) {
+    console.error('[QB] Error finding expense account:', error.message)
+    console.error('[QB] Error response:', error.response?.data)
+    // Re-throw with more context
+    const detail = error.response?.data?.Fault?.Error?.[0]?.Detail || error.message
+    throw new Error(detail)
   }
 }
 

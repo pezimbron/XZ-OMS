@@ -16,6 +16,7 @@ export const tokenStore = {
         collection: 'settings' as any,
         where: { key: { equals: 'quickbooks-token' } },
         limit: 1,
+        overrideAccess: true,
       })
 
       if (existing.docs.length > 0) {
@@ -23,13 +24,16 @@ export const tokenStore = {
           collection: 'settings' as any,
           id: existing.docs[0].id,
           data: { value: JSON.stringify(token) },
+          overrideAccess: true,
         })
       } else {
         await payload.create({
           collection: 'settings' as any,
           data: { key: 'quickbooks-token', value: JSON.stringify(token) },
+          overrideAccess: true,
         })
       }
+      console.log('[TokenStore] Token saved to database successfully')
     } catch (error) {
       console.error('Error storing token:', error)
       // Fallback: still keep in memory
@@ -52,12 +56,15 @@ export const tokenStore = {
         collection: 'settings' as any,
         where: { key: { equals: 'quickbooks-token' } },
         limit: 1,
+        overrideAccess: true,
       })
 
       if (result.docs.length > 0 && result.docs[0].value) {
         tokenCache = JSON.parse(result.docs[0].value as string)
+        console.log('[TokenStore] Token loaded from database')
         return tokenCache
       }
+      console.log('[TokenStore] No token found in database')
       return null
     } catch (error) {
       console.error('Error loading token:', error)
@@ -73,12 +80,14 @@ export const tokenStore = {
         collection: 'settings' as any,
         where: { key: { equals: 'quickbooks-token' } },
         limit: 1,
+        overrideAccess: true,
       })
 
       if (existing.docs.length > 0) {
         await payload.delete({
           collection: 'settings' as any,
           id: existing.docs[0].id,
+          overrideAccess: true,
         })
       }
     } catch (error) {

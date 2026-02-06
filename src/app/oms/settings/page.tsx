@@ -19,6 +19,8 @@ function SettingsContent() {
 
   useEffect(() => {
     fetchUser()
+    checkQbStatus()
+
     const qbStatus = searchParams.get('quickbooks')
     const message = searchParams.get('message')
 
@@ -29,6 +31,16 @@ function SettingsContent() {
       setSyncMessage(`QuickBooks connection error: ${message || 'Unknown error'}`)
     }
   }, [searchParams])
+
+  const checkQbStatus = async () => {
+    try {
+      const response = await fetch('/api/quickbooks/status')
+      const data = await response.json()
+      setQbConnected(data.connected && !data.expired)
+    } catch (error) {
+      console.error('Error checking QB status:', error)
+    }
+  }
 
   const fetchUser = async () => {
     try {
