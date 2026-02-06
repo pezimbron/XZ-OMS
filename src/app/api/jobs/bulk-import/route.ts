@@ -183,6 +183,23 @@ export async function POST(req: NextRequest) {
       productNameToObj[name] = { id: Number(product.id), name: product.name as string }
     }
 
+    // Fetch all invoices to link by invoice number
+    const invoicesResult = await payload.find({
+      collection: 'invoices',
+      limit: 1000,
+      overrideAccess: true,
+    })
+    const invoices = invoicesResult.docs
+
+    // Build invoice number lookup
+    const invoiceNumberToId: Record<string, number> = {}
+    for (const invoice of invoices) {
+      const invNum = String(invoice.invoiceNumber || '').trim()
+      if (invNum) {
+        invoiceNumberToId[invNum] = Number(invoice.id)
+      }
+    }
+
     const matches: MatchResult[] = []
 
     for (const row of rows) {
@@ -274,8 +291,12 @@ export async function POST(req: NextRequest) {
         updates.travelPayout = parseFloat(row.gasForTech) || undefined
       }
       if (row.invoiceNumber) {
-        // Store invoice number reference (you may need to adjust field name)
-        updates.externalInvoiceNumber = row.invoiceNumber
+        // Link to invoice if it exists
+        const invoiceId = invoiceNumberToId[row.invoiceNumber.trim()]
+        if (invoiceId) {
+          updates.invoice = invoiceId
+          updates.invoiceStatus = 'invoiced'
+        }
       }
 
       // Determine product to add based on job type
