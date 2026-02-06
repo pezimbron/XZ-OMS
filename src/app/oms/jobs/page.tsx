@@ -53,6 +53,7 @@ export default function JobsListPage() {
   const [dateTo, setDateTo] = useState<string>('')
   const [sortBy, setSortBy] = useState<string>('targetDate-desc')
   const [showFilters, setShowFilters] = useState(false)
+  const [viewTab, setViewTab] = useState<'active' | 'completed' | 'all'>('active')
   const [user, setUser] = useState<any>(null)
   const [clients, setClients] = useState<any[]>([])
   const [techs, setTechs] = useState<any[]>([])
@@ -134,8 +135,18 @@ export default function JobsListPage() {
       })
     : jobs
 
-  const filteredJobs = roleFilteredJobs.filter((job) => {
-    const matchesSearch = 
+  // Filter by tab first (active/completed/all)
+  const tabFilteredJobs = roleFilteredJobs.filter((job) => {
+    if (viewTab === 'active') {
+      return job.status !== 'done' && job.status !== 'archived'
+    } else if (viewTab === 'completed') {
+      return job.status === 'done' || job.status === 'archived'
+    }
+    return true // 'all' tab shows everything
+  })
+
+  const filteredJobs = tabFilteredJobs.filter((job) => {
+    const matchesSearch =
       job.jobId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.modelName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -143,7 +154,7 @@ export default function JobsListPage() {
 
     const matchesStatus = statusFilter === 'all' || job.status === statusFilter
     const matchesRegion = regionFilter === 'all' || job.region === regionFilter
-    
+
     const clientId = typeof job.client === 'object' ? job.client?.id : job.client
     const matchesClient = clientFilter === 'all' || String(clientId) === String(clientFilter)
 
@@ -156,6 +167,30 @@ export default function JobsListPage() {
 
     return matchesSearch && matchesStatus && matchesRegion && matchesClient && matchesTech && matchesDateFrom && matchesDateTo
   })
+
+  // Helper to toggle sort direction or set new field
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      // Toggle direction
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      // New field, default to descending for dates, ascending for text
+      const defaultDir = field === 'targetDate' ? 'desc' : 'asc'
+      setSortBy(`${field}-${defaultDir}`)
+    }
+  }
+
+  // Sort indicator component
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return (
+      <span className="ml-1 text-blue-500">
+        {direction === 'asc' ? '↑' : '↓'}
+      </span>
+    )
+  }
 
   // Sort jobs
   const sortedJobs = [...filteredJobs].sort((a, b) => {
@@ -178,6 +213,20 @@ export default function JobsListPage() {
         break
       case 'jobId':
         comparison = (a.jobId || '').localeCompare(b.jobId || '')
+        break
+      case 'model':
+        comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'location':
+        comparison = (a.city || '').localeCompare(b.city || '')
+        break
+      case 'tech':
+        const techA = a.tech?.name || 'zzz' // Put unassigned at end
+        const techB = b.tech?.name || 'zzz'
+        comparison = techA.localeCompare(techB)
+        break
+      case 'region':
+        comparison = (a.region || '').localeCompare(b.region || '')
         break
       default:
         comparison = 0
@@ -238,16 +287,16 @@ export default function JobsListPage() {
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 md:px-8 py-4">
-        {/* Primary Filters Row */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          {/* Search */}
-          <div className="flex-1">
+        {/* Primary Filters Row - Search + Buttons on same line */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
+          {/* Search - smaller width */}
+          <div className="sm:w-64 md:w-80">
             <input
               type="text"
-              placeholder="Search by Job ID, Model, Client, or City..."
+              placeholder="Search jobs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm md:text-base"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
             />
           </div>
 
@@ -255,7 +304,7 @@ export default function JobsListPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm md:text-base"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="all">All Statuses</option>
             <option value="request">Request</option>
@@ -270,7 +319,7 @@ export default function JobsListPage() {
           <select
             value={regionFilter}
             onChange={(e) => setRegionFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm md:text-base"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
           >
             <option value="all">All Regions</option>
             <option value="austin">Austin</option>
@@ -278,21 +327,19 @@ export default function JobsListPage() {
             <option value="outsourced">Outsourced</option>
             <option value="other">Other</option>
           </select>
-        </div>
 
-        {/* Filter Actions Row */}
-        <div className="flex flex-wrap gap-2 mt-3">
+          {/* + More Filters button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium text-sm whitespace-nowrap"
           >
-            {showFilters ? '− Less Filters' : '+ More Filters'}
+            {showFilters ? '− Less' : '+ More Filters'}
           </button>
 
-          {/* Clear Filters */}
+          {/* Clear All button */}
           <button
             onClick={clearFilters}
-            className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium text-sm whitespace-nowrap"
           >
             Clear All
           </button>
@@ -350,9 +397,30 @@ export default function JobsListPage() {
           </div>
         )}
 
+        {/* Tabs for Active/Completed/All */}
+        <div className="flex gap-1 mt-4 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { key: 'active', label: 'Active', count: roleFilteredJobs.filter(j => j.status !== 'done' && j.status !== 'archived').length },
+            { key: 'completed', label: 'Completed', count: roleFilteredJobs.filter(j => j.status === 'done' || j.status === 'archived').length },
+            { key: 'all', label: 'All', count: roleFilteredJobs.length },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setViewTab(tab.key as typeof viewTab)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                viewTab === tab.key
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
         {/* Results count */}
         <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-          Showing {sortedJobs.length} of {jobs.length} jobs
+          Showing {sortedJobs.length} jobs
         </div>
       </div>
 
@@ -370,29 +438,50 @@ export default function JobsListPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Client
+                      <th
+                        onClick={() => handleSort('client')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Client<SortIndicator field="client" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Model
+                      <th
+                        onClick={() => handleSort('model')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Model<SortIndicator field="model" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Location
+                      <th
+                        onClick={() => handleSort('location')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Location<SortIndicator field="location" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Date
+                      <th
+                        onClick={() => handleSort('targetDate')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Date<SortIndicator field="targetDate" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Tech
+                      <th
+                        onClick={() => handleSort('tech')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Tech<SortIndicator field="tech" />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Status
+                      <th
+                        onClick={() => handleSort('status')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Status<SortIndicator field="status" />
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Workflow
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Region
+                      <th
+                        onClick={() => handleSort('region')}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                      >
+                        Region<SortIndicator field="region" />
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Actions
