@@ -3,6 +3,51 @@ import { quickbooksClient } from '@/lib/quickbooks/client'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 
+// Cache for expense account ID
+let cachedExpenseAccountId: string | null = null
+
+async function getExpenseAccountId(qbo: typeof quickbooksClient): Promise<string> {
+  if (cachedExpenseAccountId) return cachedExpenseAccountId
+
+  try {
+    // Query for expense accounts - look for "Subcontractors" or "Cost of Goods Sold" type
+    const query = `SELECT * FROM Account WHERE AccountType = 'Expense' OR AccountType = 'Cost of Goods Sold' MAXRESULTS 50`
+    const result = await qbo.makeApiCall(
+      `query?query=${encodeURIComponent(query)}`,
+      'GET'
+    )
+
+    const accounts = result?.QueryResponse?.Account || []
+
+    // Prefer accounts with "subcontractor" or "contractor" in the name
+    let preferredAccount = accounts.find((a: any) =>
+      a.Name?.toLowerCase().includes('subcontractor') ||
+      a.Name?.toLowerCase().includes('contractor')
+    )
+
+    // Fall back to "Cost of Goods Sold" type
+    if (!preferredAccount) {
+      preferredAccount = accounts.find((a: any) => a.AccountType === 'Cost of Goods Sold')
+    }
+
+    // Fall back to any expense account
+    if (!preferredAccount && accounts.length > 0) {
+      preferredAccount = accounts[0]
+    }
+
+    if (preferredAccount) {
+      cachedExpenseAccountId = preferredAccount.Id
+      console.log(`[QB] Using expense account: ${preferredAccount.Name} (ID: ${preferredAccount.Id})`)
+      return preferredAccount.Id
+    }
+
+    throw new Error('No expense account found in QuickBooks')
+  } catch (error) {
+    console.error('[QB] Error finding expense account:', error)
+    throw error
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { vendorId, invoiceData, jobId } = await request.json()
@@ -34,6 +79,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'QuickBooks not connected' }, { status: 400 })
     }
 
+    // Get valid expense account ID
+    const expenseAccountId = await getExpenseAccountId(qbo)
+
     // Build QuickBooks bill object
     const billData = {
       VendorRef: {
@@ -50,7 +98,7 @@ export async function POST(request: NextRequest) {
           Description: invoiceData.description || 'Subcontractor services',
           AccountBasedExpenseLineDetail: {
             AccountRef: {
-              value: '1', // Expense account - should be configurable
+              value: expenseAccountId,
             },
           },
         },
