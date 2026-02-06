@@ -86,6 +86,7 @@ export interface Config {
     'workflow-templates': WorkflowTemplate;
     'job-templates': JobTemplate;
     'job-messages': JobMessage;
+    settings: Setting;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
@@ -116,6 +117,7 @@ export interface Config {
     'workflow-templates': WorkflowTemplatesSelect<false> | WorkflowTemplatesSelect<true>;
     'job-templates': JobTemplatesSelect<false> | JobTemplatesSelect<true>;
     'job-messages': JobMessagesSelect<false> | JobMessagesSelect<true>;
+    settings: SettingsSelect<false> | SettingsSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
@@ -1730,6 +1732,17 @@ export interface JobMessage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings".
+ */
+export interface Setting {
+  id: number;
+  key: string;
+  value: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "redirects".
  */
 export interface Redirect {
@@ -1900,6 +1913,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'job-messages';
         value: number | JobMessage;
+      } | null)
+    | ({
+        relationTo: 'settings';
+        value: number | Setting;
       } | null)
     | ({
         relationTo: 'redirects';
@@ -2765,6 +2782,16 @@ export interface JobMessagesSelect<T extends boolean = true> {
   sentVia?: T;
   emailSent?: T;
   smsSent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings_select".
+ */
+export interface SettingsSelect<T extends boolean = true> {
+  key?: T;
+  value?: T;
   updatedAt?: T;
   createdAt?: T;
 }
