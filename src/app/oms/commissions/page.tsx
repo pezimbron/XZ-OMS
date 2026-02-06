@@ -119,6 +119,24 @@ export default function CommissionsPage() {
   const [selectedJobIds, setSelectedJobIds] = useState<Record<string, boolean>>({})
   const [bulkStatus, setBulkStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [bulkError, setBulkError] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<string>('date-desc')
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      const defaultDir = field === 'date' || field === 'payout' || field === 'payoutDate' ? 'desc' : 'asc'
+      setSortBy(`${field}-${defaultDir}`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
 
   const isTech = user?.role === 'tech'
   const isAdminView = !!user && !isTech
@@ -251,9 +269,47 @@ export default function CommissionsPage() {
     return true
   })
 
+  // Sort jobs
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'jobId':
+        comparison = (a.jobId || '').localeCompare(b.jobId || '')
+        break
+      case 'client':
+        comparison = (a.client?.name || '').localeCompare(b.client?.name || '')
+        break
+      case 'tech':
+        comparison = ((a as any).tech?.name || '').localeCompare((b as any).tech?.name || '')
+        break
+      case 'date':
+        const dateA = a.scannedDate || a.targetDate
+        const dateB = b.scannedDate || b.targetDate
+        comparison = (dateA ? new Date(dateA).getTime() : 0) - (dateB ? new Date(dateB).getTime() : 0)
+        break
+      case 'payoutDate':
+        const payoutA = a.commissionPayoutDate ? new Date(a.commissionPayoutDate).getTime() : 0
+        const payoutB = b.commissionPayoutDate ? new Date(b.commissionPayoutDate).getTime() : 0
+        comparison = payoutA - payoutB
+        break
+      case 'status':
+        comparison = (a.commissionPaymentStatus || '').localeCompare(b.commissionPaymentStatus || '')
+        break
+      case 'payout':
+        comparison = calculatePayout(a) - calculatePayout(b)
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
+  })
+
   const selectedIds = Object.keys(selectedJobIds).filter((id) => selectedJobIds[id])
 
-  const allVisibleSelected = isAdminView && filteredJobs.length > 0 && filteredJobs.every((j: any) => !!selectedJobIds[j.id])
+  const allVisibleSelected = isAdminView && sortedJobs.length > 0 && sortedJobs.every((j: any) => !!selectedJobIds[j.id])
 
   const patchJob = async (jobId: string, update: any) => {
     const response = await fetch(`/api/jobs/${jobId}`, {
@@ -417,7 +473,7 @@ export default function CommissionsPage() {
                 <button
                   onClick={() => {
                     const next: Record<string, boolean> = {}
-                    for (const j of filteredJobs) next[j.id] = true
+                    for (const j of sortedJobs) next[j.id] = true
                     setSelectedJobIds(next)
                   }}
                   className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded text-gray-900 dark:text-white"
@@ -571,7 +627,7 @@ export default function CommissionsPage() {
                         onChange={(e) => {
                           const checked = e.target.checked
                           const next: Record<string, boolean> = { ...selectedJobIds }
-                          for (const j of filteredJobs) {
+                          for (const j of sortedJobs) {
                             next[j.id] = checked
                           }
                           setSelectedJobIds(next)
@@ -579,28 +635,49 @@ export default function CommissionsPage() {
                       />
                     </th>
                   ) : null}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Job ID
+                  <th
+                    onClick={() => handleSort('jobId')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Job ID<SortIndicator field="jobId" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Client
+                  <th
+                    onClick={() => handleSort('client')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Client<SortIndicator field="client" />
                   </th>
                   {isAdminView ? (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Tech
+                    <th
+                      onClick={() => handleSort('tech')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                    >
+                      Tech<SortIndicator field="tech" />
                     </th>
                   ) : null}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Date
+                  <th
+                    onClick={() => handleSort('date')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Date<SortIndicator field="date" />
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Payout Date
+                  <th
+                    onClick={() => handleSort('payoutDate')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Payout Date<SortIndicator field="payoutDate" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
+                  <th
+                    onClick={() => handleSort('status')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Status<SortIndicator field="status" />
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Payout
+                  <th
+                    onClick={() => handleSort('payout')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Payout<SortIndicator field="payout" />
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Actions
@@ -608,14 +685,14 @@ export default function CommissionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredJobs.length === 0 ? (
+                {sortedJobs.length === 0 ? (
                   <tr>
                     <td colSpan={emptyColSpan} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No jobs found
                     </td>
                   </tr>
                 ) : (
-                  filteredJobs.map((job) => (
+                  sortedJobs.map((job) => (
                     <tr
                       key={job.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"

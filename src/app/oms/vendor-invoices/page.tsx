@@ -66,6 +66,55 @@ export default function VendorInvoicesPage() {
   // Sync state
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<string>('createdAt-desc')
+
+  // Sort helper
+  const handleSort = (field: string) => {
+    const [currentField, currentDirection] = sortBy.split('-')
+    if (currentField === field) {
+      setSortBy(`${field}-${currentDirection === 'asc' ? 'desc' : 'asc'}`)
+    } else {
+      const defaultDir = field === 'createdAt' || field === 'amount' ? 'desc' : 'asc'
+      setSortBy(`${field}-${defaultDir}`)
+    }
+  }
+
+  const SortIndicator = ({ field }: { field: string }) => {
+    const [currentField, direction] = sortBy.split('-')
+    if (currentField !== field) return null
+    return <span className="ml-1 text-blue-500">{direction === 'asc' ? '↑' : '↓'}</span>
+  }
+
+  // Sort invoices
+  const sortedInvoices = [...invoices].sort((a, b) => {
+    const [field, direction] = sortBy.split('-')
+    let comparison = 0
+
+    switch (field) {
+      case 'vendor':
+        comparison = (a.vendor?.name || a.supplier || '').localeCompare(b.vendor?.name || b.supplier || '')
+        break
+      case 'job':
+        comparison = (a.jobNumber || '').localeCompare(b.jobNumber || '')
+        break
+      case 'description':
+        comparison = (a.description || '').localeCompare(b.description || '')
+        break
+      case 'amount':
+        comparison = (a.amount || 0) - (b.amount || 0)
+        break
+      case 'status':
+        comparison = (a.paymentStatus || '').localeCompare(b.paymentStatus || '')
+        break
+      case 'createdAt':
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        break
+      default:
+        comparison = 0
+    }
+
+    return direction === 'desc' ? -comparison : comparison
+  })
 
   useEffect(() => {
     fetchInvoices()
@@ -311,89 +360,77 @@ export default function VendorInvoicesPage() {
 
         {/* Filters */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <div className="flex flex-col md:flex-row md:items-end gap-4">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Vendor</label>
-                <select
-                  value={vendorFilter}
-                  onChange={(e) => { setVendorFilter(e.target.value); setPage(1) }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All Vendors</option>
-                  {vendors.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Status</label>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="unpaid">Unpaid</option>
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date From</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date To</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
+          {/* Compact filter row */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-4">
+            <select
+              value={vendorFilter}
+              onChange={(e) => { setVendorFilter(e.target.value); setPage(1) }}
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            >
+              <option value="all">All Vendors</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">From:</label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
             </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleBulkSyncQB}
-                disabled={syncing}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {syncing ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Syncing...
-                  </>
-                ) : (
-                  <>Sync All QB Status</>
-                )}
-              </button>
-
-              <button
-                onClick={() => {
-                  setVendorFilter('all')
-                  setStatusFilter('all')
-                  setDateFrom('')
-                  setDateTo('')
-                  setPage(1)
-                }}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Reset Filters
-              </button>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 dark:text-gray-400">To:</label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
             </div>
+            <button
+              onClick={handleBulkSyncQB}
+              disabled={syncing}
+              className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {syncing ? 'Syncing...' : 'Sync QB'}
+            </button>
+            <button
+              onClick={() => {
+                setVendorFilter('all')
+                setStatusFilter('all')
+                setDateFrom('')
+                setDateTo('')
+                setPage(1)
+              }}
+              className="px-3 py-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium whitespace-nowrap"
+            >
+              Clear All
+            </button>
+          </div>
+
+          {/* Status Tabs */}
+          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+            {[
+              { value: 'all', label: 'All', count: stats?.totalInvoices || 0 },
+              { value: 'unpaid', label: 'Unpaid', count: stats?.byStatus.unpaid.count || 0 },
+              { value: 'pending', label: 'Pending', count: stats?.byStatus.pending.count || 0 },
+              { value: 'paid', label: 'Paid', count: stats?.byStatus.paid.count || 0 },
+            ].map(({ value, label, count }) => (
+              <button
+                key={value}
+                onClick={() => { setStatusFilter(value); setPage(1) }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  statusFilter === value
+                    ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            ))}
           </div>
 
           {/* Sync Message */}
@@ -414,20 +451,35 @@ export default function VendorInvoicesPage() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Vendor
+                  <th
+                    onClick={() => handleSort('vendor')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Vendor<SortIndicator field="vendor" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Job
+                  <th
+                    onClick={() => handleSort('job')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Job<SortIndicator field="job" />
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Description
+                  <th
+                    onClick={() => handleSort('description')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Description<SortIndicator field="description" />
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Amount
+                  <th
+                    onClick={() => handleSort('amount')}
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Amount<SortIndicator field="amount" />
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
+                  <th
+                    onClick={() => handleSort('status')}
+                    className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Status<SortIndicator field="status" />
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     QB Sync
@@ -438,14 +490,14 @@ export default function VendorInvoicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {invoices.length === 0 ? (
+                {sortedInvoices.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No vendor invoices found
                     </td>
                   </tr>
                 ) : (
-                  invoices.map((invoice) => (
+                  sortedInvoices.map((invoice) => (
                     <tr
                       key={invoice.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"

@@ -7,7 +7,10 @@ import MatterportImportModal from '@/components/oms/MatterportImportModal'
 interface Job {
   id: string
   jobId: string
+  apInvoiceNumber?: string
   modelName: string
+  captureAddress?: string
+  city?: string
   status: string
   invoiceStatus?: string
   client: {
@@ -163,19 +166,23 @@ export default function InvoicingPage() {
   const filteredJobs = jobs.filter(job => {
     // Billing preference filter
     if (filter !== 'all' && job.client?.billingPreference !== filter) return false
-    
-    // Client filter
-    if (clientFilter !== 'all' && job.client?.id !== clientFilter) return false
-    
-    // Search term (job ID, model name, or client name)
+
+    // Client filter - convert both to strings for comparison
+    const jobClientId = typeof job.client === 'object' ? String(job.client?.id) : String(job.client)
+    if (clientFilter !== 'all' && jobClientId !== String(clientFilter)) return false
+
+    // Search term (job ID, AP invoice #, model name, client name, or address)
     if (searchTerm) {
       const search = searchTerm.toLowerCase()
       const matchesJobId = job.jobId?.toLowerCase().includes(search)
+      const matchesApInvoice = job.apInvoiceNumber?.toLowerCase().includes(search)
       const matchesModelName = job.modelName?.toLowerCase().includes(search)
       const matchesClientName = job.client?.name?.toLowerCase().includes(search)
-      if (!matchesJobId && !matchesModelName && !matchesClientName) return false
+      const matchesAddress = job.captureAddress?.toLowerCase().includes(search)
+      const matchesCity = job.city?.toLowerCase().includes(search)
+      if (!matchesJobId && !matchesApInvoice && !matchesModelName && !matchesClientName && !matchesAddress && !matchesCity) return false
     }
-    
+
     return true
   })
 
@@ -188,11 +195,17 @@ export default function InvoicingPage() {
       case 'jobId':
         comparison = (a.jobId || '').localeCompare(b.jobId || '')
         break
+      case 'apInvoiceNumber':
+        comparison = (a.apInvoiceNumber || '').localeCompare(b.apInvoiceNumber || '')
+        break
       case 'client':
         comparison = (a.client?.name || '').localeCompare(b.client?.name || '')
         break
       case 'model':
         comparison = (a.modelName || '').localeCompare(b.modelName || '')
+        break
+      case 'address':
+        comparison = (a.captureAddress || '').localeCompare(b.captureAddress || '')
         break
       case 'completedDate':
         const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0
@@ -463,10 +476,22 @@ export default function InvoicingPage() {
                     Job ID<SortIndicator field="jobId" />
                   </th>
                   <th
+                    onClick={() => handleSort('apInvoiceNumber')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    AP Invoice #<SortIndicator field="apInvoiceNumber" />
+                  </th>
+                  <th
                     onClick={() => handleSort('model')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
                   >
                     Model / Client<SortIndicator field="model" />
+                  </th>
+                  <th
+                    onClick={() => handleSort('address')}
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none"
+                  >
+                    Address<SortIndicator field="address" />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Billing Type
@@ -491,7 +516,7 @@ export default function InvoicingPage() {
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {sortedJobs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       <p className="text-lg">No jobs ready to invoice</p>
                       <p className="text-sm mt-2">Completed jobs will appear here when they&apos;re ready to be invoiced</p>
                     </td>
@@ -518,6 +543,9 @@ export default function InvoicingPage() {
                           {job.jobId || job.id}
                         </Link>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                        {job.apInvoiceNumber || '-'}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {job.modelName}
@@ -525,6 +553,16 @@ export default function InvoicingPage() {
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           {job.client?.name || 'Unknown'}
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 dark:text-white max-w-[200px] truncate" title={job.captureAddress || ''}>
+                          {job.captureAddress || '-'}
+                        </div>
+                        {job.city && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {job.city}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getBillingBadge(job.client?.billingPreference || 'immediate')}
