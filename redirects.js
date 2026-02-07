@@ -12,7 +12,14 @@ const redirects = async () => {
     source: '/:path((?!ie-incompatible.html$).*)', // all pages except the incompatibility page
   }
 
-  const redirects = [internetExplorerRedirect]
+  // Redirect root to /oms dashboard
+  const rootRedirect = {
+    source: '/',
+    destination: '/oms',
+    permanent: false,
+  }
+
+  const redirects = [internetExplorerRedirect, rootRedirect]
 
   return redirects
 }
