@@ -8,15 +8,26 @@ The XZ OMS now has a unified structure with consistent navigation, dark mode sup
 
 ```
 /oms                          → Dashboard (Homepage)
-/oms/calendar                 → Calendar View
+/oms/calendar                 → Calendar View (color-coded by region)
 /oms/quick-create             → Quick Create Job (AI-powered)
-/oms/jobs                     → Jobs Management (TODO)
-/oms/clients                  → Clients Management (TODO)
-/oms/technicians              → Technicians Management (TODO)
-/oms/products                 → Products Management (TODO)
-/oms/equipment                → Equipment Management (TODO)
-/oms/reports                  → Reports & Analytics (TODO)
-/oms/settings                 → Settings (TODO)
+/oms/jobs                     → Jobs List (sortable, filterable, tabs)
+/oms/jobs/[id]                → Job Detail (8 tabs)
+/oms/clients                  → Clients List (sortable, tabs)
+/oms/clients/[id]             → Client Detail (5 tabs)
+/oms/technicians              → Technicians List (sortable, Active/Inactive tabs)
+/oms/technicians/create       → Create Technician
+/oms/technicians/[id]         → Technician Detail/Edit
+/oms/vendors                  → Vendors List (sortable, tabs, QB import)
+/oms/vendors/create           → Create Vendor
+/oms/vendors/[id]             → Vendor Detail/Edit
+/oms/invoicing                → Invoicing Queue (jobs ready to invoice)
+/oms/invoices                 → Invoice List (sortable, status tabs)
+/oms/vendor-invoices          → Vendor Invoice Dashboard
+/oms/commissions              → Tech Payroll/Commissions
+/oms/qc-queue                 → Post-processing Queue
+/oms/job-templates            → Job Templates
+/oms/notifications            → Full Notifications Page
+/oms/reports                  → Reports & Analytics (PLANNED)
 
 /admin/*                      → Payload CMS (Super-admin only)
 ```
@@ -101,51 +112,67 @@ All components use Tailwind's dark mode classes:
 - Filter menu items based on user role
 - Protect routes with middleware
 
-## 📋 TODO: Remaining Pages
+## ✅ Completed Features
 
-### Jobs Management (`/oms/jobs`)
-- [ ] List view with filters
-- [ ] Detail view with all fields
-- [ ] Create/Edit forms
-- [ ] QC workflow interface
-- [ ] Status transitions
+### Jobs Management (`/oms/jobs`) ✅
+- [x] List view with sortable columns and filters
+- [x] Tab-based filtering (Active/Completed/All)
+- [x] Detail view with 8 tabs (Details, Location, Workflow, Scheduling, Messages, Invoicing, Files, Settings)
+- [x] Inline editing with autosave
+- [x] QC workflow interface
+- [x] Status transitions
 
-### Clients Management (`/oms/clients`)
-- [ ] List view with search
-- [ ] Detail view with job history
-- [ ] Create/Edit forms
-- [ ] Instruction templates
+### Clients Management (`/oms/clients`) ✅
+- [x] List view with search and sortable columns
+- [x] Detail view with 5 tabs
+- [x] Create/Edit forms
+- [x] QuickBooks sync
+- [x] Job history
 
-### Technicians Management (`/oms/technicians`)
-- [ ] List view with status
-- [ ] Detail view with schedule
-- [ ] Create/Edit forms
-- [ ] Commission tracking
-- [ ] Availability calendar
+### Technicians Management (`/oms/technicians`) ✅
+- [x] List view with Active/Inactive tabs
+- [x] Sortable columns (Name, Email, Type, Rate)
+- [x] Detail view with job stats
+- [x] Create/Edit forms
+- [x] Commission tracking
 
-### Products Management (`/oms/products`)
-- [ ] Catalog view
-- [ ] Detail view with pricing
-- [ ] Create/Edit forms
-- [ ] Default instructions
+### Vendors Management (`/oms/vendors`) ✅
+- [x] List view with Active/Inactive tabs
+- [x] QuickBooks import
+- [x] Detail view with QB sync status
+- [x] Create/Edit forms
 
-### Equipment Management (`/oms/equipment`)
-- [ ] List view with status
-- [ ] Detail view with maintenance
-- [ ] Create/Edit forms
-- [ ] Assignment tracking
+### Invoicing System ✅
+- [x] Invoicing queue with sortable columns
+- [x] Bulk invoice generation
+- [x] Invoice list with status tabs
+- [x] Vendor invoices dashboard
+- [x] Commissions page
 
-### Reports & Analytics (`/oms/reports`)
-- [ ] Financial reports
-- [ ] Tech performance
-- [ ] Client activity
-- [ ] Charts and graphs
+### Products & Equipment
+- [x] Products managed via Payload admin
+- [x] Equipment managed via Payload admin
 
-### Settings (`/oms/settings`)
-- [ ] User profile
-- [ ] Preferences
-- [ ] User management (admin only)
-- [ ] System settings
+## 📋 TODO: Remaining Features
+
+### Reports & Analytics (`/oms/reports`) - PLANNED
+- [ ] Revenue reports (by period, by client)
+- [ ] Tech performance metrics
+- [ ] Client activity reports
+- [ ] Operations overview
+- [ ] Charts with recharts
+- [ ] CSV/PDF export
+
+### Public Scheduling - PLANNED
+- [ ] Public scheduling page at `/schedule`
+- [ ] Tech availability by region
+- [ ] SchedulingRequests collection
+- [ ] Admin approval workflow
+
+### HubSpot Integration - PLANNED
+- [ ] Client/contact sync
+- [ ] Deal creation from jobs
+- [ ] Activity logging
 
 ## 🚀 Migration Path
 
@@ -156,19 +183,20 @@ All components use Tailwind's dark mode classes:
 - [x] Move Calendar to `/oms/calendar`
 - [x] Move Quick Create to `/oms/quick-create`
 
-### Phase 2: Data Management (Next)
-- [ ] Build Jobs list and detail pages
-- [ ] Build Clients management
-- [ ] Build Technicians management
-- [ ] Build Products catalog
-- [ ] Build Equipment tracking
+### Phase 2: Data Management ✅
+- [x] Build Jobs list and detail pages
+- [x] Build Clients management
+- [x] Build Technicians management
+- [x] Build Vendors management
+- [x] Build Invoicing system
+- [x] Sortable columns on all list pages
+- [x] Tab-based filtering (Active/Inactive/Completed)
 
-### Phase 3: Advanced Features
-- [ ] Reports and analytics
-- [ ] Settings and preferences
-- [ ] Role-based access control
-- [ ] Authentication middleware
-- [ ] Advanced workflows
+### Phase 3: Business Integrations (Current)
+- [ ] Enhanced Reporting & Analytics
+- [ ] HubSpot Integration
+- [ ] Public Scheduling Page
+- [ ] SMS notifications (Twilio)
 
 ## 🔧 Technical Details
 
@@ -206,33 +234,31 @@ src/
 
 ## 🎯 Next Steps
 
-1. **Build Jobs Management Pages**
-   - List view with filters and search
-   - Detail view with all job information
-   - Create/Edit forms
-   - Link from calendar events
+1. **Enhanced Reporting & Analytics** (Recommended first)
+   - Revenue reports with date range filters
+   - Tech performance metrics
+   - Client activity reports
+   - Charts using `recharts`
+   - CSV export functionality
 
-2. **Implement Role-Based Access**
-   - Fetch user role from session
-   - Filter navigation menu
-   - Protect routes with middleware
-   - Show/hide features by role
+2. **HubSpot Integration**
+   - Create HubSpot client library (similar to QuickBooks pattern)
+   - Sync clients/contacts to HubSpot
+   - Create deals from jobs
+   - Log activities to timeline
 
-3. **Build Remaining Management Pages**
-   - Clients, Technicians, Products, Equipment
-   - Follow same pattern as Jobs
-   - Consistent styling and UX
-
-4. **Add Advanced Features**
-   - Reports and analytics
-   - Settings and preferences
-   - Bulk operations
-   - Export functionality
+3. **Public Scheduling Page**
+   - Add availability fields to Technicians
+   - Create SchedulingRequests collection
+   - Build public form at `/schedule`
+   - Admin queue for approvals
 
 ## 📝 Notes
 
-- Old standalone routes (`/calendar`, `/quick-create`) still exist but should be deprecated
 - Payload admin at `/admin` remains for super-admin database access
 - All new features should be built under `/oms/*`
 - Dark mode works automatically via ThemeContext
-- Navigation is role-aware (just need to implement filtering)
+- All list pages have consistent UX: sortable columns, tab filters, compact search
+- Navigation is role-aware with role-based visibility
+
+**Last Updated**: February 6, 2026

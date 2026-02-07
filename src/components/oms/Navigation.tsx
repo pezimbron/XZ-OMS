@@ -49,6 +49,7 @@ const navGroups: NavGroup[] = [
       { label: 'Invoices', href: '/oms/invoices', icon: '🧾', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
       { label: 'Vendor Invoices', href: '/oms/vendor-invoices', icon: '📑', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
       { label: 'Commissions', href: '/oms/commissions', icon: '💵', roles: ['super-admin', 'ops-manager', 'tech'] },
+      { label: 'Reports', href: '/oms/reports', icon: '📈', roles: ['super-admin', 'sales-admin', 'ops-manager'] },
     ],
   },
   {

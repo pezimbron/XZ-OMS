@@ -55,6 +55,7 @@
     "react-big-calendar": "^1.19.4",
     "react-dom": "19.0.0-rc-65a56d0e-20241020",
     "react-hook-form": "7.45.4",
+    "recharts": "^3.7.0",
     "resend": "^6.8.0",
     "sharp": "0.32.6",
     "tailwind-merge": "^2.5.5",

@@ -181,6 +181,7 @@ JobMessages → Jobs (polymorphic author: User OR Technician)
 - `GET /api/vendor-invoices` - Aggregated vendor expenses (filterable, paginated). Excludes auto-generated product expenses.
 
 ### Invoice Processing
+- `POST /api/invoices/generate` - Generate invoice from selected jobs
 - `POST /api/sub-invoice/parse-pdf` - Parse PDF invoice
 - `POST /api/sub-invoice/parse` - Parse CSV invoice
 
@@ -427,22 +428,25 @@ pnpm payload generate:types  # Regenerate types
 - QuickBooks client + vendor import
 - Production deployment with branch-based deploys (main → dev, production → prod)
 - Historical data migration (75 jobs, 13 techs, clients/vendors from QB)
+- All list pages: sortable columns, tab-based filtering (Active/Inactive/All), compact filter layouts
 
 ### Phase 2: Business Integrations - IN PROGRESS
-- **Payment Matching System** - PLANNED (see plan file)
-  - New `Payments` collection
-  - Import payments via CSV or manual entry
-  - Match payments to completed jobs
-  - Auto-generate invoices with paidAmount tracking
-- **HubSpot Integration** - NOT STARTED
-- **Public Scheduling Page** - NOT STARTED (regional availability)
+- **Enhanced Reporting & Analytics** - PLANNED
+  - Revenue reports, tech performance, client activity
+  - Charts with `recharts`, CSV export
+- **HubSpot Integration** - PLANNED
+  - Sync clients/contacts/deals to HubSpot CRM
+  - Log job activities to timeline
+- **Public Scheduling Page** - PLANNED
+  - Public form for appointment requests
+  - Tech availability by region
+  - New `SchedulingRequests` collection
 - **SMS notifications (Twilio)** - NOT STARTED
 
 ### Phase 3: Client Experience - NOT STARTED
 - Client portal
-- Enhanced reporting & analytics
 - Mobile app
 
 ---
 
-**Last Updated**: February 4, 2026
+**Last Updated**: February 6, 2026

@@ -10,7 +10,8 @@
       "Bash(pnpm payload migrate:create:*)",
       "Bash(NODE_OPTIONS=--no-deprecation pnpm payload migrate:create:*)",
       "Bash(node:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }
